@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const { resolveBatch } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
@@ -54,7 +55,16 @@ Page({
       type: "getFamilyMembers",
       familyId: currentFamily._id,
     });
-    this.setData({ members: (resp && resp.members) || [] });
+    const raw = (resp && resp.members) || [];
+    const urls = raw.map((m) => m && m.avatarUrl).filter(Boolean);
+    const map = await resolveBatch(urls, { familyId: currentFamily._id });
+    const members = raw.map((m) => {
+      if (!m) return m;
+      const u = m.avatarUrl;
+      const display = u && map[u] ? map[u] : u;
+      return { ...m, avatarUrlDisplay: display || u };
+    });
+    this.setData({ members });
   },
 
   async onCreateFamily() {
@@ -95,8 +105,7 @@ Page({
     });
     const app = getApp();
     app.globalData.currentFamilyId = familyId;
-    const currentFamily = (this.data.families || []).find((f) => f._id === familyId) || null;
-    this.setData({ currentFamily });
+    await this.refreshFamilies();
     await this.refreshMembers();
   },
 

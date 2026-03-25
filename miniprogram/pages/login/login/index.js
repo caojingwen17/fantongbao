@@ -1,102 +1,161 @@
 const cloud = require("../../../utils/cloud");
 
+const SESSION_KEY = "fantongbao_session";
+
+/** 微信静默/旧接口返回的占位昵称，不能当作真实资料 */
+const PLACEHOLDER_NICKNAMES = ["微信用户", "WeChat User"];
+
+function isPlaceholderNickName(name) {
+  if (!name || typeof name !== "string") return true;
+  return PLACEHOLDER_NICKNAMES.includes(name.trim());
+}
+
+/** 文档中的默认灰头像 URL 片段，旧授权常见 */
+function isWeChatDefaultAvatarUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  return url.indexOf("mmbiz/icTdbqWNOwNRna42") !== -1;
+}
+
 Page({
   data: {
     isLoading: false,
+    checkingSession: true,
+    nickName: "",
+    avatarTempPath: "",
+    avatarPreview: "",
   },
 
-  async onGetUserInfo(e) {
+  onLoad() {
+    this.trySilentLogin();
+  },
+
+  async trySilentLogin() {
     try {
-      let userInfo = e && e.detail ? e.detail.userInfo : null;
-
-      // 兼容：有些情况下 e.detail.userInfo 可能为空（用户未授权或基础库差异）
-      if (!userInfo && typeof wx.getUserProfile === "function") {
-        userInfo = await new Promise((resolve) => {
-          wx.getUserProfile({
-            desc: "用于展示昵称和头像，创建/加入家庭",
-            success: (res) => resolve(res && res.userInfo ? res.userInfo : null),
-            fail: () => resolve(null),
-          });
-        });
-      }
-
-      if (!userInfo) {
-        wx.showToast({ title: "未获取到头像/昵称授权", icon: "none" });
-        return;
-      }
-
-      // 部分情况下，微信会返回占位数据（nickName 可能为“微信用户”）
-      if (userInfo.nickName === "微信用户" || !userInfo.avatarUrl) {
-        const settingRes = await new Promise((resolve) => {
-          wx.getSetting({
-            success: (res) => resolve(res || {}),
-            fail: () => resolve({}),
-          });
-        });
-        const allowed = !!(settingRes && settingRes.authSetting && settingRes.authSetting["scope.userInfo"]);
-        if (!allowed) {
-          wx.showModal({
-            title: "需要授权",
-            content: "请到设置中开启“获取您的昵称和头像”，授权后再登录。",
-            confirmText: "去设置",
-            success: (r) => {
-              if (r.confirm) wx.openSetting();
-            },
-          });
-          return;
+      const s = wx.getStorageSync(SESSION_KEY);
+      const badNick = s && isPlaceholderNickName(s.nickName);
+      const badAvatar =
+        s &&
+        s.avatarUrl &&
+        typeof s.avatarUrl === "string" &&
+        isWeChatDefaultAvatarUrl(s.avatarUrl);
+      if (!s || !s.nickName || !s.avatarUrl || badNick || badAvatar) {
+        if (badNick || badAvatar) {
+          wx.removeStorageSync(SESSION_KEY);
         }
-        // 如果已授权但仍拿到占位，提示用户重试
-        wx.showToast({ title: "昵称头像未获取到真实数据，请重试登录", icon: "none" });
+        this.setData({ checkingSession: false });
         return;
       }
-
-      if (this.data.isLoading) return;
       this.setData({ isLoading: true });
-
-      const loginResp = await cloud.callFunctionWithErrorToast("familyFunctions", {
-        type: "login",
-        nickName: userInfo.nickName,
-        avatarUrl: userInfo.avatarUrl,
+      await this.completeLoginFlow({
+        nickName: s.nickName,
+        avatarUrl: s.avatarUrl,
       });
+    } catch (e) {
+      wx.removeStorageSync(SESSION_KEY);
+      this.setData({ checkingSession: false, isLoading: false });
+    }
+  },
 
-      const app = getApp();
-      app.globalData.userInfo = userInfo;
-      if (loginResp && loginResp.openid) app.globalData.openid = loginResp.openid;
+  onChooseAvatar(e) {
+    const path = e.detail && e.detail.avatarUrl ? e.detail.avatarUrl : "";
+    if (!path) return;
+    this.setData({
+      avatarTempPath: path,
+      avatarPreview: path,
+    });
+  },
 
-      // 初始化集合/索引（首次运行时集合可能不存在）
-      try {
-        await cloud.callFunction("initFunctions", { init: true });
-      } catch (e) {
-        // 忽略：后续如果集合缺失，具体功能会报错提示
+  onNickInput(e) {
+    this.setData({ nickName: (e.detail && e.detail.value) || "" });
+  },
+
+  async onSubmitLogin() {
+    const nickName = String(this.data.nickName || "").trim();
+    if (!nickName) {
+      wx.showToast({ title: "请输入昵称", icon: "none" });
+      return;
+    }
+    if (isPlaceholderNickName(nickName)) {
+      wx.showToast({ title: "请填写真实昵称，不能使用「微信用户」", icon: "none" });
+      return;
+    }
+    if (!this.data.avatarTempPath) {
+      wx.showToast({ title: "请选择头像", icon: "none" });
+      return;
+    }
+    if (this.data.isLoading) return;
+    this.setData({ isLoading: true });
+    try {
+      wx.showLoading({ title: "上传头像…" });
+      const cloudPath = `avatars/login/${Date.now()}-${Math.random().toString(16).slice(2)}.png`;
+      const up = await wx.cloud.uploadFile({
+        cloudPath,
+        filePath: this.data.avatarTempPath,
+      });
+      const fileID = up && up.fileID ? up.fileID : "";
+      wx.hideLoading();
+      if (!fileID) {
+        wx.showToast({ title: "头像上传失败", icon: "none" });
+        return;
       }
-
-      // 拉取我的家庭，设置当前家庭上下文
-      let familiesResp = null;
-      try {
-        familiesResp = await cloud.callFunction("familyFunctions", {
-          type: "getMyFamilies",
-        });
-      } catch (err) {
-        // 允许没有家庭：不影响后续跳转
-      }
-
-      const families = (familiesResp && familiesResp.families) || [];
-      app.globalData.families = families;
-      app.globalData.currentFamilyId =
-        (families[0] && families[0]._id) || null;
-
-      wx.showToast({ title: "登录成功", icon: "none" });
-
-      if (app.globalData.currentFamilyId) {
-        wx.redirectTo({ url: "/pages/index/index" });
-      } else {
-        wx.redirectTo({ url: "/pages/family/family/index" });
-      }
+      await this.completeLoginFlow({
+        nickName,
+        avatarUrl: fileID,
+      });
     } catch (err) {
-      // callFunctionWithErrorToast 已做提示
+      wx.hideLoading();
+      wx.showToast({ title: "登录失败，请重试", icon: "none" });
     } finally {
       this.setData({ isLoading: false });
     }
   },
-});
 
+  /**
+   * @param {{ nickName: string, avatarUrl: string }} userInfo avatarUrl 可为云 fileID 或 https
+   */
+  async completeLoginFlow(userInfo) {
+    const loginResp = await cloud.callFunctionWithErrorToast("familyFunctions", {
+      type: "login",
+      nickName: userInfo.nickName,
+      avatarUrl: userInfo.avatarUrl,
+    });
+
+    wx.setStorageSync(SESSION_KEY, {
+      nickName: userInfo.nickName,
+      avatarUrl: userInfo.avatarUrl,
+    });
+
+    const app = getApp();
+    app.globalData.userInfo = userInfo;
+    if (loginResp && loginResp.openid) app.globalData.openid = loginResp.openid;
+
+    try {
+      await cloud.callFunction("initFunctions", { init: true });
+    } catch (e) {}
+
+    let familiesResp = null;
+    try {
+      familiesResp = await cloud.callFunction("familyFunctions", {
+        type: "getMyFamilies",
+      });
+    } catch (err) {}
+
+    const families = (familiesResp && familiesResp.families) || [];
+    app.globalData.families = families;
+
+    const serverCid = loginResp && loginResp.currentFamilyId ? loginResp.currentFamilyId : null;
+    if (serverCid && families.some((f) => f._id === serverCid)) {
+      app.globalData.currentFamilyId = serverCid;
+    } else {
+      app.globalData.currentFamilyId = (families[0] && families[0]._id) || null;
+    }
+
+    wx.showToast({ title: "登录成功", icon: "none" });
+
+    if (app.globalData.currentFamilyId) {
+      wx.redirectTo({ url: "/pages/index/index" });
+    } else {
+      wx.redirectTo({ url: "/pages/family/family/index" });
+    }
+  },
+});

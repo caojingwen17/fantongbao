@@ -1,6 +1,6 @@
 <scroll-view scroll-y="true" class="page">
   <view class="dish">
-    <image class="img" mode="aspectFill" src="{{recipeImg}}" />
+    <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
     <view class="dish-name">{{recipeName}}</view>
   </view>
 

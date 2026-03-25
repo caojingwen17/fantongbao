@@ -1,10 +1,12 @@
 const cloud = require("../../../utils/cloud");
+const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
     recipeId: "",
     recipeName: "",
     recipeImg: "",
+    recipeImgDisplay: "",
     familyId: null,
     xiaohongshuUrl: "",
     ingredients: [{ name: "", amount: "" }],
@@ -29,9 +31,14 @@ Page({
       });
       if (result && result.recipe) {
         const r = result.recipe;
+        const recipeImg = r.recipeImg || "";
+        const recipeImgDisplay = await resolveForImage(recipeImg, {
+          familyId: r.familyId || this.data.familyId,
+        });
         this.setData({
           recipeName: r.recipeName || "",
-          recipeImg: r.recipeImg || "",
+          recipeImg,
+          recipeImgDisplay: recipeImgDisplay || recipeImg,
           xiaohongshuUrl: r.xiaohongshuUrl || "",
           ingredients: r.ingredients && r.ingredients.length ? r.ingredients : [{ name: "", amount: "" }],
           seasonings: r.seasonings || [{ name: "", amount: "" }],
@@ -65,7 +72,11 @@ Page({
             .toString(16)
             .slice(2)}.png`;
           const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath });
-          this.setData({ recipeImg: uploadRes.fileID || "" });
+          const fid = uploadRes.fileID || "";
+          const recipeImgDisplay = await resolveForImage(fid, {
+            familyId: this.data.familyId,
+          });
+          this.setData({ recipeImg: fid, recipeImgDisplay: recipeImgDisplay || fid });
           wx.showToast({ title: "图片上传成功", icon: "none" });
         } catch (e) {
           wx.showToast({ title: "图片上传失败", icon: "none" });
@@ -74,30 +85,6 @@ Page({
         }
       },
     });
-  },
-
-  async onGenerateImage() {
-    if (!this.data.recipeName) {
-      wx.showToast({ title: "请先填写菜名", icon: "none" });
-      return;
-    }
-    try {
-      wx.showLoading({ title: "AI生成中..." });
-      const result = await cloud.callFunction("aiFunctions", {
-        type: "generateRecipeImage",
-        recipeName: this.data.recipeName,
-      });
-      if (result && result.recipeImg) {
-        this.setData({ recipeImg: result.recipeImg });
-        wx.showToast({ title: "AI图片已生成", icon: "none" });
-      } else {
-        wx.showToast({ title: "当前为占位实现，无法生成图片", icon: "none" });
-      }
-    } catch (e) {
-      wx.showToast({ title: "图片生成失败", icon: "none" });
-    } finally {
-      wx.hideLoading();
-    }
   },
 
   // 食材

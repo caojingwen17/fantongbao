@@ -146,9 +146,11 @@ exports.main = async (event) => {
         });
       }
 
+      const afterLogin = await getUser(openid);
       return {
         success: true,
         openid,
+        currentFamilyId: afterLogin && afterLogin.currentFamilyId ? afterLogin.currentFamilyId : null,
       };
     }
 

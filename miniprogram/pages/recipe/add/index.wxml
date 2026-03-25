@@ -1,30 +1,38 @@
 <scroll-view scroll-y="true" class="page">
   <view class="section">
-    <view class="label">小红书链接</view>
+    <view class="label">菜名（必填）</view>
+    <input class="input" placeholder="请先输入菜谱名称" value="{{recipeName}}" bindinput="onRecipeNameInput" focus="{{true}}" />
+    <view class="subtip">菜名填写完成后，才可解锁链接解析 / 图片导入等功能</view>
+  </view>
+
+  <view class="section">
+    <view class="label">小红书链接导入</view>
     <input
       class="input"
-      placeholder="粘贴小红书链接（用于AI提炼）"
+      placeholder="{{canImport ? '粘贴小红书链接（用于解析）' : '请先输入菜谱名称，再进行解析'}}"
       value="{{xiaohongshuUrl}}"
       bindinput="onUrlInput"
+      disabled="{{!canImport}}"
     />
-    <button class="btn" bindtap="onExtract" disabled="{{isExtracting}}">
-      {{isExtracting ? "提炼中..." : "提炼菜谱（AI）"}}
+    <button class="btn" bindtap="onExtract" disabled="{{isExtracting || !canImport}}">
+      {{isExtracting ? "正在解析，请稍候..." : "解析小红书链接"}}
     </button>
   </view>
 
   <view class="section">
-    <view class="label">菜名</view>
-    <input class="input" placeholder="菜名" value="{{recipeName}}" bindinput="onRecipeNameInput" />
+    <view class="label">本地菜谱图片导入（AI识别）</view>
+    <view class="subtip">可一次选多张从小红书保存的截图/图片，单张 JPG/PNG ≤ 10MB，最多 9 张</view>
+    <button class="btn" bindtap="onImportFromLocalImage" disabled="{{isImportingImage || !canImport}}">
+      {{isImportingImage ? "正在识别图片内容..." : "选择多张图片并导入"}}
+    </button>
   </view>
 
   <view class="section">
-    <view class="label">菜品图片</view>
+    <view class="label">菜品展示图</view>
     <view class="img-row">
-      <image class="preview" mode="aspectFill" wx:if="{{recipeImg}}" src="{{recipeImg}}" />
+      <image class="preview" mode="aspectFill" wx:if="{{recipeImg}}" src="{{recipeImgDisplay || recipeImg}}" />
       <view class="img-actions">
-        <button class="btn" bindtap="onGenerateImage">AI生成图片（占位）</button>
-        <button class="btn" bindtap="onChooseImage">上传本地图片</button>
-        <input class="input fileid" placeholder="或手动填 fileID（可选）" value="{{recipeImg}}" bindinput="onImgInput" />
+        <button class="btn" bindtap="onChooseImage" disabled="{{!canImport}}">上传本地图片</button>
       </view>
     </view>
   </view>

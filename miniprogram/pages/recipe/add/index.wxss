@@ -17,6 +17,11 @@
 .btn{
   margin-top: 12rpx;
 }
+.subtip{
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: rgba(0,0,0,0.45);
+}
 .submit{
   margin-top: 30rpx;
 }
@@ -40,10 +45,6 @@
 .img-actions{
   flex: 1;
 }
-.fileid{
-  margin-top: 12rpx;
-}
-
 .listRow{
   display: flex;
   gap: 12rpx;

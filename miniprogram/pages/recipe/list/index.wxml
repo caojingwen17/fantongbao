@@ -12,7 +12,7 @@
         bindlongpress="onLongPressRecipe"
         data-recipeid="{{item.id}}"
       >
-        <image class="img" mode="aspectFill" src="{{item.recipeImg}}" />
+        <image class="img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
         <view class="meta">
           <view class="name">{{item.recipeName}}</view>
           <view class="time">添加时间：{{item.createTime || ''}}</view>

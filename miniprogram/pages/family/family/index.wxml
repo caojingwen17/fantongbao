@@ -44,7 +44,7 @@
     <view class="members" wx:if="{{members && members.length}}">
       <block wx:for="{{members}}" wx:key="_id">
         <view class="member-row">
-          <image class="avatar" mode="aspectFill" src="{{item.avatarUrl}}" />
+          <image class="avatar" mode="aspectFill" src="{{item.avatarUrlDisplay || item.avatarUrl}}" />
           <view class="member-info">
             <view class="member-name">{{item.nickName}}</view>
             <view class="member-id">{{item._id}}</view>

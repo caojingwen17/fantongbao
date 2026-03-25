@@ -1,8 +1,31 @@
 <view class="page">
   <view class="title">饭桶宝</view>
-  <view class="desc">登录后即可创建家庭，加入后共享菜谱并点餐做饭</view>
-  <button class="login-btn" open-type="getUserInfo" bindgetuserinfo="onGetUserInfo">
-    微信授权登录
-  </button>
-</view>
+  <view class="desc">请设置头像、填写昵称后登录，用于家庭内展示</view>
 
+  <view wx:if="{{checkingSession}}" class="checking">正在恢复登录…</view>
+
+  <block wx:else>
+    <view class="form">
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image wx:if="{{avatarPreview}}" class="avatar-img" mode="aspectFill" src="{{avatarPreview}}" />
+        <view wx:else class="avatar-placeholder">点击选择头像</view>
+      </button>
+
+      <view class="nick-wrap">
+        <view class="nick-label">昵称</view>
+        <input
+          class="nick-input"
+          type="nickname"
+          placeholder="请输入昵称"
+          value="{{nickName}}"
+          bindinput="onNickInput"
+        />
+      </view>
+
+      <button class="login-btn" type="primary" bindtap="onSubmitLogin" disabled="{{isLoading}}">
+        {{isLoading ? "登录中…" : "完成登录"}}
+      </button>
+      <view class="tip">体验版/正式版需使用微信提供的头像昵称能力，不再支持旧版静默授权获取真实资料</view>
+    </view>
+  </block>
+</view>

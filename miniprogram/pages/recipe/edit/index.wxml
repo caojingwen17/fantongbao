@@ -7,11 +7,9 @@
   <view class="section">
     <view class="label">菜品图片</view>
     <view class="img-row">
-      <image class="preview" mode="aspectFill" wx:if="{{recipeImg}}" src="{{recipeImg}}" />
+      <image class="preview" mode="aspectFill" wx:if="{{recipeImg}}" src="{{recipeImgDisplay || recipeImg}}" />
       <view class="img-actions">
-        <button class="btn" bindtap="onGenerateImage">AI生成图片（占位）</button>
         <button class="btn" bindtap="onChooseImage">重新上传图片</button>
-        <input class="input fileid" placeholder="或手动填 fileID（可选）" value="{{recipeImg}}" bindinput="onImgInput" />
       </view>
     </view>
   </view>

@@ -168,6 +168,28 @@ exports.main = async (event) => {
       return { success: true };
     }
 
+    /**
+     * 云存储若为「仅创建者可读」，客户端无法换他人上传的 fileID 临时链。
+     * 云函数侧换链不受该限制，供家庭成员查看同一家庭内的菜谱图、头像等。
+     */
+    case "getTempFileURLs": {
+      const { familyId, fileIds } = event;
+      if (!familyId) throw new Error("缺少 familyId");
+      await assertFamilyMember({ openid, familyId });
+      const ids = Array.isArray(fileIds)
+        ? [...new Set(fileIds.filter((x) => x && String(x).indexOf("cloud://") === 0))]
+        : [];
+      if (!ids.length) return { success: true, map: {} };
+      const tmp = await cloud.getTempFileURL({ fileList: ids });
+      const map = {};
+      (tmp.fileList || []).forEach((item) => {
+        if (item && item.fileID) {
+          map[item.fileID] = item.tempFileURL || item.fileID;
+        }
+      });
+      return { success: true, map };
+    }
+
     default:
       throw new Error(`未知 type: ${event.type}`);
   }

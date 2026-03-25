@@ -1,16 +1,20 @@
 const cloud = require("../../../utils/cloud");
+const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
     xiaohongshuUrl: "",
     recipeName: "",
     recipeImg: "",
+    recipeImgDisplay: "",
     familyId: null,
     ingredients: [],
     seasonings: [],
     prepareSteps: [],
     cookingSteps: [],
     isExtracting: false,
+    isImportingImage: false,
+    canImport: false,
   },
 
   onLoad() {
@@ -31,12 +35,8 @@ Page({
   },
 
   onRecipeNameInput(e) {
-    this.setData({ recipeName: e.detail.value || "" });
-  },
-
-  onImgInput(e) {
-    // 兼容你之前的占位输入：允许直接填 fileID
-    this.setData({ recipeImg: e.detail.value || "" });
+    const recipeName = e.detail.value || "";
+    this.setData({ recipeName, canImport: !!String(recipeName).trim() });
   },
 
   onChooseImage() {
@@ -53,7 +53,11 @@ Page({
             .toString(16)
             .slice(2)}.png`;
           const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath });
-          this.setData({ recipeImg: uploadRes.fileID || "" });
+          const fid = uploadRes.fileID || "";
+          const recipeImgDisplay = await resolveForImage(fid, {
+            familyId,
+          });
+          this.setData({ recipeImg: fid, recipeImgDisplay: recipeImgDisplay || fid });
           wx.showToast({ title: "图片上传成功", icon: "none" });
         } catch (e) {
           wx.showToast({ title: "图片上传失败", icon: "none" });
@@ -64,33 +68,13 @@ Page({
     });
   },
 
-  async onGenerateImage() {
-    if (!this.data.recipeName) {
-      wx.showToast({ title: "请先填写菜名", icon: "none" });
-      return;
-    }
-    try {
-      wx.showLoading({ title: "AI生成中..." });
-      const result = await cloud.callFunction("aiFunctions", {
-        type: "generateRecipeImage",
-        recipeName: this.data.recipeName,
-      });
-      if (result && result.recipeImg) {
-        this.setData({ recipeImg: result.recipeImg });
-        wx.showToast({ title: "AI图片已生成", icon: "none" });
-      } else {
-        wx.showToast({ title: "当前为占位实现，无法生成图片", icon: "none" });
-      }
-    } catch (e) {
-      wx.showToast({ title: "图片生成失败", icon: "none" });
-    } finally {
-      wx.hideLoading();
-    }
-  },
-
   async onExtract() {
     if (!this.data.familyId) {
       wx.showToast({ title: "请先选择家庭", icon: "none" });
+      return;
+    }
+    if (!String(this.data.recipeName || "").trim()) {
+      wx.showToast({ title: "请先输入菜谱名称，再进行解析", icon: "none" });
       return;
     }
     if (!this.data.xiaohongshuUrl) {
@@ -103,24 +87,110 @@ Page({
     const result = await cloud.callFunction("aiFunctions", {
       type: "extractRecipe",
       xiaohongshuUrl: this.data.xiaohongshuUrl,
+      recipeName: this.data.recipeName,
     });
 
     if (result && result.recipeName) {
       this.setData({
-        recipeName: result.recipeName || "",
         ingredients: result.ingredients || [],
         seasonings: result.seasonings || [],
         prepareSteps: result.prepareSteps || [],
         cookingSteps: result.cookingSteps || [],
       });
       wx.showToast({
-        title: result.mock ? "已填充示例数据，可继续编辑" : "提炼完成",
+        title: result.tip || (result.mock ? "已填充通用菜谱，可继续编辑" : "解析完成"),
         icon: "none",
       });
     } else {
       wx.showToast({ title: "提炼失败，请手动添加", icon: "none" });
     }
     this.setData({ isExtracting: false });
+  },
+
+  async onImportFromLocalImage() {
+    if (!this.data.familyId) {
+      wx.showToast({ title: "请先选择家庭", icon: "none" });
+      return;
+    }
+    if (!String(this.data.recipeName || "").trim()) {
+      wx.showToast({ title: "请先输入菜谱名称", icon: "none" });
+      return;
+    }
+    if (this.data.isImportingImage) return;
+
+    wx.chooseImage({
+      count: 9,
+      sizeType: ["original", "compressed"],
+      sourceType: ["album", "camera"],
+      success: async (res) => {
+        const paths = (res.tempFilePaths || []).filter(Boolean);
+        if (!paths.length) return;
+        this.setData({ isImportingImage: true });
+        wx.showLoading({ title: "校验中..." });
+        try {
+          const okPaths = [];
+          for (const filePath of paths) {
+            const info = await new Promise((resolve) => {
+              wx.getFileInfo({
+                filePath,
+                success: (r) => resolve(r || null),
+                fail: () => resolve(null),
+              });
+            });
+            const size = info && info.size ? info.size : 0;
+            if (size > 10 * 1024 * 1024) continue;
+            okPaths.push(filePath);
+          }
+          if (!okPaths.length) {
+            wx.showToast({ title: "所选图片均超过10MB", icon: "none" });
+            return;
+          }
+
+          wx.showLoading({ title: `上传中 0/${okPaths.length}` });
+          const imageFileIds = [];
+          for (let i = 0; i < okPaths.length; i++) {
+            const filePath = okPaths[i];
+            wx.showLoading({ title: `上传中 ${i + 1}/${okPaths.length}` });
+            const cloudPath = `imports/recipe_ocr/${this.data.familyId || "unknown"}/${Date.now()}-${i}-${Math.random()
+              .toString(16)
+              .slice(2)}.png`;
+            const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath });
+            if (uploadRes.fileID) imageFileIds.push(uploadRes.fileID);
+          }
+          if (!imageFileIds.length) throw new Error("上传失败");
+
+          wx.showLoading({ title: "正在识别图片内容..." });
+          const result = await cloud.callFunction("aiFunctions", {
+            type: "extractRecipeFromImage",
+            recipeName: this.data.recipeName,
+            imageFileIds,
+          });
+
+          if (result && result.recipeName) {
+            this.setData({
+              ingredients: result.ingredients || [],
+              seasonings: result.seasonings || [],
+              prepareSteps: result.prepareSteps || [],
+              cookingSteps: result.cookingSteps || [],
+            });
+            wx.showToast({
+              title: result.tip || "已导入内容，可继续编辑",
+              icon: "none",
+            });
+          } else {
+            wx.showToast({ title: "识别失败，请手动添加", icon: "none" });
+          }
+        } catch (e) {
+          wx.showToast({ title: "导入失败，请重试", icon: "none" });
+        } finally {
+          wx.hideLoading();
+          this.setData({ isImportingImage: false });
+        }
+      },
+      fail: () => {
+        // 用户取消
+      },
+    });
   },
 
   // ---------- 食材/调料增删改 ----------

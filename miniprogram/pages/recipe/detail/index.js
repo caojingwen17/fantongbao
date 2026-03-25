@@ -1,11 +1,14 @@
 const cloud = require("../../../utils/cloud");
+const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
     recipeId: "",
     recipeName: "",
     recipeImg: "",
+    recipeImgDisplay: "",
     ingredients: [],
+    seasonings: [],
     prepareSteps: [],
     cookingSteps: [],
   },
@@ -22,10 +25,16 @@ Page({
       });
       if (result && result.recipe) {
         const recipe = result.recipe;
+        const recipeImg = recipe.recipeImg || "";
+        const recipeImgDisplay = await resolveForImage(recipeImg, {
+          familyId: recipe.familyId,
+        });
         this.setData({
           recipeName: recipe.recipeName || "",
-          recipeImg: recipe.recipeImg || "",
+          recipeImg,
+          recipeImgDisplay: recipeImgDisplay || recipeImg,
           ingredients: recipe.ingredients || [],
+          seasonings: recipe.seasonings || [],
           prepareSteps: recipe.prepareSteps || [],
           cookingSteps: recipe.cookingSteps || [],
         });

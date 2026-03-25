@@ -1,5 +1,5 @@
 <scroll-view scroll-y="true" class="page">
-  <image class="img" mode="aspectFill" src="{{recipeImg}}" />
+  <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
   <view class="name">{{recipeName}}</view>
 
   <view class="section-title">食材</view>
@@ -10,6 +10,16 @@
       </view>
     </block>
     <view wx:if="{{!ingredients || ingredients.length===0}}" class="empty">暂无食材</view>
+  </view>
+
+  <view class="section-title">调料</view>
+  <view class="section">
+    <block wx:for="{{seasonings}}" wx:key="index">
+      <view class="line">
+        {{item.name}}{{item.amount ? ("（" + item.amount + "）") : ""}}
+      </view>
+    </block>
+    <view wx:if="{{!seasonings || seasonings.length===0}}" class="empty">暂无调料</view>
   </view>
 
   <view class="section-title">备菜步骤</view>

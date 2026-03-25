@@ -32,7 +32,7 @@
     <view class="recipes">
       <block wx:for="{{recipes}}" wx:key="id">
         <view class="recipeCard" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
-          <image class="recipeImg" mode="aspectFill" src="{{item.recipeImg}}" />
+          <image class="recipeImg" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
           <view class="recipeName">{{item.recipeName}}</view>
         </view>
       </block>

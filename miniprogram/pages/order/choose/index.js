@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
@@ -26,7 +27,9 @@ Page({
         familyId: this.data.familyId,
         keyword: this.data.keyword,
       });
-      this.setData({ recipes: (result && result.recipes) || [] });
+      const raw = (result && result.recipes) || [];
+      const withImg = await attachRecipeImgDisplay(raw);
+      this.setData({ recipes: withImg });
     } catch (e) {}
   },
 

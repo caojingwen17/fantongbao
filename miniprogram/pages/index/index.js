@@ -1,4 +1,5 @@
 const cloud = require("../../utils/cloud");
+const { attachRecipeImgDisplay } = require("../../utils/cloudDisplay");
 
 Page({
   data: {
@@ -21,6 +22,19 @@ Page({
       (app.globalData.families || []).find((f) => f._id === familyId) || null;
     this.setData({ currentFamily });
 
+    await this.refreshHome();
+  },
+
+  async onShow() {
+    const app = getApp();
+    const familyId = app.globalData.currentFamilyId;
+    if (!familyId) {
+      wx.redirectTo({ url: "/pages/family/family/index" });
+      return;
+    }
+    const currentFamily =
+      (app.globalData.families || []).find((f) => f._id === familyId) || null;
+    this.setData({ currentFamily });
     await this.refreshHome();
   },
 
@@ -75,7 +89,8 @@ Page({
         keyword: "",
       });
       const list = (recipeResp && recipeResp.recipes) || [];
-      this.setData({ recipes: list.slice(0, 6) });
+      const withImg = await attachRecipeImgDisplay(list.slice(0, 6));
+      this.setData({ recipes: withImg });
     } catch (e) {
       this.setData({ recipes: [] });
     }

@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
@@ -11,6 +12,15 @@ Page({
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
     this.setData({ familyId });
+    this.fetchRecipes();
+  },
+
+  onShow() {
+    const app = getApp();
+    const familyId = app.globalData.currentFamilyId;
+    if (familyId !== this.data.familyId) {
+      this.setData({ familyId });
+    }
     this.fetchRecipes();
   },
 
@@ -28,7 +38,9 @@ Page({
         familyId: this.data.familyId,
         keyword: this.data.keyword,
       });
-      this.setData({ recipes: result && result.recipes ? result.recipes : [] });
+      const raw = result && result.recipes ? result.recipes : [];
+      const withImg = await attachRecipeImgDisplay(raw);
+      this.setData({ recipes: withImg });
     } catch (e) {
       // 已由封装处理提示
     }
