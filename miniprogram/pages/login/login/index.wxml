@@ -1,0 +1,8 @@
+<view class="page">
+  <view class="title">饭桶宝</view>
+  <view class="desc">登录后即可创建家庭，加入后共享菜谱并点餐做饭</view>
+  <button class="login-btn" open-type="getUserInfo" bindgetuserinfo="onGetUserInfo">
+    微信授权登录
+  </button>
+</view>
+

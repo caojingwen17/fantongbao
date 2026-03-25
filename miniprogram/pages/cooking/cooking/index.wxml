@@ -1,0 +1,53 @@
+<scroll-view scroll-y="true" class="page">
+  <view class="header">
+    <view class="order-name">{{order.orderName || ""}}</view>
+    <view class="progress">
+      已完成 {{progress.doneCount}} / {{progress.totalCount}} 步
+    </view>
+    <button class="backBtn" bindtap="goBack">返回</button>
+  </view>
+
+  <block wx:for="{{groups}}" wx:key="recipeId">
+    <view class="group">
+      <view class="group-header" bindtap="toggleRecipe" data-recipeid="{{item.recipeId}}">
+        <view class="group-title">{{item.recipeName}}</view>
+        <view class="toggle-text">{{item.open ? "收起" : "展开"}}</view>
+      </view>
+
+      <view class="note" wx:if="{{item.note && item.open}}">备注：{{item.note}}</view>
+
+      <view wx:if="{{item.open}}">
+        <view class="phase-title">备菜步骤</view>
+        <block wx:for="{{item.prepareSteps}}" wx:key="_id">
+          <view class="row">
+            <checkbox
+              checked="{{item.done}}"
+              disabled="{{item.done || order.status !== 'pending_cooking'}}"
+              bindtap="onCheckStep"
+              data-stepid="{{item._id}}"
+            />
+            <view class="row-text">
+              <view class="step-text">{{item.stepText}}</view>
+            </view>
+          </view>
+        </block>
+
+        <view class="phase-title">做菜步骤</view>
+        <block wx:for="{{item.cookingSteps}}" wx:key="_id">
+          <view class="row">
+            <checkbox
+              checked="{{item.done}}"
+              disabled="{{item.done || order.status !== 'pending_cooking'}}"
+              bindtap="onCheckStep"
+              data-stepid="{{item._id}}"
+            />
+            <view class="row-text">
+              <view class="step-text">{{item.stepText}}</view>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+  </block>
+</scroll-view>
+

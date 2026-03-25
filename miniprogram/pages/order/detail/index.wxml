@@ -1,0 +1,17 @@
+<scroll-view scroll-y="true" class="page">
+  <view class="title">{{order.orderName || ""}}</view>
+  <view class="sub">状态：{{order.status || ""}}</view>
+
+  <view class="section-title">点菜内容</view>
+  <block wx:for="{{order.recipes || []}}" wx:key="recipeId">
+    <view class="recipe-row">
+      <view class="recipe-name">{{item.recipeName || item.recipeId}}</view>
+      <view wx:if="{{item.note}}" class="note">备注：{{item.note}}</view>
+    </view>
+  </block>
+
+  <button class="btn primary" wx:if="{{order.status==='pending_shopping'}}" bindtap="goShopping">去买菜</button>
+  <button class="btn primary" wx:if="{{order.status==='pending_cooking'}}" bindtap="goCooking">去做菜</button>
+  <button class="btn" wx:if="{{order.status==='completed'}}" bindtap="goBack">已完成（返回）</button>
+</scroll-view>
+

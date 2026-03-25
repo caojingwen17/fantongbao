@@ -1,0 +1,43 @@
+<scroll-view scroll-y="true" class="page">
+  <view class="header">
+    <view class="order-name">{{order.orderName || ""}}</view>
+    <view class="progress">
+      已购买 {{progress.doneCount}} / {{progress.totalCount}}
+    </view>
+    <button class="backBtn" bindtap="goBack">返回</button>
+  </view>
+
+  <block wx:for="{{groups}}" wx:key="recipeId">
+    <view class="group">
+      <view class="group-title">{{item.recipeName}}</view>
+      <view class="note" wx:if="{{item.note}}">备注：{{item.note}}</view>
+
+      <block wx:for="{{item.items}}" wx:key="_id">
+        <view class="row">
+          <checkbox
+            checked="{{item.done}}"
+            disabled="{{item.done || order.status !== 'pending_shopping'}}"
+            bindtap="onCheckItem"
+            data-itemid="{{item._id}}"
+          />
+          <view class="row-text">
+            <view class="row-name">
+              {{item.name}}{{item.amount ? "（" + item.amount + "）" : ""}}
+            </view>
+            <view wx:if="{{item.itemSource==='manual' && !item.done}}" class="del" bindtap="onDeleteItem" data-itemid="{{item._id}}">
+              删除
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </block>
+
+  <view class="extra" wx:if="{{order.status==='pending_shopping'}}">
+    <view class="section-title">添加额外采购项</view>
+    <input class="input" placeholder="食材/调料名称" value="{{extraName}}" bindinput="onExtraNameInput" />
+    <input class="input" placeholder="用量（如 5g / 1份）" value="{{extraAmount}}" bindinput="onExtraAmountInput" />
+    <button class="btn" bindtap="onAddExtra">添加</button>
+  </view>
+</scroll-view>
+

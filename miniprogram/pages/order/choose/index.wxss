@@ -1,0 +1,52 @@
+.page{
+  padding: 20rpx;
+}
+.search{
+  margin-bottom: 18rpx;
+}
+.search-input{
+  border-radius: 14rpx;
+  background: rgba(0,0,0,0.03);
+  padding: 14rpx 16rpx;
+}
+.list{
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.card{
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: rgba(0,0,0,0.03);
+}
+.img{
+  width: 120rpx;
+  height: 90rpx;
+  border-radius: 10rpx;
+}
+.meta{
+  flex: 1;
+}
+.name{
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.btn{
+  font-size: 24rpx;
+  padding: 0 18rpx;
+  height: 54rpx;
+  margin-left: 10rpx;
+}
+.primary{
+  color: #fff;
+  background: #07C160;
+}
+.empty{
+  padding: 60rpx 0;
+  text-align: center;
+  color: rgba(0,0,0,0.35);
+}
+

@@ -1,0 +1,17 @@
+.page{
+  padding: 40rpx 30rpx;
+}
+.title{
+  font-size: 44rpx;
+  font-weight: 700;
+  margin-bottom: 20rpx;
+}
+.desc{
+  font-size: 28rpx;
+  color: rgba(0,0,0,0.5);
+  margin-bottom: 30rpx;
+}
+.login-btn{
+  margin-top: 40rpx;
+}
+

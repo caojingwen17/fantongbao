@@ -1,0 +1,76 @@
+.page{
+  padding: 24rpx;
+}
+.section{
+  margin-bottom: 18rpx;
+}
+.label{
+  font-size: 28rpx;
+  margin-bottom: 12rpx;
+}
+.input{
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 14rpx;
+  padding: 14rpx 16rpx;
+  background: rgba(0,0,0,0.02);
+}
+.btn{
+  margin-top: 12rpx;
+}
+.submit{
+  margin-top: 30rpx;
+}
+.tip{
+  margin-top: 30rpx;
+  font-size: 24rpx;
+  color: rgba(0,0,0,0.45);
+}
+
+.img-row{
+  display: flex;
+  gap: 16rpx;
+  align-items: flex-start;
+}
+.preview{
+  width: 160rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  background: rgba(0,0,0,0.04);
+}
+.img-actions{
+  flex: 1;
+}
+.fileid{
+  margin-top: 12rpx;
+}
+
+.listRow{
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+.danger{
+  font-size: 22rpx;
+  height: 48rpx;
+  background: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.45);
+}
+
+.stepRow{
+  margin-bottom: 16rpx;
+}
+.stepBtns{
+  display: flex;
+  gap: 12rpx;
+  margin-top: 10rpx;
+  flex-wrap: wrap;
+}
+.small{
+  font-size: 22rpx;
+  height: 46rpx;
+}
+.submit{
+  margin-top: 36rpx;
+}
+

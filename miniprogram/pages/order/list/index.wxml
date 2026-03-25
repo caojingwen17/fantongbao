@@ -1,0 +1,30 @@
+<view class="page">
+  <view class="top">
+    <view class="family-title">家庭点菜单</view>
+    <button class="new-btn" bindtap="onCreateOrder">新建点菜单</button>
+  </view>
+
+  <view class="tabs">
+    <button class="tab" bindtap="onChangeStatus" data-status="pending_shopping" type="{{status==='pending_shopping'?'primary':'default'}}">
+      待买菜
+    </button>
+    <button class="tab" bindtap="onChangeStatus" data-status="pending_cooking" type="{{status==='pending_cooking'?'primary':'default'}}">
+      待制作
+    </button>
+    <button class="tab" bindtap="onChangeStatus" data-status="completed" type="{{status==='completed'?'primary':'default'}}">
+      已完成
+    </button>
+  </view>
+
+  <view class="list">
+    <block wx:for="{{orders}}" wx:key="_id">
+      <view class="card" bindtap="onOrderTap" data-orderid="{{item._id}}">
+        <view class="card-title">{{item.orderName}}</view>
+        <view class="card-sub">状态：{{item.status}}</view>
+        <view class="card-sub">创建时间：{{item.createTime || ''}}</view>
+      </view>
+    </block>
+    <view wx:if="{{!orders || orders.length===0}}" class="empty">暂无点菜单</view>
+  </view>
+</view>
+

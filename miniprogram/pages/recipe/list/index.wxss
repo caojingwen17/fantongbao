@@ -1,0 +1,50 @@
+.page{
+  padding: 20rpx;
+}
+.search{
+  margin-bottom: 18rpx;
+}
+.search-input{
+  border-radius: 14rpx;
+  background: rgba(0,0,0,0.03);
+  padding: 14rpx 16rpx;
+}
+.add-btn{
+  margin-bottom: 20rpx;
+}
+.list{
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.card{
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: rgba(0,0,0,0.03);
+}
+.img{
+  width: 120rpx;
+  height: 90rpx;
+  border-radius: 10rpx;
+}
+.meta{
+  flex: 1;
+}
+.name{
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.time{
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.45);
+  margin-top: 8rpx;
+}
+.empty{
+  padding: 50rpx 0;
+  text-align: center;
+  color: rgba(0,0,0,0.35);
+}
+

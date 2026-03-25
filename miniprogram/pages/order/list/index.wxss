@@ -1,0 +1,49 @@
+.page{
+  padding: 20rpx;
+}
+.top{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+.family-title{
+  font-size: 32rpx;
+  font-weight: 700;
+}
+.new-btn{
+  margin-left: 20rpx;
+}
+.tabs{
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+.tab{
+  flex: 1;
+}
+.list{
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.card{
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: rgba(0,0,0,0.03);
+}
+.card-title{
+  font-size: 30rpx;
+  font-weight: 700;
+}
+.card-sub{
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.45);
+}
+.empty{
+  padding: 60rpx 0;
+  text-align: center;
+  color: rgba(0,0,0,0.35);
+}
+

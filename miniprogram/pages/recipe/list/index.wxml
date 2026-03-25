@@ -1,0 +1,25 @@
+<view class="page">
+  <view class="search">
+    <input placeholder="搜索菜名" class="search-input" value="{{keyword}}" bindinput="onKeywordInput" />
+  </view>
+  <button class="add-btn" bindtap="goAdd">添加菜谱</button>
+
+  <view class="list">
+    <block wx:for="{{recipes}}" wx:key="id">
+      <view
+        class="card"
+        bindtap="goDetail"
+        bindlongpress="onLongPressRecipe"
+        data-recipeid="{{item.id}}"
+      >
+        <image class="img" mode="aspectFill" src="{{item.recipeImg}}" />
+        <view class="meta">
+          <view class="name">{{item.recipeName}}</view>
+          <view class="time">添加时间：{{item.createTime || ''}}</view>
+        </view>
+      </view>
+    </block>
+    <view wx:if="{{!recipes || recipes.length === 0}}" class="empty">暂无菜谱</view>
+  </view>
+</view>
+

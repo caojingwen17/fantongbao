@@ -1,0 +1,20 @@
+<scroll-view scroll-y="true" class="page">
+  <view class="search">
+    <input placeholder="搜索菜名" class="search-input" value="{{keyword}}" bindinput="onKeywordInput" />
+  </view>
+
+  <view class="list">
+    <block wx:for="{{recipes}}" wx:key="id">
+      <view class="card">
+        <image class="img" mode="aspectFill" src="{{item.recipeImg}}" />
+        <view class="meta">
+          <view class="name">{{item.recipeName}}</view>
+        </view>
+        <button class="btn" bindtap="onAddSkipNote" data-recipeid="{{item.id}}">跳过备注</button>
+        <button class="btn primary" bindtap="onAddWithNote" data-recipeid="{{item.id}}">备注</button>
+      </view>
+    </block>
+    <view wx:if="{{!recipes || recipes.length===0}}" class="empty">暂无可点菜的菜谱</view>
+  </view>
+</scroll-view>
+

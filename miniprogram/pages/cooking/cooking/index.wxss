@@ -1,0 +1,70 @@
+.page{
+  padding: 20rpx;
+}
+.header{
+  margin-bottom: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.order-name{
+  font-size: 36rpx;
+  font-weight: 800;
+  margin-bottom: 10rpx;
+}
+.progress{
+  font-size: 24rpx;
+  color: rgba(0,0,0,0.5);
+}
+.backBtn{
+  height: 50rpx;
+  font-size: 22rpx;
+  margin-left: auto;
+}
+.group{
+  margin-bottom: 22rpx;
+}
+.group-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.group-title{
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-bottom: 10rpx;
+}
+.toggle-text{
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.45);
+}
+.note{
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  color: rgba(0,0,0,0.45);
+  word-break: break-all;
+}
+.phase-title{
+  margin-top: 14rpx;
+  margin-bottom: 8rpx;
+  font-size: 26rpx;
+  color: rgba(0,0,0,0.45);
+  font-weight: 600;
+}
+.row{
+  display: flex;
+  gap: 10rpx;
+  align-items: center;
+  padding: 10rpx 0;
+}
+.row-text{
+  flex: 1;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding-bottom: 10rpx;
+}
+.step-text{
+  font-size: 26rpx;
+  color: rgba(0,0,0,0.65);
+  word-break: break-all;
+}
+

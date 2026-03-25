@@ -1,0 +1,40 @@
+.page{
+  padding: 20rpx;
+}
+.dish{
+  display: flex;
+  gap: 18rpx;
+  align-items: center;
+}
+.img{
+  width: 140rpx;
+  height: 110rpx;
+  border-radius: 14rpx;
+  background: rgba(0,0,0,0.04);
+}
+.dish-name{
+  font-size: 34rpx;
+  font-weight: 700;
+  word-break: break-all;
+}
+.section-title{
+  margin-top: 22rpx;
+  font-size: 28rpx;
+  color: rgba(0,0,0,0.45);
+  margin-bottom: 14rpx;
+}
+.textarea{
+  width: 100%;
+  border-radius: 14rpx;
+  border: 1px solid rgba(0,0,0,0.12);
+  padding: 16rpx;
+  background: rgba(0,0,0,0.02);
+}
+.btn{
+  margin-top: 24rpx;
+}
+.secondary{
+  margin-top: 12rpx;
+  background: rgba(0,0,0,0.06);
+}
+

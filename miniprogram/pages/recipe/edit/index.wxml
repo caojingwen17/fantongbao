@@ -1,0 +1,75 @@
+<scroll-view scroll-y="true" class="page">
+  <view class="section">
+    <view class="label">菜名</view>
+    <input class="input" placeholder="菜名" value="{{recipeName}}" bindinput="onRecipeNameInput" />
+  </view>
+
+  <view class="section">
+    <view class="label">菜品图片</view>
+    <view class="img-row">
+      <image class="preview" mode="aspectFill" wx:if="{{recipeImg}}" src="{{recipeImg}}" />
+      <view class="img-actions">
+        <button class="btn" bindtap="onGenerateImage">AI生成图片（占位）</button>
+        <button class="btn" bindtap="onChooseImage">重新上传图片</button>
+        <input class="input fileid" placeholder="或手动填 fileID（可选）" value="{{recipeImg}}" bindinput="onImgInput" />
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="label">食材（至少1项）</view>
+    <block wx:for="{{ingredients}}" wx:key="index">
+      <view class="listRow">
+        <input class="input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onIngredientNameInput" />
+        <input class="input" placeholder="用量（可选）" data-index="{{index}}" value="{{item.amount}}" bindinput="onIngredientAmountInput" />
+        <button class="danger" bindtap="removeIngredient" data-index="{{index}}">删除</button>
+      </view>
+    </block>
+    <button class="btn" bindtap="addIngredient">添加食材</button>
+  </view>
+
+  <view class="section">
+    <view class="label">调料（可选/可多项）</view>
+    <block wx:for="{{seasonings}}" wx:key="index">
+      <view class="listRow">
+        <input class="input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onSeasoningNameInput" />
+        <input class="input" placeholder="用量（如 5g）" data-index="{{index}}" value="{{item.amount}}" bindinput="onSeasoningAmountInput" />
+        <button class="danger" bindtap="removeSeasoning" data-index="{{index}}">删除</button>
+      </view>
+    </block>
+    <button class="btn" bindtap="addSeasoning">添加调料</button>
+  </view>
+
+  <view class="section">
+    <view class="label">备菜步骤（至少1项）</view>
+    <block wx:for="{{prepareSteps}}" wx:key="index">
+      <view class="stepRow">
+        <input class="input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onPrepareStepInput" />
+        <view class="stepBtns">
+          <button class="small" bindtap="movePrepareStepUp" data-index="{{index}}">上移</button>
+          <button class="small" bindtap="movePrepareStepDown" data-index="{{index}}">下移</button>
+          <button class="danger small" bindtap="removePrepareStep" data-index="{{index}}">删</button>
+        </view>
+      </view>
+    </block>
+    <button class="btn" bindtap="addPrepareStep">添加备菜步骤</button>
+  </view>
+
+  <view class="section">
+    <view class="label">做菜步骤（至少1项）</view>
+    <block wx:for="{{cookingSteps}}" wx:key="index">
+      <view class="stepRow">
+        <input class="input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onCookingStepInput" />
+        <view class="stepBtns">
+          <button class="small" bindtap="moveCookingStepUp" data-index="{{index}}">上移</button>
+          <button class="small" bindtap="moveCookingStepDown" data-index="{{index}}">下移</button>
+          <button class="danger small" bindtap="removeCookingStep" data-index="{{index}}">删</button>
+        </view>
+      </view>
+    </block>
+    <button class="btn" bindtap="addCookingStep">添加做菜步骤</button>
+  </view>
+
+  <button class="submit" type="primary" bindtap="onSubmit">保存</button>
+</scroll-view>
+

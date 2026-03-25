@@ -1,0 +1,19 @@
+<scroll-view scroll-y="true" class="page">
+  <view class="dish">
+    <image class="img" mode="aspectFill" src="{{recipeImg}}" />
+    <view class="dish-name">{{recipeName}}</view>
+  </view>
+
+  <view class="section-title">备注（选填）</view>
+  <textarea
+    class="textarea"
+    maxlength="200"
+    placeholder="可输入口味偏好、食材替换、制作要求等"
+    value="{{note}}"
+    bindinput="onNoteInput"
+  />
+
+  <button class="btn" type="primary" bindtap="onConfirm">确认添加到点菜单</button>
+  <button class="btn secondary" bindtap="onCancel">取消</button>
+</scroll-view>
+

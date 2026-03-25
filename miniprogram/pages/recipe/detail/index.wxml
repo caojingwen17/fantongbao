@@ -1,0 +1,35 @@
+<scroll-view scroll-y="true" class="page">
+  <image class="img" mode="aspectFill" src="{{recipeImg}}" />
+  <view class="name">{{recipeName}}</view>
+
+  <view class="section-title">食材</view>
+  <view class="section">
+    <block wx:for="{{ingredients}}" wx:key="index">
+      <view class="line">
+        {{item.name}}{{item.amount ? ("（" + item.amount + "）") : ""}}
+      </view>
+    </block>
+    <view wx:if="{{!ingredients || ingredients.length===0}}" class="empty">暂无食材</view>
+  </view>
+
+  <view class="section-title">备菜步骤</view>
+  <view class="section">
+    <block wx:for="{{prepareSteps}}" wx:key="index">
+      <view class="line">{{index+1}}. {{item}}</view>
+    </block>
+    <view wx:if="{{!prepareSteps || prepareSteps.length===0}}" class="empty">暂无备菜步骤</view>
+  </view>
+
+  <view class="section-title">做菜步骤</view>
+  <view class="section">
+    <block wx:for="{{cookingSteps}}" wx:key="index">
+      <view class="line">{{index+1}}. {{item}}</view>
+    </block>
+    <view wx:if="{{!cookingSteps || cookingSteps.length===0}}" class="empty">暂无做菜步骤</view>
+  </view>
+
+  <button class="order-btn" type="primary" bindtap="goNote" wx:if="{{recipeId}}">
+    点菜
+  </button>
+</scroll-view>
+

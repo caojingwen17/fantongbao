@@ -1,0 +1,47 @@
+<!--index.wxml-->
+<view class="page">
+  <view class="header">
+    <view class="familyBlock">
+      <view class="familyName">{{currentFamily.familyName || "未选择家庭"}}</view>
+      <view class="familyMeta">
+        成员 {{membersCount}} 人
+      </view>
+    </view>
+    <button class="manageBtn" bindtap="goFamily">家庭管理</button>
+  </view>
+
+  <view class="section">
+    <view class="sectionTitle">待处理点菜单</view>
+    <view class="orderList">
+      <view class="orderCard" wx:if="{{pendingShopping}}" bindtap="goShopping">
+        <view class="orderStatus">待买菜</view>
+        <view class="orderName">{{pendingShopping.orderName}}</view>
+      </view>
+      <view class="orderEmpty" wx:if="{{!pendingShopping}}">暂无待买菜</view>
+
+      <view class="orderCard" wx:if="{{pendingCooking}}" bindtap="goCooking">
+        <view class="orderStatus">待制作</view>
+        <view class="orderName">{{pendingCooking.orderName}}</view>
+      </view>
+      <view class="orderEmpty" wx:if="{{!pendingCooking}}">暂无待制作</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="sectionTitle">常用菜谱</view>
+    <view class="recipes">
+      <block wx:for="{{recipes}}" wx:key="id">
+        <view class="recipeCard" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
+          <image class="recipeImg" mode="aspectFill" src="{{item.recipeImg}}" />
+          <view class="recipeName">{{item.recipeName}}</view>
+        </view>
+      </block>
+      <view class="empty" wx:if="{{!recipes || recipes.length===0}}">暂无菜谱</view>
+    </view>
+
+    <view class="actions">
+      <button class="btn" bindtap="goRecipeList">查看全部</button>
+      <button class="btn primary" bindtap="goRecipeAdd">添加菜谱</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,112 @@
+.page{
+  padding: 30rpx;
+}
+.section-title{
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+.card{
+  padding: 20rpx;
+  border-radius: 16rpx;
+  background: rgba(0,0,0,0.03);
+  margin-bottom: 30rpx;
+}
+.families{
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  margin-bottom: 30rpx;
+}
+.family-card{
+  padding: 18rpx;
+  border-radius: 16rpx;
+  background: rgba(0,0,0,0.03);
+}
+.family-name{
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-bottom: 12rpx;
+}
+.family-meta{
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.45);
+  margin-bottom: 12rpx;
+}
+.family-switch{
+  height: 56rpx;
+}
+.input{
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 12rpx;
+  padding: 16rpx 18rpx;
+  margin-bottom: 16rpx;
+}
+.btn{
+  margin-top: 10rpx;
+}
+.empty{
+  padding: 40rpx 0;
+  text-align: center;
+  color: rgba(0,0,0,0.35);
+  margin-bottom: 30rpx;
+}
+.row{
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.label{
+  font-size: 26rpx;
+  color: rgba(0,0,0,0.45);
+}
+.invite{
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+.copy-btn{
+  height: 48rpx;
+}
+.members{
+  margin-top: 18rpx;
+}
+.member-row{
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 14rpx 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.avatar{
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  background: rgba(0,0,0,0.03);
+}
+.member-info{
+  flex: 1;
+}
+.member-name{
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.member-id{
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.4);
+  word-break: break-all;
+}
+.kick-btn{
+  height: 48rpx;
+  font-size: 22rpx;
+}
+.members-empty{
+  margin-top: 18rpx;
+  color: rgba(0,0,0,0.35);
+  text-align: center;
+}
+.exit-btn{
+  margin-top: 18rpx;
+  width: 100%;
+}
+

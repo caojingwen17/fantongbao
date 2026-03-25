@@ -1,0 +1,67 @@
+<view class="page">
+  <view class="section-title">我的家庭</view>
+  <view class="families" wx:if="{{families && families.length}}">
+    <block wx:for="{{families}}" wx:key="_id">
+      <view class="family-card" data-familyid="{{item._id}}">
+        <view class="family-name">{{item.familyName}}</view>
+        <view class="family-meta">
+          <text wx:if="{{currentFamily && currentFamily._id === item._id}}">当前家庭</text>
+          <text wx:if="{{!(currentFamily && currentFamily._id === item._id)}}"> </text>
+        </view>
+        <button
+          class="family-switch"
+          data-familyid="{{item._id}}"
+          bindtap="onSwitchFamily"
+        >
+          切换
+        </button>
+      </view>
+    </block>
+  </view>
+
+  <view wx:if="{{!families || families.length===0}}" class="empty">暂无家庭，请创建或加入</view>
+
+  <view class="section-title">创建家庭</view>
+  <input class="input" placeholder="家庭名称" value="{{familyName}}" bindinput="onFamilyNameInput" />
+  <button class="btn" type="primary" bindtap="onCreateFamily">创建</button>
+
+  <view class="section-title">加入家庭</view>
+  <input
+    class="input"
+    placeholder="家庭邀请码"
+    value="{{inviteCode}}"
+    bindinput="onInviteCodeInput"
+  />
+  <button class="btn" type="primary" bindtap="onJoinFamily">加入</button>
+
+  <view class="section-title" wx:if="{{currentFamily}}">当前家庭成员</view>
+  <view class="card" wx:if="{{currentFamily}}">
+    <view class="row">
+      <view class="label">家庭邀请码</view>
+      <view class="invite">{{currentFamily.inviteCode}}</view>
+      <button class="copy-btn" bindtap="onCopyInviteCode">复制</button>
+    </view>
+    <view class="members" wx:if="{{members && members.length}}">
+      <block wx:for="{{members}}" wx:key="_id">
+        <view class="member-row">
+          <image class="avatar" mode="aspectFill" src="{{item.avatarUrl}}" />
+          <view class="member-info">
+            <view class="member-name">{{item.nickName}}</view>
+            <view class="member-id">{{item._id}}</view>
+          </view>
+          <button
+            class="kick-btn"
+            wx:if="{{isAdmin() && item._id !== currentFamily.adminId}}"
+            data-memberid="{{item._id}}"
+            bindtap="onKickMember"
+          >
+            踢出
+          </button>
+        </view>
+      </block>
+    </view>
+    <view class="members-empty" wx:if="{{!members || members.length===0}}">暂无成员</view>
+    <button class="exit-btn" bindtap="onExitFamily">退出当前家庭</button>
+  </view>
+</view>
+
