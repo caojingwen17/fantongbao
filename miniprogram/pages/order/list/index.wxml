@@ -1,7 +1,10 @@
 <view class="page">
+  <view class="ft-loading-mask" wx:if="{{listLoading}}">
+    <view class="ft-loading-spinner" />
+    <text class="ft-loading-text">加载点菜单…</text>
+  </view>
   <view class="top">
     <view class="family-title">家庭点菜单</view>
-    <button class="new-btn" bindtap="onCreateOrder">新建点菜单</button>
   </view>
 
   <view class="tabs">
@@ -16,7 +19,7 @@
     </button>
   </view>
 
-  <view class="list">
+  <view class="list {{listLoading ? 'ft-list-dim' : ''}}">
     <block wx:for="{{orders}}" wx:key="_id">
       <view class="card" bindtap="onOrderTap" data-orderid="{{item._id}}">
         <view class="card-title">{{item.orderName}}</view>

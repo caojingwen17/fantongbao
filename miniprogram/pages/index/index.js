@@ -1,5 +1,6 @@
 const cloud = require("../../utils/cloud");
 const { attachRecipeImgDisplay } = require("../../utils/cloudDisplay");
+const auth = require("../../utils/auth");
 
 Page({
   data: {
@@ -7,17 +8,43 @@ Page({
     membersCount: 0,
     pendingShopping: null,
     pendingCooking: null,
+    pendingOrders: [],
     recipes: [],
+    homeRefreshing: false,
+  },
+
+  async ensureEntryContext() {
+    const app = getApp();
+
+    // 尚未建立登录态/家庭上下文：尝试静默登录；失败则去登录页
+    if (!app.globalData.userInfo) {
+      try {
+        const r = await auth.trySilentLogin();
+        if (!r.ok) {
+          wx.reLaunch({ url: "/pages/login/login/index" });
+          return false;
+        }
+      } catch (e) {
+        wx.reLaunch({ url: "/pages/login/login/index" });
+        return false;
+      }
+    }
+
+    // 已登录但未加入/未创建家庭：去家庭页引导
+    if (!app.globalData.currentFamilyId) {
+      wx.redirectTo({ url: "/pages/family/family/index" });
+      return false;
+    }
+
+    return true;
   },
 
   async onLoad() {
+    const ok = await this.ensureEntryContext();
+    if (!ok) return;
+
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
-    if (!familyId) {
-      wx.redirectTo({ url: "/pages/family/family/index" });
-      return;
-    }
-
     const currentFamily =
       (app.globalData.families || []).find((f) => f._id === familyId) || null;
     this.setData({ currentFamily });
@@ -26,12 +53,11 @@ Page({
   },
 
   async onShow() {
+    const ok = await this.ensureEntryContext();
+    if (!ok) return;
+
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
-    if (!familyId) {
-      wx.redirectTo({ url: "/pages/family/family/index" });
-      return;
-    }
     const currentFamily =
       (app.globalData.families || []).find((f) => f._id === familyId) || null;
     this.setData({ currentFamily });
@@ -43,56 +69,69 @@ Page({
     const familyId = app.globalData.currentFamilyId;
     if (!familyId) return;
 
+    this.setData({ homeRefreshing: true });
+    wx.showNavigationBarLoading();
     try {
-      const membersResp = await cloud.callFunction("familyFunctions", {
-        type: "getFamilyMembers",
-        familyId,
-      });
+      const [membersResp, ordersResp, recipeResp] = await Promise.all([
+        cloud
+          .callFunction("familyFunctions", {
+            type: "getFamilyMembers",
+            familyId,
+          })
+          .catch(() => ({})),
+        cloud
+          .callFunction("orderFunctions", {
+            type: "listFirstOrdersByStatuses",
+            familyId,
+          })
+          .catch(() => ({})),
+        cloud
+          .callFunction("recipeFunctions", {
+            type: "listRecipes",
+            familyId,
+            keyword: "",
+          })
+          .catch(() => ({})),
+      ]);
+
       const members = (membersResp && membersResp.members) || [];
       this.setData({ membersCount: members.length });
-    } catch (e) {
-      this.setData({ membersCount: 0 });
-    }
 
-    try {
-      const shoppingResp = await cloud.callFunction("orderFunctions", {
-        type: "listOrders",
-        familyId,
-        status: "pending_shopping",
-      });
-      const shoppingList = (shoppingResp && shoppingResp.orders) || [];
-      this.setData({
-        pendingShopping: shoppingList[0] || null,
-      });
-    } catch (e) {
-      this.setData({ pendingShopping: null });
-    }
+      const pendingShopping =
+        ordersResp && ordersResp.pendingShopping ? ordersResp.pendingShopping : null;
+      const pendingCooking =
+        ordersResp && ordersResp.pendingCooking ? ordersResp.pendingCooking : null;
 
-    try {
-      const cookingResp = await cloud.callFunction("orderFunctions", {
-        type: "listOrders",
-        familyId,
-        status: "pending_cooking",
-      });
-      const cookingList = (cookingResp && cookingResp.orders) || [];
-      this.setData({
-        pendingCooking: cookingList[0] || null,
-      });
-    } catch (e) {
-      this.setData({ pendingCooking: null });
-    }
+      const pendingOrders = [];
+      if (pendingShopping) {
+        pendingOrders.push({
+          ...pendingShopping,
+          statusText: "待买菜",
+        });
+      }
+      if (pendingCooking) {
+        pendingOrders.push({
+          ...pendingCooking,
+          statusText: "待制作",
+        });
+      }
 
-    try {
-      const recipeResp = await cloud.callFunction("recipeFunctions", {
-        type: "listRecipes",
-        familyId,
-        keyword: "",
-      });
+      this.setData({ pendingShopping, pendingCooking, pendingOrders });
+
       const list = (recipeResp && recipeResp.recipes) || [];
       const withImg = await attachRecipeImgDisplay(list.slice(0, 6));
       this.setData({ recipes: withImg });
     } catch (e) {
-      this.setData({ recipes: [] });
+      this.setData({
+        membersCount: 0,
+        pendingShopping: null,
+        pendingCooking: null,
+        pendingOrders: [],
+        recipes: [],
+      });
+    } finally {
+      wx.hideNavigationBarLoading();
+      this.setData({ homeRefreshing: false });
     }
   },
 
@@ -100,16 +139,10 @@ Page({
     wx.navigateTo({ url: "/pages/family/family/index" });
   },
 
-  goShopping() {
-    const orderId = this.data.pendingShopping && this.data.pendingShopping._id;
+  goPendingOrder(e) {
+    const orderId = e.currentTarget.dataset.orderid;
     if (!orderId) return;
-    wx.navigateTo({ url: `/pages/shopping/shopping/index?orderId=${orderId}` });
-  },
-
-  goCooking() {
-    const orderId = this.data.pendingCooking && this.data.pendingCooking._id;
-    if (!orderId) return;
-    wx.navigateTo({ url: `/pages/cooking/cooking/index?orderId=${orderId}` });
+    wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
   },
 
   goRecipeList() {

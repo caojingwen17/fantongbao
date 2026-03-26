@@ -21,6 +21,9 @@
   font-size: 22rpx;
   margin-left: auto;
 }
+.merged{
+  margin-bottom: 10rpx;
+}
 .group{
   margin-bottom: 20rpx;
 }
@@ -44,8 +47,9 @@
 .row-text{
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
   border-bottom: 1px solid rgba(0,0,0,0.06);
   padding-bottom: 10rpx;
 }
@@ -53,6 +57,18 @@
   font-size: 26rpx;
   color: rgba(0,0,0,0.65);
   word-break: break-all;
+}
+.row-src{
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.45);
+  word-break: break-all;
+}
+.delBtn{
+  height: 48rpx;
+  font-size: 22rpx;
+  color: #e64545;
+  background: rgba(230,69,69,0.08);
 }
 .del{
   font-size: 22rpx;
@@ -77,5 +93,9 @@
 }
 .btn{
   margin-top: 8rpx;
+}
+.primaryBtn{
+  color: #fff;
+  background: #07C160;
 }
 

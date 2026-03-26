@@ -3,8 +3,11 @@
   <view class="header">
     <view class="familyBlock">
       <view class="familyName">{{currentFamily.familyName || "未选择家庭"}}</view>
-      <view class="familyMeta">
-        成员 {{membersCount}} 人
+      <view class="familyMetaRow">
+        <view class="familyMeta">
+          成员 {{membersCount}} 人
+        </view>
+        <view class="home-refresh-hint" wx:if="{{homeRefreshing}}">更新中…</view>
       </view>
     </view>
     <button class="manageBtn" bindtap="goFamily">家庭管理</button>
@@ -12,19 +15,15 @@
 
   <view class="section">
     <view class="sectionTitle">待处理点菜单</view>
-    <view class="orderList">
-      <view class="orderCard" wx:if="{{pendingShopping}}" bindtap="goShopping">
-        <view class="orderStatus">待买菜</view>
-        <view class="orderName">{{pendingShopping.orderName}}</view>
-      </view>
-      <view class="orderEmpty" wx:if="{{!pendingShopping}}">暂无待买菜</view>
-
-      <view class="orderCard" wx:if="{{pendingCooking}}" bindtap="goCooking">
-        <view class="orderStatus">待制作</view>
-        <view class="orderName">{{pendingCooking.orderName}}</view>
-      </view>
-      <view class="orderEmpty" wx:if="{{!pendingCooking}}">暂无待制作</view>
+    <view class="mergedOrderCard" wx:if="{{pendingOrders && pendingOrders.length}}">
+      <block wx:for="{{pendingOrders}}" wx:key="_id">
+        <view class="pending-item" bindtap="goPendingOrder" data-orderid="{{item._id}}">
+          <view class="orderStatus">{{item.statusText}}</view>
+          <view class="orderName">{{item.orderName}}</view>
+        </view>
+      </block>
     </view>
+    <view class="orderEmpty" wx:if="{{!pendingOrders || pendingOrders.length===0}}">暂无待处理点菜单</view>
   </view>
 
   <view class="section">

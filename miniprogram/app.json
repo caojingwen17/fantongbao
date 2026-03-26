@@ -1,7 +1,7 @@
 {
   "pages": [
-    "pages/login/login/index",
     "pages/index/index",
+    "pages/login/login/index",
     "pages/family/family/index",
     "pages/recipe/list/index",
     "pages/recipe/add/index",

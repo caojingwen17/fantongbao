@@ -1,4 +1,8 @@
 <scroll-view scroll-y="true" class="page">
+  <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
+    <view class="ft-loading-spinner" />
+    <text class="ft-loading-text">加载采购清单…</text>
+  </view>
   <view class="header">
     <view class="order-name">{{order.orderName || ""}}</view>
     <view class="progress">
@@ -7,37 +11,48 @@
     <button class="backBtn" bindtap="goBack">返回</button>
   </view>
 
-  <block wx:for="{{groups}}" wx:key="recipeId">
-    <view class="group">
-      <view class="group-title">{{item.recipeName}}</view>
-      <view class="note" wx:if="{{item.note}}">备注：{{item.note}}</view>
-
-      <block wx:for="{{item.items}}" wx:key="_id">
-        <view class="row">
-          <checkbox
-            checked="{{item.done}}"
-            disabled="{{item.done || order.status !== 'pending_shopping'}}"
-            bindtap="onCheckItem"
-            data-itemid="{{item._id}}"
-          />
-          <view class="row-text">
-            <view class="row-name">
-              {{item.name}}{{item.amount ? "（" + item.amount + "）" : ""}}
-            </view>
-            <view wx:if="{{item.itemSource==='manual' && !item.done}}" class="del" bindtap="onDeleteItem" data-itemid="{{item._id}}">
-              删除
-            </view>
+  <view class="merged">
+    <block wx:for="{{mergedItems}}" wx:key="key">
+      <view class="row">
+        <checkbox
+          checked="{{item.allDone}}"
+          disabled="{{item.allDone || order.status !== 'pending_shopping' || actionBusy}}"
+          bindtap="onCheckItem"
+          data-itemids="{{item.itemIds}}"
+        />
+        <view class="row-text">
+          <view class="row-name">
+            {{item.name}}{{item.totalAmountText ? "（" + item.totalAmountText + "）" : ""}}
           </view>
+          <view class="row-src" wx:if="{{item.sourcesText}}">{{item.sourcesText}}</view>
         </view>
-      </block>
-    </view>
-  </block>
+        <button
+          class="delBtn"
+          wx:if="{{order.status==='pending_shopping' && item.manualItemIds && item.manualItemIds.length && !item.allDone}}"
+          disabled="{{actionBusy}}"
+          bindtap="onDeleteItem"
+          data-itemids="{{item.manualItemIds}}"
+        >
+          删除手动项
+        </button>
+      </view>
+    </block>
+    <view class="empty" wx:if="{{!mergedItems || mergedItems.length===0}}">暂无采购清单</view>
+  </view>
 
   <view class="extra" wx:if="{{order.status==='pending_shopping'}}">
     <view class="section-title">添加额外采购项</view>
     <input class="input" placeholder="食材/调料名称" value="{{extraName}}" bindinput="onExtraNameInput" />
     <input class="input" placeholder="用量（如 5g / 1份）" value="{{extraAmount}}" bindinput="onExtraAmountInput" />
     <button class="btn" bindtap="onAddExtra">添加</button>
+
+    <button class="btn" bindtap="onContinueAdd" disabled="{{actionBusy}}">
+      继续加菜
+    </button>
+
+    <button class="btn primaryBtn" bindtap="onCompleteShopping" disabled="{{actionBusy}}">
+      完成买菜
+    </button>
   </view>
 </scroll-view>
 

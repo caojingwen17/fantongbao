@@ -1,18 +1,20 @@
 const cloud = require("../../../utils/cloud");
+const ui = require("../../../utils/ui");
 const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
+
+const KEYWORD_DEBOUNCE_MS = 320;
 
 Page({
   data: {
     keyword: "",
     recipes: [],
     familyId: null,
+    listLoading: false,
   },
 
   onLoad() {
     const app = getApp();
-    const familyId = app.globalData.currentFamilyId;
-    this.setData({ familyId });
-    this.fetchRecipes();
+    this.setData({ familyId: app.globalData.currentFamilyId });
   },
 
   onShow() {
@@ -25,13 +27,15 @@ Page({
   },
 
   onKeywordInput(e) {
-    this.setData({ keyword: e.detail.value || "" });
-    // 简化：不做防抖，实时请求由开发者后续优化
-    this.fetchRecipes();
+    const keyword = e.detail.value || "";
+    this.setData({ keyword });
+    if (this._keywordTimer) clearTimeout(this._keywordTimer);
+    this._keywordTimer = setTimeout(() => this.fetchRecipes(), KEYWORD_DEBOUNCE_MS);
   },
 
   async fetchRecipes() {
     if (!this.data.familyId) return;
+    this.setData({ listLoading: true });
     try {
       const result = await cloud.callFunction("recipeFunctions", {
         type: "listRecipes",
@@ -43,6 +47,8 @@ Page({
       this.setData({ recipes: withImg });
     } catch (e) {
       // 已由封装处理提示
+    } finally {
+      this.setData({ listLoading: false });
     }
   },
 
@@ -74,10 +80,12 @@ Page({
             confirmColor: "#e64545",
             success: async (r) => {
               if (!r.confirm) return;
-              await cloud.callFunctionWithErrorToast("recipeFunctions", {
-                type: "deleteRecipe",
-                recipeId,
-              });
+              await ui.withLoading(async () => {
+                await cloud.callFunctionWithErrorToast("recipeFunctions", {
+                  type: "deleteRecipe",
+                  recipeId,
+                });
+              }, "删除中…");
               wx.showToast({ title: "删除成功", icon: "none" });
               await this.fetchRecipes();
             },

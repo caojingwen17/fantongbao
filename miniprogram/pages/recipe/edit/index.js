@@ -1,8 +1,10 @@
 const cloud = require("../../../utils/cloud");
+const ui = require("../../../utils/ui");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
+    pageLoading: true,
     recipeId: "",
     recipeName: "",
     recipeImg: "",
@@ -22,7 +24,10 @@ Page({
       recipeId: options && options.recipeId ? options.recipeId : "",
     });
 
-    if (!this.data.recipeId) return;
+    if (!this.data.recipeId) {
+      this.setData({ pageLoading: false });
+      return;
+    }
 
     try {
       const result = await cloud.callFunction("recipeFunctions", {
@@ -48,6 +53,8 @@ Page({
       }
     } catch (e) {
       // ignore
+    } finally {
+      this.setData({ pageLoading: false });
     }
   },
 
@@ -242,17 +249,19 @@ Page({
       return;
     }
 
-    await cloud.callFunctionWithErrorToast("recipeFunctions", {
-      type: "updateRecipe",
-      recipeId,
-      recipeName,
-      recipeImg,
-      xiaohongshuUrl: xiaohongshuUrl || "",
-      ingredients: cleanedIngredients,
-      seasonings: cleanedSeasonings,
-      prepareSteps: cleanedPrepareSteps,
-      cookingSteps: cleanedCookingSteps,
-    });
+    await ui.withLoading(async () => {
+      await cloud.callFunctionWithErrorToast("recipeFunctions", {
+        type: "updateRecipe",
+        recipeId,
+        recipeName,
+        recipeImg,
+        xiaohongshuUrl: xiaohongshuUrl || "",
+        ingredients: cleanedIngredients,
+        seasonings: cleanedSeasonings,
+        prepareSteps: cleanedPrepareSteps,
+        cookingSteps: cleanedCookingSteps,
+      });
+    }, "保存中…");
 
     wx.showToast({ title: "保存成功", icon: "none" });
     wx.navigateBack();

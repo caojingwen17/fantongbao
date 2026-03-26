@@ -25,3 +25,40 @@ page {
   flex-direction: column;
   justify-content: flex-start;
 }
+
+/* 全局：列表/页面内联 loading（与 wx.showLoading 配合使用，避免重复） */
+.ft-loading-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 900;
+  background: rgba(246, 246, 246, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+}
+.ft-loading-spinner {
+  width: 44rpx;
+  height: 44rpx;
+  border: 4rpx solid rgba(0, 0, 0, 0.08);
+  border-top-color: #07c160;
+  border-radius: 50%;
+  animation: ft-spin 0.75s linear infinite;
+}
+@keyframes ft-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ft-loading-text {
+  font-size: 26rpx;
+  color: rgba(0, 0, 0, 0.45);
+}
+.ft-list-dim {
+  opacity: 0.45;
+  pointer-events: none;
+}

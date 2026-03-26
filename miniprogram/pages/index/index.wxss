@@ -161,9 +161,19 @@ page {
   font-size: 36rpx;
   font-weight: 800;
 }
+.familyMetaRow{
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
 .familyMeta{
   font-size: 24rpx;
   color: rgba(0,0,0,0.45);
+}
+.home-refresh-hint{
+  font-size: 22rpx;
+  color: #07C160;
 }
 .manageBtn{
   height: 56rpx;
@@ -180,6 +190,20 @@ page {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+}
+.mergedOrderCard{
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.pending-item{
+  padding: 16rpx 0;
+}
+.pending-item + .pending-item{
+  border-top: 1px solid rgba(0,0,0,0.08);
 }
 .orderCard{
   padding: 18rpx;

@@ -1,20 +1,6 @@
-const cloud = require("../../../utils/cloud");
+const auth = require("../../../utils/auth");
 
-const SESSION_KEY = "fantongbao_session";
-
-/** 微信静默/旧接口返回的占位昵称，不能当作真实资料 */
-const PLACEHOLDER_NICKNAMES = ["微信用户", "WeChat User"];
-
-function isPlaceholderNickName(name) {
-  if (!name || typeof name !== "string") return true;
-  return PLACEHOLDER_NICKNAMES.includes(name.trim());
-}
-
-/** 文档中的默认灰头像 URL 片段，旧授权常见 */
-function isWeChatDefaultAvatarUrl(url) {
-  if (!url || typeof url !== "string") return false;
-  return url.indexOf("mmbiz/icTdbqWNOwNRna42") !== -1;
-}
+const { getValidSessionOrNull, completeLoginFlow, isPlaceholderNickName } = auth;
 
 Page({
   data: {
@@ -30,29 +16,17 @@ Page({
   },
 
   async trySilentLogin() {
+    const s = getValidSessionOrNull();
+    if (!s) {
+      this.setData({ checkingSession: false });
+      return;
+    }
+    this.setData({ isLoading: true });
     try {
-      const s = wx.getStorageSync(SESSION_KEY);
-      const badNick = s && isPlaceholderNickName(s.nickName);
-      const badAvatar =
-        s &&
-        s.avatarUrl &&
-        typeof s.avatarUrl === "string" &&
-        isWeChatDefaultAvatarUrl(s.avatarUrl);
-      if (!s || !s.nickName || !s.avatarUrl || badNick || badAvatar) {
-        if (badNick || badAvatar) {
-          wx.removeStorageSync(SESSION_KEY);
-        }
-        this.setData({ checkingSession: false });
-        return;
-      }
-      this.setData({ isLoading: true });
-      await this.completeLoginFlow({
-        nickName: s.nickName,
-        avatarUrl: s.avatarUrl,
-      });
+      await this.afterLoginNavigate(await completeLoginFlow(s));
     } catch (e) {
-      wx.removeStorageSync(SESSION_KEY);
       this.setData({ checkingSession: false, isLoading: false });
+      wx.removeStorageSync(auth.SESSION_KEY);
     }
   },
 
@@ -75,6 +49,7 @@ Page({
       wx.showToast({ title: "请输入昵称", icon: "none" });
       return;
     }
+    // 与静默登录保持一致的“占位昵称”判断
     if (isPlaceholderNickName(nickName)) {
       wx.showToast({ title: "请填写真实昵称，不能使用「微信用户」", icon: "none" });
       return;
@@ -98,10 +73,12 @@ Page({
         wx.showToast({ title: "头像上传失败", icon: "none" });
         return;
       }
-      await this.completeLoginFlow({
-        nickName,
-        avatarUrl: fileID,
-      });
+      await this.afterLoginNavigate(
+        await completeLoginFlow({
+          nickName,
+          avatarUrl: fileID,
+        })
+      );
     } catch (err) {
       wx.hideLoading();
       wx.showToast({ title: "登录失败，请重试", icon: "none" });
@@ -111,51 +88,16 @@ Page({
   },
 
   /**
-   * @param {{ nickName: string, avatarUrl: string }} userInfo avatarUrl 可为云 fileID 或 https
+   * 登录完成后的跳转策略：以首页为“主页”，避免把登录页留在栈底
+   * @param {{ currentFamilyId: string|null }} ctx
    */
-  async completeLoginFlow(userInfo) {
-    const loginResp = await cloud.callFunctionWithErrorToast("familyFunctions", {
-      type: "login",
-      nickName: userInfo.nickName,
-      avatarUrl: userInfo.avatarUrl,
-    });
-
-    wx.setStorageSync(SESSION_KEY, {
-      nickName: userInfo.nickName,
-      avatarUrl: userInfo.avatarUrl,
-    });
-
-    const app = getApp();
-    app.globalData.userInfo = userInfo;
-    if (loginResp && loginResp.openid) app.globalData.openid = loginResp.openid;
-
-    try {
-      await cloud.callFunction("initFunctions", { init: true });
-    } catch (e) {}
-
-    let familiesResp = null;
-    try {
-      familiesResp = await cloud.callFunction("familyFunctions", {
-        type: "getMyFamilies",
-      });
-    } catch (err) {}
-
-    const families = (familiesResp && familiesResp.families) || [];
-    app.globalData.families = families;
-
-    const serverCid = loginResp && loginResp.currentFamilyId ? loginResp.currentFamilyId : null;
-    if (serverCid && families.some((f) => f._id === serverCid)) {
-      app.globalData.currentFamilyId = serverCid;
-    } else {
-      app.globalData.currentFamilyId = (families[0] && families[0]._id) || null;
-    }
-
+  async afterLoginNavigate(ctx) {
     wx.showToast({ title: "登录成功", icon: "none" });
 
-    if (app.globalData.currentFamilyId) {
-      wx.redirectTo({ url: "/pages/index/index" });
+    if (ctx && ctx.currentFamilyId) {
+      wx.reLaunch({ url: "/pages/index/index" });
     } else {
-      wx.redirectTo({ url: "/pages/family/family/index" });
+      wx.reLaunch({ url: "/pages/family/family/index" });
     }
   },
 });

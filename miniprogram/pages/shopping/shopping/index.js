@@ -1,9 +1,11 @@
 const cloud = require("../../../utils/cloud");
+const ui = require("../../../utils/ui");
 
 Page({
   data: {
     orderId: "",
     order: {},
+    mergedItems: [],
     groups: [],
     progress: {
       doneCount: 0,
@@ -11,6 +13,8 @@ Page({
     },
     extraName: "",
     extraAmount: "",
+    checklistLoading: false,
+    actionBusy: false,
   },
 
   async onLoad(options) {
@@ -19,21 +23,32 @@ Page({
     await this.fetchChecklist();
   },
 
+  async onShow() {
+    // 从“继续加菜”返回时自动刷新归并清单
+    await this.fetchChecklist();
+  },
+
   async fetchChecklist() {
     const { orderId } = this.data;
     if (!orderId) return;
-    const result = await cloud.callFunction("checklistFunctions", {
-      type: "getShoppingChecklist",
-      orderId,
-    });
-    if (result) {
-      const totalCount = result.totalCount || 0;
-      const doneCount = result.doneCount || 0;
-      this.setData({
-        order: result.order || {},
-        groups: result.groups || [],
-        progress: { totalCount, doneCount },
+    this.setData({ checklistLoading: true });
+    try {
+      const result = await cloud.callFunction("checklistFunctions", {
+        type: "getShoppingChecklist",
+        orderId,
       });
+      if (result) {
+        const totalCount = result.totalCount || 0;
+        const doneCount = result.doneCount || 0;
+        this.setData({
+          order: result.order || {},
+          mergedItems: result.mergedItems || [],
+          groups: result.groups || [],
+          progress: { totalCount, doneCount },
+        });
+      }
+    } finally {
+      this.setData({ checklistLoading: false });
     }
   },
 
@@ -51,55 +66,96 @@ Page({
       wx.showToast({ title: "请输入采购项名称", icon: "none" });
       return;
     }
-    await cloud.callFunctionWithErrorToast("checklistFunctions", {
-      type: "addExtraShoppingItem",
-      orderId,
-      name: extraName,
-      amount: extraAmount,
-    });
+    await ui.withLoading(async () => {
+      await cloud.callFunctionWithErrorToast("checklistFunctions", {
+        type: "addExtraShoppingItem",
+        orderId,
+        name: extraName,
+        amount: extraAmount,
+      });
+    }, "提交中…");
     this.setData({ extraName: "", extraAmount: "" });
     await this.fetchChecklist();
   },
 
   async onDeleteItem(e) {
-    const itemId = e.currentTarget.dataset.itemid;
-    await cloud.callFunctionWithErrorToast("checklistFunctions", {
-      type: "removeExtraShoppingItem",
-      itemId,
-    });
+    const itemIds = e.currentTarget.dataset.itemids || [];
+    if (this.data.actionBusy) return;
+    this.setData({ actionBusy: true });
+    try {
+      await ui.withLoading(async () => {
+        await cloud.callFunctionWithErrorToast("checklistFunctions", {
+          type: "removeManualShoppingItems",
+          orderId: this.data.orderId,
+          itemIds,
+        });
+      }, "处理中…");
+    } finally {
+      this.setData({ actionBusy: false });
+    }
     await this.fetchChecklist();
   },
 
   async onCheckItem(e) {
-    const itemId = e.currentTarget.dataset.itemid;
-    const beforeStatus = this.data.order.status;
-    const result = await cloud.callFunctionWithErrorToast("checklistFunctions", {
-      type: "markShoppingItemDone",
-      itemId,
-    });
+    const itemIds = e.currentTarget.dataset.itemids || [];
+    if (!itemIds || !itemIds.length) return;
+    if (this.data.actionBusy) return;
+    this.setData({ actionBusy: true });
+    try {
+      await ui.withLoading(async () => {
+        await cloud.callFunctionWithErrorToast("checklistFunctions", {
+          type: "markMergedItemsDone",
+          orderId: this.data.orderId,
+          itemIds,
+        });
+      }, "更新中…");
+    } finally {
+      this.setData({ actionBusy: false });
+    }
 
     // 刷新进度
     await this.fetchChecklist();
+  },
 
-    const afterStatus = (result && result.newOrderStatus) || beforeStatus;
-    if (beforeStatus === "pending_shopping" && afterStatus === "pending_cooking") {
-      wx.showModal({
-        title: "提示",
-        content: "确认已完成所有采购吗？",
-        confirmText: "确认",
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({ url: "/pages/order/list/index" });
-          }
-        },
-      });
-    }
+  onCompleteShopping() {
+    const { orderId, order } = this.data;
+    if (!orderId || !order || order.status !== "pending_shopping" || this.data.actionBusy) return;
+
+    wx.showModal({
+      title: "确认完成买菜",
+      content: "确认完成采购？完成后将无法加菜、删菜。",
+      confirmText: "确认完成",
+      confirmColor: "#07C160",
+      success: async (r) => {
+        if (!r.confirm) return;
+        this.setData({ actionBusy: true });
+        try {
+          await ui.withLoading(async () => {
+            await cloud.callFunctionWithErrorToast("checklistFunctions", {
+              type: "completeShoppingOrder",
+              orderId,
+            });
+          }, "提交中…");
+          wx.showToast({ title: "已完成买菜", icon: "none" });
+          await this.fetchChecklist();
+          wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+        } finally {
+          this.setData({ actionBusy: false });
+        }
+      },
+    });
   },
 
   goBack() {
     const { orderId } = this.data;
     if (!orderId) return;
     wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+  },
+
+  onContinueAdd() {
+    const { order } = this.data;
+    if (!order || order.status !== "pending_shopping") return;
+    wx.navigateTo({ url: "/pages/order/choose/index" });
   },
 });
 

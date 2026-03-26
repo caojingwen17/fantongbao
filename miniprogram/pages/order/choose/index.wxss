@@ -1,6 +1,49 @@
 .page{
   padding: 20rpx;
 }
+.pending{
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: rgba(0,0,0,0.03);
+  margin-bottom: 18rpx;
+}
+.pending-title{
+  font-size: 28rpx;
+  font-weight: 700;
+}
+.pending-sub{
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.45);
+}
+.pending-list{
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+.pending-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+.pending-name{
+  flex: 1;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+.pending-remove{
+  height: 48rpx;
+  font-size: 22rpx;
+  color: #e64545;
+  background: rgba(230,69,69,0.08);
+}
+.pending-empty{
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: rgba(0,0,0,0.35);
+}
 .search{
   margin-bottom: 18rpx;
 }

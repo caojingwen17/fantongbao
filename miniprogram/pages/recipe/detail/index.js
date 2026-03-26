@@ -3,6 +3,7 @@ const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
+    pageLoading: true,
     recipeId: "",
     recipeName: "",
     recipeImg: "",
@@ -16,7 +17,10 @@ Page({
   async onLoad(options) {
     const recipeId = options && options.recipeId ? options.recipeId : "";
     this.setData({ recipeId });
-    if (!recipeId) return;
+    if (!recipeId) {
+      this.setData({ pageLoading: false });
+      return;
+    }
 
     try {
       const result = await cloud.callFunction("recipeFunctions", {
@@ -41,6 +45,8 @@ Page({
       }
     } catch (e) {
       // ignore
+    } finally {
+      this.setData({ pageLoading: false });
     }
   },
 

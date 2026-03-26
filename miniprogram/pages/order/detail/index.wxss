@@ -20,9 +20,31 @@
   padding: 14rpx 0;
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
+.recipe-row-top{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
 .recipe-name{
   font-size: 30rpx;
   font-weight: 600;
+}
+.recipe-name-wrap{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.creator-text{
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: rgba(0,0,0,0.45);
+}
+.remove-btn{
+  height: 52rpx;
+  font-size: 24rpx;
+  color: #e64545;
+  background: rgba(230,69,69,0.08);
 }
 .note{
   margin-top: 8rpx;

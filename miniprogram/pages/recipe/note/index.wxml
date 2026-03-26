@@ -1,4 +1,8 @@
-<scroll-view scroll-y="true" class="page">
+<view class="ft-loading-mask" wx:if="{{pageLoading}}">
+  <view class="ft-loading-spinner" />
+  <text class="ft-loading-text">加载中…</text>
+</view>
+<scroll-view scroll-y="true" class="page" wx:else>
   <view class="dish">
     <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
     <view class="dish-name">{{recipeName}}</view>

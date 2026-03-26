@@ -5,6 +5,7 @@ Page({
     status: "pending_shopping",
     familyId: null,
     orders: [],
+    listLoading: false,
   },
 
   onLoad() {
@@ -12,6 +13,9 @@ Page({
     this.setData({
       familyId: app.globalData.currentFamilyId,
     });
+  },
+
+  onShow() {
     this.fetchOrders();
   },
 
@@ -22,25 +26,19 @@ Page({
 
   async fetchOrders() {
     if (!this.data.familyId) return;
-    const result = await cloud.callFunction("orderFunctions", {
-      type: "listOrders",
-      familyId: this.data.familyId,
-      status: this.data.status,
-    });
-    this.setData({
-      orders: (result && result.orders) || [],
-    });
-  },
-
-  async onCreateOrder() {
-    if (!this.data.familyId) return;
-    await cloud.callFunctionWithErrorToast("orderFunctions", {
-      type: "createOrder",
-      familyId: this.data.familyId,
-      orderName: "新的点菜单",
-    });
-    wx.showToast({ title: "创建成功", icon: "none" });
-    this.fetchOrders();
+    this.setData({ listLoading: true });
+    try {
+      const result = await cloud.callFunction("orderFunctions", {
+        type: "listOrders",
+        familyId: this.data.familyId,
+        status: this.data.status,
+      });
+      this.setData({
+        orders: (result && result.orders) || [],
+      });
+    } finally {
+      this.setData({ listLoading: false });
+    }
   },
 
   onOrderTap(e) {

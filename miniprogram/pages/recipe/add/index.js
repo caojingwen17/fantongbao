@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const ui = require("../../../utils/ui");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
@@ -84,27 +85,32 @@ Page({
 
     if (this.data.isExtracting) return;
     this.setData({ isExtracting: true });
-    const result = await cloud.callFunction("aiFunctions", {
-      type: "extractRecipe",
-      xiaohongshuUrl: this.data.xiaohongshuUrl,
-      recipeName: this.data.recipeName,
-    });
+    ui.showLoading("解析链接中…");
+    try {
+      const result = await cloud.callFunction("aiFunctions", {
+        type: "extractRecipe",
+        xiaohongshuUrl: this.data.xiaohongshuUrl,
+        recipeName: this.data.recipeName,
+      });
 
-    if (result && result.recipeName) {
-      this.setData({
-        ingredients: result.ingredients || [],
-        seasonings: result.seasonings || [],
-        prepareSteps: result.prepareSteps || [],
-        cookingSteps: result.cookingSteps || [],
-      });
-      wx.showToast({
-        title: result.tip || (result.mock ? "已填充通用菜谱，可继续编辑" : "解析完成"),
-        icon: "none",
-      });
-    } else {
-      wx.showToast({ title: "提炼失败，请手动添加", icon: "none" });
+      if (result && result.recipeName) {
+        this.setData({
+          ingredients: result.ingredients || [],
+          seasonings: result.seasonings || [],
+          prepareSteps: result.prepareSteps || [],
+          cookingSteps: result.cookingSteps || [],
+        });
+        wx.showToast({
+          title: result.tip || (result.mock ? "已填充通用菜谱，可继续编辑" : "解析完成"),
+          icon: "none",
+        });
+      } else {
+        wx.showToast({ title: "提炼失败，请手动添加", icon: "none" });
+      }
+    } finally {
+      ui.hideLoading();
+      this.setData({ isExtracting: false });
     }
-    this.setData({ isExtracting: false });
   },
 
   async onImportFromLocalImage() {
@@ -347,17 +353,19 @@ Page({
       return;
     }
 
-    await cloud.callFunctionWithErrorToast("recipeFunctions", {
-      type: "addRecipe",
-      familyId,
-      recipeName,
-      recipeImg,
-      xiaohongshuUrl: xiaohongshuUrl || "",
-      ingredients: cleanedIngredients,
-      seasonings: cleanedSeasonings,
-      prepareSteps: cleanedPrepareSteps,
-      cookingSteps: cleanedCookingSteps,
-    });
+    await ui.withLoading(async () => {
+      await cloud.callFunctionWithErrorToast("recipeFunctions", {
+        type: "addRecipe",
+        familyId,
+        recipeName,
+        recipeImg,
+        xiaohongshuUrl: xiaohongshuUrl || "",
+        ingredients: cleanedIngredients,
+        seasonings: cleanedSeasonings,
+        prepareSteps: cleanedPrepareSteps,
+        cookingSteps: cleanedCookingSteps,
+      });
+    }, "提交中…");
 
     wx.showToast({ title: "提交成功", icon: "none" });
     wx.navigateBack();

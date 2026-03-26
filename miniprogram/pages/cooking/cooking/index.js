@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const ui = require("../../../utils/ui");
 
 Page({
   data: {
@@ -9,6 +10,7 @@ Page({
       doneCount: 0,
       totalCount: 0,
     },
+    checklistLoading: false,
   },
 
   async onLoad(options) {
@@ -20,20 +22,25 @@ Page({
   async fetchChecklist() {
     const { orderId } = this.data;
     if (!orderId) return;
-    const result = await cloud.callFunction("checklistFunctions", {
-      type: "getCookingChecklist",
-      orderId,
-    });
-    if (result) {
-      const groups = (result.groups || []).map((g) => ({ ...g, open: true }));
-      this.setData({
-        order: result.order || {},
-        groups,
-        progress: {
-          doneCount: result.doneCount || 0,
-          totalCount: result.totalCount || 0,
-        },
+    this.setData({ checklistLoading: true });
+    try {
+      const result = await cloud.callFunction("checklistFunctions", {
+        type: "getCookingChecklist",
+        orderId,
       });
+      if (result) {
+        const groups = (result.groups || []).map((g) => ({ ...g, open: true }));
+        this.setData({
+          order: result.order || {},
+          groups,
+          progress: {
+            doneCount: result.doneCount || 0,
+            totalCount: result.totalCount || 0,
+          },
+        });
+      }
+    } finally {
+      this.setData({ checklistLoading: false });
     }
   },
 
@@ -55,7 +62,7 @@ Page({
         confirmText: "确认",
         success: (res) => {
           if (res.confirm) {
-            wx.navigateTo({ url: "/pages/order/list/index" });
+            wx.reLaunch({ url: "/pages/index/index" });
           }
         },
       });

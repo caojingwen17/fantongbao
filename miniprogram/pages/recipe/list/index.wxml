@@ -1,10 +1,14 @@
 <view class="page">
+  <view class="ft-loading-mask" wx:if="{{listLoading}}">
+    <view class="ft-loading-spinner" />
+    <text class="ft-loading-text">加载菜谱…</text>
+  </view>
   <view class="search">
     <input placeholder="搜索菜名" class="search-input" value="{{keyword}}" bindinput="onKeywordInput" />
   </view>
   <button class="add-btn" bindtap="goAdd">添加菜谱</button>
 
-  <view class="list">
+  <view class="list {{listLoading ? 'ft-list-dim' : ''}}">
     <block wx:for="{{recipes}}" wx:key="id">
       <view
         class="card"

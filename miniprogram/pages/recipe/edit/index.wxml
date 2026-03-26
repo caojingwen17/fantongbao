@@ -1,4 +1,8 @@
-<scroll-view scroll-y="true" class="page">
+<view class="ft-loading-mask" wx:if="{{pageLoading}}">
+  <view class="ft-loading-spinner" />
+  <text class="ft-loading-text">加载菜谱…</text>
+</view>
+<scroll-view scroll-y="true" class="page" wx:else>
   <view class="section">
     <view class="label">菜名</view>
     <input class="input" placeholder="菜名" value="{{recipeName}}" bindinput="onRecipeNameInput" />
