@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cooking Phase - Fantongbao</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be_Vietnam_Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-background": "#1d1b1a",
+              "on-surface": "#1d1b1a",
+              "tertiary-container": "#b99047",
+              "on-secondary-container": "#26732c",
+              "on-tertiary-container": "#402b00",
+              "inverse-surface": "#32302e",
+              "on-primary": "#ffffff",
+              "surface-bright": "#fef8f5",
+              "surface": "#fef8f5",
+              "primary-container": "#e37c20",
+              "surface-dim": "#ded9d6",
+              "error-container": "#ffdad6",
+              "on-error": "#ffffff",
+              "tertiary-fixed-dim": "#edc071",
+              "surface-container-highest": "#e7e1df",
+              "on-error-container": "#93000a",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#f8f2f0",
+              "on-secondary-fixed-variant": "#005313",
+              "secondary-fixed-dim": "#8ad985",
+              "on-primary-fixed-variant": "#713700",
+              "on-surface-variant": "#584237",
+              "on-primary-container": "#4d2400",
+              "surface-container": "#f2edea",
+              "tertiary-fixed": "#ffdeaa",
+              "secondary": "#1e6c26",
+              "primary": "#944a00",
+              "on-secondary-fixed": "#002204",
+              "surface-tint": "#944a00",
+              "on-tertiary-fixed": "#271900",
+              "surface-container-high": "#ede7e4",
+              "primary-fixed": "#ffdcc5",
+              "on-primary-fixed": "#301400",
+              "on-tertiary-fixed-variant": "#5f4100",
+              "secondary-container": "#a5f69e",
+              "on-tertiary": "#ffffff",
+              "surface-variant": "#e7e1df",
+              "primary-fixed-dim": "#ffb783",
+              "on-secondary": "#ffffff",
+              "outline": "#8c7265",
+              "inverse-primary": "#ffb783",
+              "inverse-on-surface": "#f5f0ed",
+              "background": "#fef8f5",
+              "tertiary": "#7a5813",
+              "error": "#ba1a1a",
+              "secondary-fixed": "#a5f69e",
+              "outline-variant": "#dfc0b2"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-checked .step-content {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md shadow-sm dark:shadow-none flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container">
+<img alt="Family profile photo" class="w-full h-full object-cover" data-alt="Close-up portrait of a smiling father in a warm kitchen setting, soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqmOCgHpXgNcgSE0UlE73hl8GzbB3MRT_sydtXR8axo637Mkf24lqymV8NZlcfVHxRpumqIeFgU7kaiCxw2aFfViWVkyIi9uylXewa20ZGoYy-Ox82bRrMKqaQW7eUgYB8ZaY8DEbjgipJ9kO2HbYAhIth3P3G80B0uurf__fZt7CmVS34ifveb0V7Fbi-1Iercaxl4HGniphJoat6tH9CC_eSB3QO830Qojo_7Wk-kI69xh1sZaQq-phsoAxJUp6Ln2lZ5XafwxM"/>
+</div>
+<h1 class="font-['Plus_Jakarta_Sans'] font-black tracking-tight text-xl text-orange-800 dark:text-orange-200">Fantongbao</h1>
+</div>
+<button class="text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="pt-24 px-6 max-w-4xl mx-auto">
+<!-- Status Banner -->
+<section class="mb-8">
+<div class="bg-primary-container/10 border border-primary/10 rounded-lg p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="restaurant" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+<div>
+<p class="text-xs font-label uppercase tracking-widest text-primary/70">Current Status</p>
+<h2 class="font-headline font-bold text-lg text-on-primary-container">Phase: Cooking</h2>
+</div>
+</div>
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-stone-200 overflow-hidden" title="Mom">
+<img class="w-full h-full object-cover" data-alt="Portrait of a woman with a kind expression in a bright home environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAl4dmPUbT_-vNPKG7QJfQkb4LdN4M8h_0giIlED4op2X4oJTvJe3QHbaR1rzyYeJaGmoUweEok3USFSdZupQl8UuEpoVnaijGGIFXvdrQUsmq5yN6eHpYNKLWB7pG2Qb2fLXn-ippj7kDmOwG6iWBmRR-DWRkaxBamxKTeqzlJLBNvXtyvtXMTi8XYfK2JnvAKDGDb7rlRuDGmFnuh14_CMWTXBA_CKe7Ly1LP3HQFZ8dueQ8tBubVXd7kzQFNcOGH5qsk3XR5unk"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-stone-200 overflow-hidden" title="Dad">
+<img class="w-full h-full object-cover" data-alt="Portrait of a man smiling warmly, soft daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3TSMtdEqe9RXqNJG0BiNRyZeRBqfWOOVFKNFZnZOYQS_INvptyv1qAxaI9tW43_sZhmfrGsVj6OM_C0CCDyDvpZYeSgxF5c3sllMb-e971j7OmnoLnxKld01QAml0m8IyliwGfGXd_KKDZdODWX7J6uC54sxhCBl3b_HCqLHYckfuvkrZs9aObz9nMx2Hv52bh0VQeXOhBKQdCPuGtabEEGlfwaiS3eQzjI_SV-c4aWSaFYoZJa0e0CRWAgaav788-Roc2TmssXg"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Recipe Section: Mapo Tofu -->
+<section class="mb-10">
+<div class="relative mb-6 rounded-lg overflow-hidden h-48 sm:h-64 shadow-lg">
+<img alt="Mapo Tofu" class="w-full h-full object-cover" data-alt="Authentic spicy Mapo Tofu in a clay pot with vibrant red chili oil, green scallions, and steam rising, high angle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpwZ7PfdG4Vf6WSy8rcs4ELAljacEZhqEq2fIby-CrdbusPTgNAjr6a4I2qCTUFt2slThGAAOZy5X3D_FusybWFWOzN5Pkn49V4scgv4abSqTKN_eLKPQFS3DQoq3DVlFQCFIx80Z8t5CsQKp3RCzcRSjUoFH4XDVqveztK3l7nTD2_REgdZ334Uy4y8cOaBDbaejzCDO0pNG_qQNIiAk9cybwV8EOZ5oukNrzN6VEgcxpQVkAdO-FshgMCSIxS0Yrg86maZyGbbo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-end items-end p-6">
+<div>
+<span class="bg-secondary text-on-secondary text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">Sichuan Classic</span>
+<h3 class="text-white font-headline text-3xl font-extrabold">Mapo Tofu</h3>
+</div>
+</div>
+</div>
+<!-- Preparation Checklist -->
+<div class="mb-8">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-stone-400" data-icon="kitchen">kitchen</span>
+<h4 class="font-headline font-bold text-xl">Preparation</h4>
+</div>
+<div class="space-y-3">
+<!-- Step Item -->
+<div class="bg-surface-container-low rounded-md p-4 flex items-start gap-4 transition-all hover:bg-surface-container group">
+<div class="mt-1">
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center text-transparent group-hover:border-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
+</div>
+</div>
+<div class="flex-grow">
+<p class="text-on-surface font-medium">Cut tofu into 1-inch cubes and soak in warm salted water for 15 minutes.</p>
+</div>
+</div>
+<!-- Checked Step Item -->
+<div class="bg-surface-container-low rounded-md p-4 flex items-start gap-4 step-checked">
+<div class="mt-1">
+<div class="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-on-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="flex-grow step-content">
+<p class="text-on-surface font-medium">Finely mince ginger, garlic, and scallion whites.</p>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-secondary-container">
+<img class="w-full h-full object-cover" data-alt="Small avatar of a woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNWpHbpjMKsGKbm4gik0m6LvSQdREfYVK-XTWdu30Rp00Iu7yigrt7K3gzqF2SPIDEuf8XDG7AHK1U19EoQcVL8ir3_IAirDHTIMECwXl6cNGlKlEwnIlZoBeiiz7nJX2rYkBR0s3QZw1DfHb80Gej-vnPhB3bLfhgW4vPRbVOUAGkim28bVivkmjeXopSYAt3W5hpp0-dWdeF7W1Uhn82crArk2tA8zPxYHlYuowacaMM_jejpBoAeAlesI2U0t2Ae93cEs3P7Rk"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Cooking Checklist -->
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-stone-400" data-icon="skillet">skillet</span>
+<h4 class="font-headline font-bold text-xl">Cooking Steps</h4>
+</div>
+<div class="space-y-4">
+<!-- Step 1 Card -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-6 shadow-sm overflow-hidden">
+<span class="absolute -top-2 -right-2 font-headline text-7xl font-black text-primary/10 select-none">1</span>
+<div class="relative z-10 flex gap-4">
+<div class="mt-1">
+<div class="w-8 h-8 rounded-full border-2 border-primary/30 flex items-center justify-center text-primary/30 hover:bg-primary-container/10 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+</div>
+<div>
+<h5 class="font-headline font-bold text-lg mb-2">Brown the Aromatics</h5>
+<p class="text-on-surface-variant leading-relaxed">Heat oil in a wok over medium heat. Sauté minced meat until browned. Add doubanjiang and stir until the oil turns red and fragrant.</p>
+</div>
+</div>
+</div>
+<!-- Step 2 Card -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-6 shadow-sm overflow-hidden">
+<span class="absolute -top-2 -right-2 font-headline text-7xl font-black text-primary/10 select-none">2</span>
+<div class="relative z-10 flex gap-4">
+<div class="mt-1">
+<div class="w-8 h-8 rounded-full border-2 border-primary/30 flex items-center justify-center text-primary/30 hover:bg-primary-container/10 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+</div>
+<div>
+<h5 class="font-headline font-bold text-lg mb-2">Simmer with Tofu</h5>
+<p class="text-on-surface-variant leading-relaxed">Add broth, soy sauce, and sugar. Gently slide in tofu cubes. Simmer for 5 minutes to let the tofu absorb the spicy flavors.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Dish Quick View -->
+<section class="mb-12 opacity-80">
+<div class="bg-surface-container p-4 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-md overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Steaming bowl of fresh green vegetables with garlic slivers" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWq7L62nMuTt0OTTlWdt8uvhyztVkOEzmaZfaPMTweEyeS631axRe7wucMY9Sx_IXrUx9ALty6fF9--5NQpBHd3WyRoclsVs4ie1cQ1lgd9f_6JsGE4kpLctL7buyCWNhlmaQTRAsMe2R5i7o3oYVhjqaD2y3Dpd4Oext2PQjbBe68W8cLH0mmKZx9y_RpFldvGWI8b5eqM08GweCLPWtZ9Mqapf43BhDmXrVSOPxL6w0Qv85CxSATkrtHhcpuYQdy8zBbeZ_ck1A"/>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface">Garlic Bok Choy</h4>
+<p class="text-xs text-on-surface-variant">Ready to plate • 0/3 steps left</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</section>
+<!-- Action Button -->
+<div class="mt-10 mb-20 flex flex-col gap-4">
+<button class="w-full py-5 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-extrabold text-lg shadow-xl active:scale-95 transition-transform duration-150 flex items-center justify-center gap-3">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+                Finish Cooking
+            </button>
+<p class="text-center text-sm text-stone-500 font-medium">This will archive the order and notify the family.</p>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-[2.5rem] z-50">
+<a class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-5 py-2 hover:text-orange-600 dark:hover:text-orange-300 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-orange-100 dark:bg-orange-900/40 text-orange-900 dark:text-orange-100 rounded-full px-5 py-2 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="reorder" style="font-variation-settings: 'FILL' 1;">reorder</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-5 py-2 hover:text-orange-600 dark:hover:text-orange-300 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Recipes</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-5 py-2 hover:text-orange-600 dark:hover:text-orange-300 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Profile</span>
+</a>
+</nav>
+</body></html>
