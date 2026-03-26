@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              "primary": "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              "tertiary": "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              "outline": "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              "surface": "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              "error": "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              "secondary": "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              "background": "#fff5ec",
+              "surface-container-lowest": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #fff5ec;
+      }
+      .bubbly-card {
+        transition: transform 0.2s ease;
+      }
+      .bubbly-card:active {
+        transform: scale(0.98);
+      }
+      .custom-checkbox:checked {
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="portrait of a cheerful home cook in a warm kitchen setting with soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCe_3uwZF7LLsOJIpI6KlFLgQiHjJDIfQBhWx2X_iOZVLNSNLVzAkHrbi5gnAP14U-UqZQDm20LBgacLcTaAXqRvr6wrxD1Cgjm083As3w6HJR6gcvXzp5vhOeHYHC11JnIGVDLCWl21RmXsPr2xQWjkrg0wp3nCzYKcWsBY8X9OaD5yopgkrnmjgBvxeRQq5cSm1amy1q9QHv7cufHCumcdRkeF6Q0NgixVlFwmm6_YlWCmHfL9Y7idRssAWnO_dVnQzyi979IZeI"/>
+</div>
+<span class="text-2xl font-black text-orange-700 dark:text-orange-500 italic tracking-tight">Fantongbao</span>
+</div>
+<button class="text-orange-600 dark:text-orange-400 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto">
+<!-- Market Basket Header Section -->
+<div class="flex items-end justify-between mb-8">
+<div>
+<h1 class="text-4xl font-extrabold tracking-tight text-on-surface">Market Basket</h1>
+<p class="text-on-surface-variant font-medium mt-1">Ready for your culinary adventure?</p>
+</div>
+<div class="bg-primary-container text-on-primary-container px-4 py-2 rounded-full font-bold text-lg shadow-sm">
+                12 items
+            </div>
+</div>
+<!-- Categories Bento Layout -->
+<div class="space-y-10">
+<!-- Category: Fresh Produce -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-container flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined" data-icon="leaf">energy_savings_leaf</span>
+</div>
+<h2 class="text-xl font-bold">Fresh Produce</h2>
+</div>
+<div class="space-y-3">
+<!-- Item 1 -->
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-xl bubbly-card cursor-pointer">
+<input class="w-6 h-6 rounded-full border-2 border-outline-variant text-primary focus:ring-primary-container custom-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Potatoes</p>
+<p class="text-sm text-on-surface-variant">3 units • <span class="text-primary italic">from Mapo Tofu</span></p>
+</div>
+</label>
+<!-- Item 2 -->
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-xl bubbly-card cursor-pointer">
+<input class="w-6 h-6 rounded-full border-2 border-outline-variant text-primary focus:ring-primary-container custom-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Green Onions</p>
+<p class="text-sm text-on-surface-variant">1 bunch • <span class="text-primary italic">Essential</span></p>
+</div>
+</label>
+<!-- Item 3 -->
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-xl bubbly-card cursor-pointer">
+<input class="w-6 h-6 rounded-full border-2 border-outline-variant text-primary focus:ring-primary-container custom-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Ginger Root</p>
+<p class="text-sm text-on-surface-variant">2 inch piece</p>
+</div>
+</label>
+</div>
+</section>
+<!-- Category: Proteins -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 rounded-2xl bg-error-container/20 flex items-center justify-center text-error">
+<span class="material-symbols-outlined" data-icon="restaurant">restaurant</span>
+</div>
+<h2 class="text-xl font-bold">Proteins</h2>
+</div>
+<div class="space-y-3">
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-xl bubbly-card cursor-pointer">
+<input class="w-6 h-6 rounded-full border-2 border-outline-variant text-primary focus:ring-primary-container custom-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Pork Ribs</p>
+<p class="text-sm text-on-surface-variant">500g • <span class="text-primary italic">from Sweet &amp; Sour Ribs</span></p>
+</div>
+</label>
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-xl bubbly-card cursor-pointer">
+<input class="w-6 h-6 rounded-full border-2 border-outline-variant text-primary focus:ring-primary-container custom-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Ground Pork</p>
+<p class="text-sm text-on-surface-variant">250g • <span class="text-primary italic">from Mapo Tofu</span></p>
+</div>
+</label>
+</div>
+</section>
+<!-- Category: Pantry Essentials -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 rounded-2xl bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined" data-icon="kitchen">kitchen</span>
+</div>
+<h2 class="text-xl font-bold">Pantry Essentials</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-xl bubbly-card cursor-pointer">
+<input class="w-6 h-6 rounded-full border-2 border-outline-variant text-primary focus:ring-primary-container custom-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Doubanjiang</p>
+<p class="text-xs text-on-surface-variant uppercase tracking-wider font-bold">Spicy Bean Paste</p>
+</div>
+</label>
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-xl bubbly-card cursor-pointer">
+<input class="w-6 h-6 rounded-full border-2 border-outline-variant text-primary focus:ring-primary-container custom-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Soy Sauce</p>
+<p class="text-xs text-on-surface-variant uppercase tracking-wider font-bold">Dark</p>
+</div>
+</label>
+</div>
+</section>
+</div>
+<!-- Floating Primary Action Button -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-xs px-6">
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary py-5 rounded-full font-extrabold text-xl shadow-[0_12px_24px_rgba(67,41,0,0.2)] flex items-center justify-center gap-3 active:scale-95 transition-transform">
+<span class="material-symbols-outlined font-bold" data-icon="check_circle">check_circle</span>
+                Finish Shopping
+            </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-12px_24px_rgba(67,41,0,0.08)]">
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full px-5 py-2 scale-110 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="receipt_long">receipt_long</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="restaurant_menu">restaurant_menu</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Recipes</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+<!-- Decorative Organic Shape Background -->
+<div class="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none opacity-40">
+<div class="absolute top-20 -right-20 w-64 h-64 bg-primary-container rounded-full blur-[100px]"></div>
+<div class="absolute bottom-40 -left-20 w-80 h-80 bg-secondary-container rounded-full blur-[120px]"></div>
+</div>
+</body></html>

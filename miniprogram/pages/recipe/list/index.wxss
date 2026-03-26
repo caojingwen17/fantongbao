@@ -5,8 +5,9 @@
   margin-bottom: 18rpx;
 }
 .search-input{
-  border-radius: 14rpx;
-  background: rgba(0,0,0,0.03);
+  border-radius: var(--ft-r-xl);
+  background: var(--ft-surface-container-lowest);
+  border: 1px solid var(--ft-outline-variant);
   padding: 14rpx 16rpx;
 }
 .add-btn{
@@ -22,8 +23,8 @@
   gap: 16rpx;
   align-items: center;
   padding: 16rpx;
-  border-radius: 16rpx;
-  background: rgba(0,0,0,0.03);
+  border-radius: var(--ft-r-xl);
+  background: var(--ft-surface-container-low);
 }
 .img{
   width: 120rpx;
@@ -39,7 +40,7 @@
 }
 .time{
   font-size: 22rpx;
-  color: rgba(0,0,0,0.45);
+  color: var(--ft-on-surface-variant);
   margin-top: 8rpx;
 }
 .empty{

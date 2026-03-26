@@ -1,14 +1,16 @@
-<scroll-view scroll-y="true" class="page">
+<scroll-view scroll-y="true" class="page ft-page">
   <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
     <view class="ft-loading-spinner" />
     <text class="ft-loading-text">加载制作步骤…</text>
   </view>
-  <view class="header">
-    <view class="order-name">{{order.orderName || ""}}</view>
-    <view class="progress">
-      已完成 {{progress.doneCount}} / {{progress.totalCount}} 步
+  <view class="header ft-card ft-card-low p-card">
+    <view class="header-left">
+      <view class="order-name ft-title">{{order.orderName || ""}}</view>
+      <view class="progress ft-subtle">
+        已完成 {{progress.doneCount}} / {{progress.totalCount}} 步
+      </view>
     </view>
-    <button class="backBtn" bindtap="goBack">返回</button>
+    <button class="ft-btn ft-pill backBtn" bindtap="goBack">返回</button>
   </view>
 
   <block wx:for="{{groups}}" wx:key="recipeId">

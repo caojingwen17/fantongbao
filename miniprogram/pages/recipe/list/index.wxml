@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page ft-page">
   <view class="ft-loading-mask" wx:if="{{listLoading}}">
     <view class="ft-loading-spinner" />
     <text class="ft-loading-text">加载菜谱…</text>

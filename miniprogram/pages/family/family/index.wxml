@@ -3,77 +3,104 @@
   <text class="boot-text">加载家庭数据…</text>
 </view>
 
-<view class="page" wx:else>
-  <view class="section-title">我的家庭</view>
-  <view class="families" wx:if="{{families && families.length}}">
-    <block wx:for="{{families}}" wx:key="_id">
-      <view class="family-card" data-familyid="{{item._id}}">
-        <view class="family-name">{{item.familyName}}</view>
-        <view class="family-meta">
-          <text wx:if="{{currentFamily && currentFamily._id === item._id}}">当前家庭</text>
-          <text wx:if="{{!(currentFamily && currentFamily._id === item._id)}}"> </text>
-        </view>
-        <button
-          class="family-switch"
-          data-familyid="{{item._id}}"
-          bindtap="onSwitchFamily"
-          disabled="{{actionBusy}}"
-          loading="{{switchingFamilyId === item._id}}"
-        >
-          切换
-        </button>
-      </view>
-    </block>
-  </view>
+<scroll-view scroll-y="true" class="page ft-page" wx:else>
+  <view class="content">
+    <!-- 1) 家庭列表 -->
+    <view wx:if="{{viewMode==='list'}}">
+      <view class="title ft-title">家庭管理</view>
 
-  <view wx:if="{{!families || families.length===0}}" class="empty">暂无家庭，请创建或加入</view>
-
-  <view class="section-title">创建家庭</view>
-  <input class="input" placeholder="家庭名称" value="{{familyName}}" bindinput="onFamilyNameInput" />
-  <button class="btn" type="primary" bindtap="onCreateFamily" disabled="{{actionBusy}}">创建</button>
-
-  <view class="section-title">加入家庭</view>
-  <input
-    class="input"
-    placeholder="家庭邀请码"
-    value="{{inviteCode}}"
-    bindinput="onInviteCodeInput"
-  />
-  <button class="btn" type="primary" bindtap="onJoinFamily" disabled="{{actionBusy}}">加入</button>
-
-  <view class="section-title" wx:if="{{currentFamily}}">当前家庭成员</view>
-  <view class="card" wx:if="{{currentFamily}}">
-    <view class="row">
-      <view class="label">家庭邀请码</view>
-      <view class="invite">{{currentFamily.inviteCode}}</view>
-      <button class="copy-btn" bindtap="onCopyInviteCode">复制</button>
-    </view>
-    <view class="members-loading" wx:if="{{membersLoading && (!members || members.length===0)}}">
-      <view class="members-loading-dot" />
-      <text>正在加载成员…</text>
-    </view>
-    <view class="members" wx:if="{{members && members.length}}">
-      <block wx:for="{{members}}" wx:key="_id">
-        <view class="member-row">
-          <image class="avatar" mode="aspectFill" src="{{item.avatarUrlDisplay || item.avatarUrl}}" />
-          <view class="member-info">
-            <view class="member-name">{{item.nickName}}</view>
-            <view class="member-id">{{item._id}}</view>
+      <view class="family-list" wx:if="{{familiesDisplay && familiesDisplay.length}}">
+        <block wx:for="{{familiesDisplay}}" wx:key="_id">
+          <view class="family-card ft-card ft-card-low" bindtap="onOpenFamily" data-familyid="{{item._id}}">
+            <view class="family-top">
+              <view class="family-name ft-title">{{item.familyName}}</view>
+              <view class="family-current ft-badge ft-badge-success" wx:if="{{item.isCurrent}}">当前</view>
+            </view>
+            <view class="family-sub ft-subtle">{{item.subtitle}}</view>
           </view>
-          <button
-            class="kick-btn"
-            wx:if="{{isAdmin() && item._id !== currentFamily.adminId}}"
-            data-memberid="{{item._id}}"
-            bindtap="onKickMember"
-            disabled="{{actionBusy}}"
-          >
-            踢出
-          </button>
+        </block>
+      </view>
+
+      <view class="empty" wx:if="{{!familiesDisplay || familiesDisplay.length===0}}">暂无家庭，请创建或加入</view>
+
+      <view class="bottom-actions">
+        <button class="ft-btn ft-pill actionBtn" bindtap="openJoinDialog" disabled="{{actionBusy}}">加入家庭</button>
+        <button class="ft-btn ft-btn-primary ft-pill actionBtn" bindtap="openCreateDialog" disabled="{{actionBusy}}">创建家庭</button>
+      </view>
+
+      <view class="dialog-mask" wx:if="{{dialogVisible}}" catchtap="closeDialog">
+        <view class="dialog ft-card ft-card-lowest" catchtap="noop">
+          <view class="dialog-title ft-title">{{dialogMode==='create' ? "创建家庭" : "加入家庭"}}</view>
+          <input
+            class="dialog-input"
+            placeholder="{{dialogMode==='create' ? '请输入家庭名称' : '请输入家庭邀请码'}}"
+            value="{{dialogValue}}"
+            bindinput="onDialogValueInput"
+          />
+          <view class="dialog-actions">
+            <button class="ft-btn ft-pill dialogBtn" bindtap="closeDialog">取消</button>
+            <button class="ft-btn ft-btn-primary ft-pill dialogBtn" bindtap="onDialogConfirm" disabled="{{actionBusy}}">确定</button>
+          </view>
         </view>
-      </block>
+      </view>
     </view>
-    <view class="members-empty" wx:if="{{!membersLoading && (!members || members.length===0)}}">暂无成员</view>
-    <button class="exit-btn" bindtap="onExitFamily" disabled="{{actionBusy}}">退出当前家庭</button>
+
+    <!-- 2) 家庭详情 -->
+    <view wx:if="{{viewMode==='detail'}}">
+      <view class="detail-title-only ft-title">{{currentFamily.familyName || ""}}</view>
+
+      <view class="card ft-card ft-card-low p-card">
+        <view class="section-title ft-title">家人</view>
+        <view class="members-loading" wx:if="{{membersLoading}}">
+          <view class="members-loading-dot" />
+          <text>正在加载成员…</text>
+        </view>
+        <view class="members" wx:if="{{!membersLoading && members && members.length}}">
+          <block wx:for="{{members}}" wx:key="_id">
+            <view class="member-row">
+              <image class="avatar" mode="aspectFill" src="{{item.avatarUrlDisplay || item.avatarUrl}}" />
+              <view class="member-info">
+                <view class="member-name ft-title">
+                  {{item.nickName}}
+                </view>
+                <view class="member-role ft-subtle">
+                  {{currentFamily && currentFamily.adminId===item._id ? "管理员" : "成员"}}
+                </view>
+              </view>
+            </view>
+          </block>
+        </view>
+        <view class="members-empty" wx:if="{{!membersLoading && (!members || members.length===0)}}">暂无成员</view>
+      </view>
+
+      <view class="card ft-card ft-card-low p-card">
+        <view class="recipes-head">
+          <view class="section-title ft-title">家庭菜谱</view>
+          <view class="ft-subtle">{{recipes ? recipes.length : 0}} 个</view>
+        </view>
+        <view class="recipes-loading ft-subtle" wx:if="{{recipesLoading}}">加载菜谱中…</view>
+        <view class="recipe-grid" wx:if="{{!recipesLoading && recipes && recipes.length}}">
+          <block wx:for="{{recipes}}" wx:key="id">
+            <view class="recipe-card ft-card-lowest">
+              <image class="recipe-img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
+              <view class="recipe-name ft-title">{{item.recipeName}}</view>
+            </view>
+          </block>
+        </view>
+        <view class="empty" wx:if="{{!recipesLoading && (!recipes || recipes.length===0)}}">暂无菜谱</view>
+      </view>
+
+      <view id="manageAnchor"></view>
+      <view class="manage ft-card ft-card-low p-card">
+        <view class="section-title ft-title">家庭管理</view>
+        <view class="row">
+          <view class="label ft-subtle">家庭邀请码</view>
+          <view class="invite ft-title">{{currentFamily.inviteCode}}</view>
+          <button class="ft-btn ft-pill copy-btn" bindtap="onCopyInviteCode">复制</button>
+        </view>
+        <button class="ft-btn ft-btn-danger ft-pill exit-btn" bindtap="onExitFamily" disabled="{{actionBusy}}">退出家庭</button>
+      </view>
+    </view>
   </view>
-</view>
+</scroll-view>
 

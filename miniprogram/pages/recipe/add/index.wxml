@@ -1,96 +1,101 @@
-<scroll-view scroll-y="true" class="page">
-  <view class="section">
-    <view class="label">菜名（必填）</view>
-    <input class="input" placeholder="请先输入菜谱名称" value="{{recipeName}}" bindinput="onRecipeNameInput" focus="{{true}}" />
-    <view class="subtip">菜名填写完成后，才可解锁链接解析 / 图片导入等功能</view>
+<scroll-view scroll-y="true" class="page ft-page">
+  <view class="hero ft-card ft-card-low p-card">
+    <view class="hero-title ft-title">新增菜谱</view>
+    <view class="hero-sub ft-subtle">先填菜名，再用链接/图片导入快速生成</view>
   </view>
 
-  <view class="section">
-    <view class="label">小红书链接导入</view>
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">菜名（必填）</view>
+    <input class="input ft-input" placeholder="请先输入菜谱名称" value="{{recipeName}}" bindinput="onRecipeNameInput" focus="{{true}}" />
+    <view class="subtip ft-subtle">菜名填写完成后，才可解锁链接解析 / 图片导入等功能</view>
+  </view>
+
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">小红书链接导入</view>
     <input
-      class="input"
+      class="input ft-input"
       placeholder="{{canImport ? '粘贴小红书链接（用于解析）' : '请先输入菜谱名称，再进行解析'}}"
       value="{{xiaohongshuUrl}}"
       bindinput="onUrlInput"
       disabled="{{!canImport}}"
     />
-    <button class="btn" bindtap="onExtract" disabled="{{isExtracting || !canImport}}">
+    <button class="ft-btn ft-btn-primary ft-pill btn" bindtap="onExtract" disabled="{{isExtracting || !canImport}}">
       {{isExtracting ? "正在解析，请稍候..." : "解析小红书链接"}}
     </button>
   </view>
 
-  <view class="section">
-    <view class="label">本地菜谱图片导入（AI识别）</view>
-    <view class="subtip">可一次选多张从小红书保存的截图/图片，单张 JPG/PNG ≤ 10MB，最多 9 张</view>
-    <button class="btn" bindtap="onImportFromLocalImage" disabled="{{isImportingImage || !canImport}}">
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">本地菜谱图片导入（AI识别）</view>
+    <view class="subtip ft-subtle">可一次选多张从小红书保存的截图/图片，单张 JPG/PNG ≤ 10MB，最多 9 张</view>
+    <button class="ft-btn ft-pill btn" bindtap="onImportFromLocalImage" disabled="{{isImportingImage || !canImport}}">
       {{isImportingImage ? "正在识别图片内容..." : "选择多张图片并导入"}}
     </button>
   </view>
 
-  <view class="section">
-    <view class="label">菜品展示图</view>
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">菜品展示图</view>
     <view class="img-row">
       <image class="preview" mode="aspectFill" wx:if="{{recipeImg}}" src="{{recipeImgDisplay || recipeImg}}" />
       <view class="img-actions">
-        <button class="btn" bindtap="onChooseImage" disabled="{{!canImport}}">上传本地图片</button>
+        <button class="ft-btn ft-pill btn" bindtap="onChooseImage" disabled="{{!canImport}}">上传本地图片</button>
       </view>
     </view>
   </view>
 
-  <view class="section">
-    <view class="label">食材（至少1项）</view>
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">食材（至少1项）</view>
     <block wx:for="{{ingredients}}" wx:key="index">
       <view class="listRow">
-        <input class="input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onIngredientNameInput" />
-        <input class="input" placeholder="用量（可选）" data-index="{{index}}" value="{{item.amount}}" bindinput="onIngredientAmountInput" />
-        <button class="danger" bindtap="removeIngredient" data-index="{{index}}">删除</button>
+        <input class="input ft-input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onIngredientNameInput" />
+        <input class="input ft-input" placeholder="用量（可选）" data-index="{{index}}" value="{{item.amount}}" bindinput="onIngredientAmountInput" />
+        <button class="ft-btn ft-btn-danger ft-pill danger" bindtap="removeIngredient" data-index="{{index}}">删除</button>
       </view>
     </block>
-    <button class="btn" bindtap="addIngredient">添加食材</button>
+    <button class="ft-btn ft-pill btn" bindtap="addIngredient">添加食材</button>
   </view>
 
-  <view class="section">
-    <view class="label">调料（可选/可多项）</view>
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">调料（可选/可多项）</view>
     <block wx:for="{{seasonings}}" wx:key="index">
       <view class="listRow">
-        <input class="input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onSeasoningNameInput" />
-        <input class="input" placeholder="用量（如 5g）" data-index="{{index}}" value="{{item.amount}}" bindinput="onSeasoningAmountInput" />
-        <button class="danger" bindtap="removeSeasoning" data-index="{{index}}">删除</button>
+        <input class="input ft-input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onSeasoningNameInput" />
+        <input class="input ft-input" placeholder="用量（如 5g）" data-index="{{index}}" value="{{item.amount}}" bindinput="onSeasoningAmountInput" />
+        <button class="ft-btn ft-btn-danger ft-pill danger" bindtap="removeSeasoning" data-index="{{index}}">删除</button>
       </view>
     </block>
-    <button class="btn" bindtap="addSeasoning">添加调料</button>
+    <button class="ft-btn ft-pill btn" bindtap="addSeasoning">添加调料</button>
   </view>
 
-  <view class="section">
-    <view class="label">备菜步骤（至少1项）</view>
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">备菜步骤（至少1项）</view>
     <block wx:for="{{prepareSteps}}" wx:key="index">
       <view class="stepRow">
-        <input class="input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onPrepareStepInput" />
+        <input class="input ft-input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onPrepareStepInput" />
         <view class="stepBtns">
-          <button class="small" bindtap="movePrepareStepUp" data-index="{{index}}">上移</button>
-          <button class="small" bindtap="movePrepareStepDown" data-index="{{index}}">下移</button>
-          <button class="danger small" bindtap="removePrepareStep" data-index="{{index}}">删</button>
+          <button class="ft-btn ft-pill small" bindtap="movePrepareStepUp" data-index="{{index}}">上移</button>
+          <button class="ft-btn ft-pill small" bindtap="movePrepareStepDown" data-index="{{index}}">下移</button>
+          <button class="ft-btn ft-btn-danger ft-pill danger small" bindtap="removePrepareStep" data-index="{{index}}">删</button>
         </view>
       </view>
     </block>
-    <button class="btn" bindtap="addPrepareStep">添加备菜步骤</button>
+    <button class="ft-btn ft-pill btn" bindtap="addPrepareStep">添加备菜步骤</button>
   </view>
 
-  <view class="section">
-    <view class="label">做菜步骤（至少1项）</view>
+  <view class="section ft-card ft-card-low p-card">
+    <view class="label ft-title">做菜步骤（至少1项）</view>
     <block wx:for="{{cookingSteps}}" wx:key="index">
       <view class="stepRow">
-        <input class="input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onCookingStepInput" />
+        <input class="input ft-input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onCookingStepInput" />
         <view class="stepBtns">
-          <button class="small" bindtap="moveCookingStepUp" data-index="{{index}}">上移</button>
-          <button class="small" bindtap="moveCookingStepDown" data-index="{{index}}">下移</button>
-          <button class="danger small" bindtap="removeCookingStep" data-index="{{index}}">删</button>
+          <button class="ft-btn ft-pill small" bindtap="moveCookingStepUp" data-index="{{index}}">上移</button>
+          <button class="ft-btn ft-pill small" bindtap="moveCookingStepDown" data-index="{{index}}">下移</button>
+          <button class="ft-btn ft-btn-danger ft-pill danger small" bindtap="removeCookingStep" data-index="{{index}}">删</button>
         </view>
       </view>
     </block>
-    <button class="btn" bindtap="addCookingStep">添加做菜步骤</button>
+    <button class="ft-btn ft-pill btn" bindtap="addCookingStep">添加做菜步骤</button>
   </view>
 
-  <button class="submit" type="primary" bindtap="onSubmit">提交保存</button>
+  <button class="ft-btn ft-btn-primary ft-pill submit" bindtap="onSubmit">提交保存</button>
 </scroll-view>
 

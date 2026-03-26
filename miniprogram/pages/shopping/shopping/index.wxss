@@ -1,6 +1,24 @@
 .page{
   padding: 20rpx;
 }
+.p-card{
+  padding: 22rpx;
+}
+.ft-card-lowest-pad{
+  padding: 18rpx;
+}
+.header{
+  margin-bottom: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.header-left{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
 .header{
   margin-bottom: 18rpx;
   display: flex;
@@ -9,17 +27,15 @@
 }
 .order-name{
   font-size: 36rpx;
-  font-weight: 800;
-  margin-bottom: 10rpx;
 }
 .progress{
   font-size: 24rpx;
-  color: rgba(0,0,0,0.5);
 }
 .backBtn{
-  height: 50rpx;
+  height: 64rpx;
   font-size: 22rpx;
   margin-left: auto;
+  padding: 0 24rpx;
 }
 .merged{
   margin-bottom: 10rpx;
@@ -42,7 +58,7 @@
   display: flex;
   gap: 10rpx;
   align-items: center;
-  padding: 10rpx 0;
+  margin-bottom: 14rpx;
 }
 .row-text{
   flex: 1;
@@ -50,25 +66,20 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  padding-bottom: 10rpx;
 }
 .row-name{
   font-size: 26rpx;
-  color: rgba(0,0,0,0.65);
   word-break: break-all;
 }
 .row-src{
   margin-top: 6rpx;
   font-size: 22rpx;
-  color: rgba(0,0,0,0.45);
   word-break: break-all;
 }
 .delBtn{
-  height: 48rpx;
+  height: 56rpx;
   font-size: 22rpx;
-  color: #e64545;
-  background: rgba(230,69,69,0.08);
+  padding: 0 22rpx;
 }
 .del{
   font-size: 22rpx;
@@ -76,26 +87,19 @@
 }
 .extra{
   margin-top: 26rpx;
-  padding-top: 18rpx;
-  border-top: 1px solid rgba(0,0,0,0.08);
 }
 .section-title{
   font-size: 28rpx;
-  font-weight: 700;
   margin-bottom: 12rpx;
 }
 .input{
-  border: 1px solid rgba(0,0,0,0.12);
-  border-radius: 14rpx;
+  border: 1px solid var(--ft-outline-variant);
+  border-radius: var(--ft-r-lg);
   padding: 14rpx 16rpx;
-  background: rgba(0,0,0,0.02);
+  background: var(--ft-surface-container-lowest);
   margin-bottom: 16rpx;
 }
 .btn{
   margin-top: 8rpx;
-}
-.primaryBtn{
-  color: #fff;
-  background: #07C160;
 }
 

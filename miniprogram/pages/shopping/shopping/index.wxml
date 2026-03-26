@@ -1,19 +1,21 @@
-<scroll-view scroll-y="true" class="page">
+<scroll-view scroll-y="true" class="page ft-page">
   <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
     <view class="ft-loading-spinner" />
     <text class="ft-loading-text">加载采购清单…</text>
   </view>
-  <view class="header">
-    <view class="order-name">{{order.orderName || ""}}</view>
-    <view class="progress">
-      已购买 {{progress.doneCount}} / {{progress.totalCount}}
+  <view class="header ft-card ft-card-low p-card">
+    <view class="header-left">
+      <view class="order-name ft-title">{{order.orderName || ""}}</view>
+      <view class="progress ft-subtle">
+        已购买 {{progress.doneCount}} / {{progress.totalCount}}
+      </view>
     </view>
-    <button class="backBtn" bindtap="goBack">返回</button>
+    <button class="ft-btn ft-pill backBtn" bindtap="goBack">返回</button>
   </view>
 
   <view class="merged">
     <block wx:for="{{mergedItems}}" wx:key="key">
-      <view class="row">
+      <view class="row ft-card-lowest ft-card-lowest-pad">
         <checkbox
           checked="{{item.allDone}}"
           disabled="{{item.allDone || order.status !== 'pending_shopping' || actionBusy}}"
@@ -24,10 +26,10 @@
           <view class="row-name">
             {{item.name}}{{item.totalAmountText ? "（" + item.totalAmountText + "）" : ""}}
           </view>
-          <view class="row-src" wx:if="{{item.sourcesText}}">{{item.sourcesText}}</view>
+          <view class="row-src ft-source" wx:if="{{item.sourcesText}}">{{item.sourcesText}}</view>
         </view>
         <button
-          class="delBtn"
+          class="ft-btn ft-btn-danger ft-pill delBtn"
           wx:if="{{order.status==='pending_shopping' && item.manualItemIds && item.manualItemIds.length && !item.allDone}}"
           disabled="{{actionBusy}}"
           bindtap="onDeleteItem"
@@ -40,17 +42,17 @@
     <view class="empty" wx:if="{{!mergedItems || mergedItems.length===0}}">暂无采购清单</view>
   </view>
 
-  <view class="extra" wx:if="{{order.status==='pending_shopping'}}">
-    <view class="section-title">添加额外采购项</view>
+  <view class="extra ft-card ft-card-low p-card" wx:if="{{order.status==='pending_shopping'}}">
+    <view class="section-title ft-title">添加额外采购项</view>
     <input class="input" placeholder="食材/调料名称" value="{{extraName}}" bindinput="onExtraNameInput" />
     <input class="input" placeholder="用量（如 5g / 1份）" value="{{extraAmount}}" bindinput="onExtraAmountInput" />
-    <button class="btn" bindtap="onAddExtra">添加</button>
+    <button class="ft-btn ft-pill" bindtap="onAddExtra">添加</button>
 
-    <button class="btn" bindtap="onContinueAdd" disabled="{{actionBusy}}">
+    <button class="ft-btn ft-pill" bindtap="onContinueAdd" disabled="{{actionBusy}}">
       继续加菜
     </button>
 
-    <button class="btn primaryBtn" bindtap="onCompleteShopping" disabled="{{actionBusy}}">
+    <button class="ft-btn ft-btn-primary ft-pill" bindtap="onCompleteShopping" disabled="{{actionBusy}}">
       完成买菜
     </button>
   </view>

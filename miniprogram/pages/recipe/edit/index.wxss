@@ -1,6 +1,19 @@
 .page{
   padding: 24rpx;
 }
+.p-card{
+  padding: 22rpx;
+}
+.hero{
+  margin-bottom: 18rpx;
+}
+.hero-title{
+  font-size: 40rpx;
+}
+.hero-sub{
+  margin-top: 8rpx;
+  font-size: 24rpx;
+}
 .section{
   margin-bottom: 18rpx;
 }
@@ -14,10 +27,7 @@
   margin-bottom: 10rpx;
 }
 .input{
-  border: 1px solid rgba(0,0,0,0.12);
-  border-radius: 14rpx;
-  padding: 14rpx 16rpx;
-  background: rgba(0,0,0,0.02);
+  width: 100%;
 }
 .submit{
   margin-top: 30rpx;
@@ -36,8 +46,8 @@
 .preview{
   width: 160rpx;
   height: 120rpx;
-  border-radius: 16rpx;
-  background: rgba(0,0,0,0.04);
+  border-radius: var(--ft-r-lg);
+  background: var(--ft-surface-container-high);
 }
 .img-actions{
   flex: 1;
@@ -54,9 +64,8 @@
 }
 .danger{
   font-size: 22rpx;
-  height: 48rpx;
-  background: rgba(0,0,0,0.04);
-  color: rgba(0,0,0,0.45);
+  height: 56rpx;
+  padding: 0 18rpx;
 }
 
 .stepRow{
@@ -70,10 +79,11 @@
 }
 .small{
   font-size: 22rpx;
-  height: 46rpx;
+  height: 56rpx;
+  padding: 0 18rpx;
 }
 .submit{
-  margin-top: 36rpx;
+  margin-top: 18rpx;
 }
 .btn{
   margin-top: 12rpx;

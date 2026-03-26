@@ -12,13 +12,13 @@
 }
 .section-title{
   margin-top: 22rpx;
-  font-size: 28rpx;
-  color: rgba(0,0,0,0.45);
+  font-size: 32rpx;
   margin-bottom: 12rpx;
 }
 .recipe-row{
-  padding: 14rpx 0;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding: 16rpx;
+  border-radius: var(--ft-r-xl);
+  margin-bottom: 14rpx;
 }
 .recipe-row-top{
   display: flex;
@@ -28,7 +28,6 @@
 }
 .recipe-name{
   font-size: 30rpx;
-  font-weight: 600;
 }
 .recipe-name-wrap{
   flex: 1;
@@ -41,10 +40,10 @@
   color: rgba(0,0,0,0.45);
 }
 .remove-btn{
-  height: 52rpx;
-  font-size: 24rpx;
-  color: #e64545;
-  background: rgba(230,69,69,0.08);
+  height: 56rpx;
+  font-size: 22rpx;
+  padding: 0 18rpx;
+  min-width: 0;
 }
 .note{
   margin-top: 8rpx;
@@ -55,8 +54,13 @@
 .btn{
   margin-top: 18rpx;
 }
-.primary{
-  color: #fff;
-  background: #07C160;
+
+.footer{
+  margin-top: 18rpx;
+  display: flex;
+  gap: 14rpx;
+}
+.footer-btn{
+  flex: 1;
 }
 

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fantongbao - Active Planning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              "primary": "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              "tertiary": "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              "outline": "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              "surface": "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              "error": "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              "secondary": "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              "background": "#fff5ec",
+              "surface-container-lowest": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .bubbly-gradient {
+        background: linear-gradient(135deg, #874e00 0%, #ff9800 100%);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant overflow-hidden">
+<img alt="User Profile" data-alt="vibrant character avatar for user profile with a friendly expression and bright background color" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwLo-hWezFLl2m7g1Ehulz5d-_2kLUxjJPKdz6OkvWJJRGC55j3P275-TYhwLoZ1rUFI2dxx2HANghvfSIlWwfP9-CjhE0RVd42KbxHapF0pQ2jr2mQf9W6aHmnaPznCCT2gnFM4e3DXcf5o2wxJ2xdBTb42vog1sNEtt2MCPldM3mIs6XSa8N9ySuN6zGowgFK1sKqzC_S9np2kIu_dhmwoAZGq2Cn_F-FI5H_i-e1h58AuTDSNgXMMJWE7iJq6eUoEKeu3VyoAY"/>
+</div>
+<h1 class="text-2xl font-black text-orange-700 dark:text-orange-500 italic tracking-tight">Fantongbao</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-orange-600 dark:text-orange-400 hover:opacity-80 transition-opacity active:scale-90">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto space-y-8">
+<!-- Current State Card -->
+<section class="relative overflow-hidden bg-surface-container rounded-xl p-8 shadow-none border-none">
+<div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-secondary-fixed opacity-20 rounded-full blur-3xl"></div>
+<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<span class="inline-block px-4 py-1.5 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold uppercase tracking-widest mb-3">Active Order</span>
+<h2 class="text-3xl font-extrabold tracking-tight text-on-surface mb-1">Planning Phase</h2>
+<p class="text-on-surface-variant font-medium">Status: 0 (Pending Shopping)</p>
+</div>
+<div class="flex -space-x-3">
+<img alt="Collaborator" class="w-12 h-12 rounded-full ring-4 ring-surface-container" data-alt="friendly male avatar with glasses representing a family member collaborator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAd9z4WUIyX5IzkRcR0Ju3lNka07XdAhdOHJ1zUQMkixEY4GuvfGxDs0Ml0TLlzCrtMurGHp3sLvSpbhakbKlRESLImhsHgr-mZNMbHNtuix4EwBvE1YtyuQxcf9sHPS1jiAiKmofexHflqpsKn6ILTwACnbzmzllBkbbs4GHzGSJt_VP1VLG-m1TZdtfgtWUGHasOG44d27uuO0pdcm_hWCxkkptOjgE9UYXu0NWClIrk1ShMUhiGc0ITAaLWkd4CvaEt3p2QJqTk"/>
+<img alt="Collaborator" class="w-12 h-12 rounded-full ring-4 ring-surface-container" data-alt="smiling female avatar with short hair representing a family member collaborator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeLJNlV1NiRUTvahGAW8EFoH3ZZTTv3kKbU7BX5tXYyADGjIiv-gqj4SF_20FBJxw2hPgZ3DR20wFFTao0CoGiIVQ-aXs_9h4Mn958gv7xzBPKOdOGKKe43FESL2j_dAo8eISsy3hVoMPrU3GASTadppP5MgS0la5S2Cw8PBlfK653OjvDf18o9Haa2xiJJ-YdjzNUn1Xo1du-ysg9iA_tq5tLwKn7EQt0f19-YYv2tDUDtT8r21xZqehPXQpade0XN4C1LEr29qE"/>
+<div class="w-12 h-12 rounded-full ring-4 ring-surface-container bg-surface-container-highest flex items-center justify-center text-sm font-bold text-on-surface-variant">
+                        +1
+                    </div>
+</div>
+</div>
+</section>
+<!-- Selected Dishes Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold tracking-tight px-2">Selected Dishes</h3>
+<span class="text-sm font-bold text-primary px-4 py-1 bg-surface-container-high rounded-full">2 Items</span>
+</div>
+<div class="grid gap-4">
+<!-- Dish Card 1 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center gap-4 group transition-all hover:bg-surface-container-low">
+<div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Mapo Tofu" class="w-full h-full object-cover" data-alt="authentic mapo tofu in a clay bowl with glossy red sauce and sprinkled scallions close up" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIJeOdS92CtMRi9_yJQv_65IUm3q60TFEAvAJQdmyV16TJq8Lmt3zpHWz8MJtjVQKce6lD-i3KQApwJorwSJinWdPM62vuA4MLMUM2dRRZP2FJUXkCOGW-0wxDArj1KHZd7VPb_2XExYOeKgjLNY-bRudZZQveh3NC37tCmc2uO8pEIg6gtnSILnlCiFWyezCcW3NSqxOenv6xHUZeT57_Ajn_6D-4dp3gNQeIPkCiE4wNIVUCLyFlw85sX9azJIpha5QJCc2yg50"/>
+</div>
+<div class="flex-grow">
+<div class="flex items-start justify-between">
+<div>
+<h4 class="font-bold text-lg text-on-surface">Mapo Tofu</h4>
+<div class="flex gap-2 mt-1">
+<span class="px-3 py-0.5 bg-tertiary text-on-tertiary rounded-full text-[10px] font-bold uppercase">Dinner</span>
+<span class="px-3 py-0.5 bg-surface-container-highest text-on-surface-variant rounded-full text-[10px] font-bold uppercase">Spicy</span>
+</div>
+</div>
+<button class="text-stone-400 hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Dish Card 2 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center gap-4 group transition-all hover:bg-surface-container-low">
+<div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Tomato Scrambled Eggs" class="w-full h-full object-cover" data-alt="traditional tomato scrambled eggs with juicy tomato chunks and fluffy eggs served on a plate" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBg5SIQJ2YZiMlJcp3a8nNcLollxI-bJ-rsHbN2a85yG4WDdKU7LH6Vx1TpTymWCAAj5TVuVBm9f5yA5hIgxWO5QRpwoiwMm3XONYPVO8dcV0h7YSNx90SLpmP7C-fZZy7t1WD6cl0Qg2Zy-XcMCb05aW324nmUkq3zByHhjdRAbzzRFKWrqi3K92NI0yDNW9uim-G2ymJwkqbjP0lbJZXDNFIEjAIGjE6w9_0j6Meq4RmKcRIKS6tCIq7CPMgLHNKeHk8e9XlqC0"/>
+</div>
+<div class="flex-grow">
+<div class="flex items-start justify-between">
+<div>
+<h4 class="font-bold text-lg text-on-surface">Tomato Scrambled Eggs</h4>
+<div class="flex gap-2 mt-1">
+<span class="px-3 py-0.5 bg-tertiary text-on-tertiary rounded-full text-[10px] font-bold uppercase">Quick Lunch</span>
+<span class="px-3 py-0.5 bg-surface-container-highest text-on-surface-variant rounded-full text-[10px] font-bold uppercase">Family Fav</span>
+</div>
+</div>
+<button class="text-stone-400 hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Collaborative Activity -->
+<section class="bg-surface-container-low rounded-lg p-6 space-y-4 relative overflow-hidden">
+<div class="absolute -right-4 top-1/2 -translate-y-1/2 opacity-10">
+<span class="material-symbols-outlined text-8xl" data-icon="group">group</span>
+</div>
+<h3 class="text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="forum">forum</span>
+                Collaborative Planning
+            </h3>
+<div class="flex items-start gap-4 bg-surface-container-lowest p-4 rounded-xl shadow-sm">
+<img alt="Li Wei" class="w-8 h-8 rounded-full" data-alt="avatar of Li Wei" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8q3IzZx8U7x6Cd3rpdzLNJhL1Z4oE1iITPQ5nyc1Ey8_STK2rO5kb0AM1BABozR0CaS998QLrRcw4U7BIb9JqYsNvGCPM566UX4-zHurTDhA4UipCjnDsiTt1LjMNIFQoN2dUE5DPeuGLFpBWhR3gDj_NkCqxatGCM3IbANUiCWsTa4DtpmUCvSavnx_JUF0LwAbEqcE6PxlMznen6SNOdf7jCxamgduk5DN3wW1MG5C23v-TIwtvaEqO1rmzHKmuCfYd0pjS65A"/>
+<div>
+<p class="text-sm leading-relaxed">
+<span class="font-bold text-primary">Li Wei</span> added Mapo Tofu 10 minutes ago.
+                    </p>
+<span class="text-[10px] font-bold text-stone-400 uppercase tracking-tighter">Shared Kitchen Chat</span>
+</div>
+</div>
+</section>
+<!-- Action Buttons -->
+<section class="flex flex-col gap-4 pt-4">
+<button class="w-full py-4 rounded-full bubbly-gradient text-on-primary font-bold text-lg shadow-[0_12px_24px_rgba(135,78,0,0.2)] active:scale-95 transition-transform flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+                Go to Shopping List
+            </button>
+<button class="w-full py-4 rounded-full bg-secondary-container text-on-secondary-container font-bold text-lg hover:bg-secondary-fixed active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                Continue Adding Dishes
+            </button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-12px_24px_rgba(67,41,0,0.08)]">
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full px-5 py-2 scale-110 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="receipt_long">receipt_long</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="restaurant_menu">restaurant_menu</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Recipes</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+</body></html>

@@ -1,30 +1,46 @@
-<view class="page">
+<view class="page ft-page">
   <view class="ft-loading-mask" wx:if="{{listLoading}}">
     <view class="ft-loading-spinner" />
     <text class="ft-loading-text">加载点菜单…</text>
   </view>
-  <view class="top">
-    <view class="family-title">家庭点菜单</view>
+  <view class="top ft-card ft-card-low p-card">
+    <view class="family-title ft-title">点菜单</view>
+    <view class="family-sub ft-subtle">按状态查看与继续处理</view>
   </view>
 
-  <view class="tabs">
-    <button class="tab" bindtap="onChangeStatus" data-status="pending_shopping" type="{{status==='pending_shopping'?'primary':'default'}}">
+  <view class="tabs ft-card ft-card-lowest">
+    <view
+      class="seg {{status==='pending_shopping' ? 'seg-on' : ''}}"
+      bindtap="onChangeStatus"
+      data-status="pending_shopping"
+    >
       待买菜
-    </button>
-    <button class="tab" bindtap="onChangeStatus" data-status="pending_cooking" type="{{status==='pending_cooking'?'primary':'default'}}">
+    </view>
+    <view
+      class="seg {{status==='pending_cooking' ? 'seg-on' : ''}}"
+      bindtap="onChangeStatus"
+      data-status="pending_cooking"
+    >
       待制作
-    </button>
-    <button class="tab" bindtap="onChangeStatus" data-status="completed" type="{{status==='completed'?'primary':'default'}}">
+    </view>
+    <view
+      class="seg {{status==='completed' ? 'seg-on' : ''}}"
+      bindtap="onChangeStatus"
+      data-status="completed"
+    >
       已完成
-    </button>
+    </view>
   </view>
 
   <view class="list {{listLoading ? 'ft-list-dim' : ''}}">
     <block wx:for="{{orders}}" wx:key="_id">
-      <view class="card" bindtap="onOrderTap" data-orderid="{{item._id}}">
-        <view class="card-title">{{item.orderName}}</view>
-        <view class="card-sub">状态：{{item.status}}</view>
-        <view class="card-sub">创建时间：{{item.createTime || ''}}</view>
+      <view class="card ft-card ft-card-low" bindtap="onOrderTap" data-orderid="{{item._id}}">
+        <view class="card-top">
+          <view class="card-title ft-title">{{item.orderName}}</view>
+          <view class="badge ft-badge ft-badge-warn" wx:if="{{status!=='completed'}}">进行中</view>
+          <view class="badge ft-badge ft-badge-success" wx:if="{{status==='completed'}}">完成</view>
+        </view>
+        <view class="card-sub ft-subtle" wx:if="{{item.createTime}}">创建：{{item.createTime}}</view>
       </view>
     </block>
     <view wx:if="{{!orders || orders.length===0}}" class="empty">暂无点菜单</view>

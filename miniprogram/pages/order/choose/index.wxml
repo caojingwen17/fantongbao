@@ -1,20 +1,24 @@
-<scroll-view scroll-y="true" class="page">
+<scroll-view scroll-y="true" class="page ft-page">
   <view class="pending" wx:if="{{pendingLoading}}">
-    <view class="pending-title">当前待买菜菜单</view>
-    <view class="pending-sub">加载中…</view>
+    <view class="pending-title ft-title">当前待买菜菜单</view>
+    <view class="pending-sub ft-subtle">加载中…</view>
   </view>
 
   <view class="pending" wx:if="{{!pendingLoading && pendingOrder}}">
-    <view class="pending-title">
-      当前待买菜菜单：共 {{(pendingOrder.recipes && pendingOrder.recipes.length) || 0}} 道菜
+    <view class="pending-header">
+      <view class="pending-title ft-title">当前待买菜菜单</view>
+      <view class="pending-badge ft-badge ft-badge-warn">
+        {{(pendingOrder.recipes && pendingOrder.recipes.length) || 0}} 道菜
+      </view>
     </view>
-    <view class="pending-sub">{{pendingOrder.orderName}}</view>
+    <view class="pending-sub ft-subtle">{{pendingOrder.orderName}}</view>
     <view class="pending-list" wx:if="{{pendingOrder.recipes && pendingOrder.recipes.length}}">
       <block wx:for="{{pendingOrder.recipes}}" wx:key="recipeId">
-        <view class="pending-row">
-          <view class="pending-name">{{item.recipeName || item.recipeId}}</view>
+        <view class="pending-row ft-card-lowest">
+          <view class="pending-name ft-title">{{item.recipeName || item.recipeId}}</view>
+          <view class="pending-by ft-subtle" wx:if="{{item.creatorNickName}}">by {{item.creatorNickName}}</view>
           <button
-            class="pending-remove"
+            class="ft-btn ft-btn-danger ft-pill pending-remove"
             wx:if="{{pendingOrder.status==='pending_shopping'}}"
             disabled="{{actionBusy}}"
             data-recipeid="{{item.recipeId}}"
@@ -33,18 +37,18 @@
     <text class="ft-loading-text">加载菜谱…</text>
   </view>
   <view class="search">
-    <input placeholder="搜索菜名" class="search-input" value="{{keyword}}" bindinput="onKeywordInput" />
+    <input placeholder="搜索菜名" class="search-input ft-input" value="{{keyword}}" bindinput="onKeywordInput" />
   </view>
 
   <view class="list {{listLoading ? 'ft-list-dim' : ''}}">
     <block wx:for="{{recipes}}" wx:key="id">
-      <view class="card">
+      <view class="card ft-card ft-card-low">
         <image class="img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
         <view class="meta">
-          <view class="name">{{item.recipeName}}</view>
+          <view class="name ft-title">{{item.recipeName}}</view>
         </view>
-        <button class="btn" bindtap="onAddSkipNote" data-recipeid="{{item.id}}">跳过备注</button>
-        <button class="btn primary" bindtap="onAddWithNote" data-recipeid="{{item.id}}">备注</button>
+        <button class="ft-btn ft-pill btn" bindtap="onAddSkipNote" data-recipeid="{{item.id}}">跳过备注</button>
+        <button class="ft-btn ft-btn-primary ft-pill btn" bindtap="onAddWithNote" data-recipeid="{{item.id}}">备注</button>
       </view>
     </block>
     <view wx:if="{{!recipes || recipes.length===0}}" class="empty">暂无可点菜的菜谱</view>

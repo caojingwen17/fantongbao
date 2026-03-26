@@ -5,12 +5,15 @@ const auth = require("../../utils/auth");
 Page({
   data: {
     currentFamily: null,
+    families: [],
     membersCount: 0,
     pendingShopping: null,
     pendingCooking: null,
     pendingOrders: [],
     recipes: [],
     homeRefreshing: false,
+    showFamilyPicker: false,
+    switchingFamilyId: "",
   },
 
   async ensureEntryContext() {
@@ -45,9 +48,9 @@ Page({
 
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
-    const currentFamily =
-      (app.globalData.families || []).find((f) => f._id === familyId) || null;
-    this.setData({ currentFamily });
+    const families = app.globalData.families || [];
+    const currentFamily = families.find((f) => f._id === familyId) || null;
+    this.setData({ currentFamily, families });
 
     await this.refreshHome();
   },
@@ -56,12 +59,30 @@ Page({
     const ok = await this.ensureEntryContext();
     if (!ok) return;
 
+    // 返回主页时，确保家庭下拉浮层已关闭
+    if (this.data.showFamilyPicker) {
+      this.setData({ showFamilyPicker: false });
+    }
+
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
-    const currentFamily =
-      (app.globalData.families || []).find((f) => f._id === familyId) || null;
-    this.setData({ currentFamily });
+    const families = app.globalData.families || [];
+    const currentFamily = families.find((f) => f._id === familyId) || null;
+    this.setData({ currentFamily, families });
     await this.refreshHome();
+  },
+
+  async refreshFamiliesIfNeeded() {
+    const app = getApp();
+    if (app.globalData.families && app.globalData.families.length) return;
+    const resp = await cloud
+      .callFunction("familyFunctions", { type: "getMyFamilies" })
+      .catch(() => ({}));
+    const families = (resp && resp.families) || [];
+    app.globalData.families = families;
+    const familyId = app.globalData.currentFamilyId;
+    const currentFamily = families.find((f) => f._id === familyId) || null;
+    this.setData({ families, currentFamily });
   },
 
   async refreshHome() {
@@ -136,8 +157,58 @@ Page({
   },
 
   goFamily() {
+    // 跳转前收起浮层，避免返回后残留
+    if (this.data.showFamilyPicker) this.setData({ showFamilyPicker: false });
     wx.navigateTo({ url: "/pages/family/family/index" });
   },
+
+  onHide() {
+    // 保险：页面隐藏时强制关闭浮层
+    if (this.data.showFamilyPicker) {
+      this.setData({ showFamilyPicker: false });
+    }
+  },
+
+  async onToggleFamilyPicker() {
+    if (this.data.showFamilyPicker) {
+      this.setData({ showFamilyPicker: false });
+      return;
+    }
+    await this.refreshFamiliesIfNeeded();
+    this.setData({ showFamilyPicker: true });
+  },
+
+  onCloseFamilyPicker() {
+    if (!this.data.showFamilyPicker) return;
+    this.setData({ showFamilyPicker: false });
+  },
+
+  async onSwitchFamily(e) {
+    const familyId = e.currentTarget.dataset.familyid;
+    if (!familyId || this.data.switchingFamilyId) return;
+    const app = getApp();
+    app.globalData.currentFamilyId = familyId;
+    const families = this.data.families || app.globalData.families || [];
+    const currentFamily = families.find((f) => f._id === familyId) || null;
+    this.setData({
+      switchingFamilyId: familyId,
+      currentFamily: currentFamily || this.data.currentFamily,
+      showFamilyPicker: false,
+    });
+    wx.showNavigationBarLoading();
+    try {
+      await cloud.callFunctionWithErrorToast("familyFunctions", {
+        type: "switchFamily",
+        familyId,
+      });
+    } finally {
+      wx.hideNavigationBarLoading();
+      this.setData({ switchingFamilyId: "" });
+    }
+    await this.refreshHome();
+  },
+
+  noop() {},
 
   goPendingOrder(e) {
     const orderId = e.currentTarget.dataset.orderid;

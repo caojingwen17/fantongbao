@@ -2,19 +2,26 @@
   padding: 20rpx;
 }
 .pending{
-  padding: 16rpx;
-  border-radius: 16rpx;
-  background: rgba(0,0,0,0.03);
+  padding: 22rpx;
+  border-radius: var(--ft-r-xl);
+  background: var(--ft-surface-container-low);
   margin-bottom: 18rpx;
+}
+.pending-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 .pending-title{
   font-size: 28rpx;
-  font-weight: 700;
+}
+.pending-badge{
+  font-size: 22rpx;
 }
 .pending-sub{
   margin-top: 8rpx;
   font-size: 22rpx;
-  color: rgba(0,0,0,0.45);
 }
 .pending-list{
   margin-top: 12rpx;
@@ -25,19 +32,22 @@
 .pending-row{
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 14rpx;
+  padding: 14rpx 16rpx;
+  border-radius: var(--ft-r-lg);
+  background: var(--ft-surface-container-lowest);
 }
 .pending-name{
   flex: 1;
   font-size: 26rpx;
-  font-weight: 600;
+}
+.pending-by{
+  font-size: 22rpx;
 }
 .pending-remove{
-  height: 48rpx;
+  height: 56rpx;
   font-size: 22rpx;
-  color: #e64545;
-  background: rgba(230,69,69,0.08);
+  padding: 0 22rpx;
 }
 .pending-empty{
   margin-top: 12rpx;
@@ -48,9 +58,7 @@
   margin-bottom: 18rpx;
 }
 .search-input{
-  border-radius: 14rpx;
-  background: rgba(0,0,0,0.03);
-  padding: 14rpx 16rpx;
+  width: 100%;
 }
 .list{
   display: flex;
@@ -62,30 +70,23 @@
   gap: 16rpx;
   align-items: center;
   padding: 16rpx;
-  border-radius: 16rpx;
-  background: rgba(0,0,0,0.03);
 }
 .img{
   width: 120rpx;
   height: 90rpx;
-  border-radius: 10rpx;
+  border-radius: var(--ft-r-lg);
 }
 .meta{
   flex: 1;
 }
 .name{
   font-size: 30rpx;
-  font-weight: 600;
 }
 .btn{
   font-size: 24rpx;
-  padding: 0 18rpx;
-  height: 54rpx;
+  height: 64rpx;
+  padding: 0 22rpx;
   margin-left: 10rpx;
-}
-.primary{
-  color: #fff;
-  background: #07C160;
 }
 .empty{
   padding: 60rpx 0;

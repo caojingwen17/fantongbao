@@ -2,7 +2,6 @@
 
 page {
   padding-top: 54rpx;
-  background-color: #f6f6f6;
   padding-bottom: 60rpx;
 }
 
@@ -146,6 +145,9 @@ page {
   padding: 20rpx;
   padding-bottom: 60rpx;
 }
+.p-card{
+  padding: 22rpx;
+}
 .header{
   display: flex;
   align-items: center;
@@ -157,9 +159,22 @@ page {
   flex-direction: column;
   gap: 8rpx;
 }
+.familyNameRow{
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+}
 .familyName{
   font-size: 36rpx;
-  font-weight: 800;
+}
+.familyCaret{
+  font-size: 28rpx;
+  color: var(--ft-on-surface-variant);
+  transform: translateY(-2rpx);
+  transition: transform 180ms ease;
+}
+.caretUp{
+  transform: translateY(-2rpx) rotate(180deg);
 }
 .familyMetaRow{
   display: flex;
@@ -169,14 +184,57 @@ page {
 }
 .familyMeta{
   font-size: 24rpx;
-  color: rgba(0,0,0,0.45);
 }
 .home-refresh-hint{
   font-size: 22rpx;
-  color: #07C160;
+  color: var(--ft-primary-container);
 }
-.manageBtn{
-  height: 56rpx;
+.picker-mask{
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 950;
+  background: rgba(67, 41, 0, 0.22);
+  padding: 180rpx 30rpx 30rpx;
+  box-sizing: border-box;
+}
+.picker-panel{
+  width: 100%;
+  border-radius: var(--ft-r-xl);
+  padding: 18rpx;
+  box-sizing: border-box;
+}
+.picker-id{
+  font-size: 28rpx;
+  padding: 6rpx 10rpx 16rpx;
+}
+.picker-list{
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+.picker-item{
+  background: var(--ft-surface-container-low);
+  border-radius: var(--ft-r-xl);
+  padding: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.picker-item-active{
+  background: rgba(255, 152, 0, 0.18);
+}
+.picker-item-name{
+  font-size: 32rpx;
+}
+.picker-item-sub{
+  font-size: 24rpx;
+}
+.picker-manage{
+  height: 84rpx;
 }
 .section{
   margin-bottom: 28rpx;
@@ -193,8 +251,6 @@ page {
 }
 .mergedOrderCard{
   padding: 18rpx;
-  border-radius: 18rpx;
-  background: rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -203,7 +259,13 @@ page {
   padding: 16rpx 0;
 }
 .pending-item + .pending-item{
-  border-top: 1px solid rgba(0,0,0,0.08);
+  border-top: 0;
+  margin-top: 10rpx;
+  padding-top: 18rpx;
+  background: var(--ft-surface-container-lowest);
+  border-radius: var(--ft-r-lg);
+  padding-left: 18rpx;
+  padding-right: 18rpx;
 }
 .orderCard{
   padding: 18rpx;
@@ -234,18 +296,15 @@ page {
   gap: 16rpx;
   align-items: center;
   padding: 16rpx;
-  border-radius: 18rpx;
-  background: rgba(0,0,0,0.03);
 }
 .recipeImg{
   width: 120rpx;
   height: 90rpx;
   border-radius: 12rpx;
-  background: rgba(0,0,0,0.05);
+  background: var(--ft-surface-container-high);
 }
 .recipeName{
   font-size: 30rpx;
-  font-weight: 700;
   flex: 1;
 }
 .empty{
@@ -260,8 +319,4 @@ page {
 }
 .btn{
   flex: 1;
-}
-.primary{
-  color: #fff;
-  background: #07C160;
 }

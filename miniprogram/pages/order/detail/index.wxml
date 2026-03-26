@@ -2,22 +2,22 @@
   <view class="ft-loading-spinner" />
   <text class="ft-loading-text">加载点菜单…</text>
 </view>
-<scroll-view scroll-y="true" class="page" wx:else>
+<scroll-view scroll-y="true" class="page ft-page" wx:else>
   <view class="title">{{order.orderName || ""}}</view>
-  <view class="sub">状态：{{order.status || ""}}</view>
+  <view class="sub ft-subtle">状态：{{statusText || order.status || ""}}</view>
 
-  <view class="section-title">点菜内容</view>
+  <view class="section-title ft-title">点菜内容</view>
   <block wx:for="{{order.recipes || []}}" wx:key="recipeId">
-    <view class="recipe-row">
+    <view class="recipe-row ft-card ft-card-low">
       <view class="recipe-row-top">
         <view class="recipe-name-wrap">
-          <view class="recipe-name">{{item.recipeName || item.recipeId}}</view>
-          <view class="creator-text">
+          <view class="recipe-name ft-title">{{item.recipeName || item.recipeId}}</view>
+          <view class="creator-text ft-subtle">
             点菜：{{item.creatorNickName || "未知用户"}}
           </view>
         </view>
         <button
-          class="remove-btn"
+          class="ft-btn ft-btn-danger ft-pill remove-btn"
           wx:if="{{order.status==='pending_shopping'}}"
           disabled="{{actionBusy}}"
           data-recipeid="{{item.recipeId}}"
@@ -30,29 +30,31 @@
     </view>
   </block>
 
-  <button
-    class="btn"
-    wx:if="{{order.status==='pending_shopping' || order.status==='pending_cooking'}}"
-    bindtap="goContinueAdd"
-  >
-    继续加菜
-  </button>
+  <view class="footer" wx:if="{{order.status!=='completed'}}">
+    <button
+      class="ft-btn ft-pill footer-btn"
+      wx:if="{{order.status==='pending_shopping' || order.status==='pending_cooking'}}"
+      bindtap="goContinueAdd"
+    >
+      继续加菜
+    </button>
 
-  <button
-    class="btn primary"
-    wx:if="{{order.status==='pending_shopping'}}"
-    bindtap="goShopping"
-  >
-    去买菜
-  </button>
+    <button
+      class="ft-btn ft-btn-primary ft-pill footer-btn"
+      wx:if="{{order.status==='pending_shopping'}}"
+      bindtap="goShopping"
+    >
+      去买菜
+    </button>
 
-  <button
-    class="btn primary"
-    wx:if="{{order.status==='pending_cooking'}}"
-    bindtap="goCooking"
-  >
-    去做菜
-  </button>
+    <button
+      class="ft-btn ft-btn-primary ft-pill footer-btn"
+      wx:if="{{order.status==='pending_cooking'}}"
+      bindtap="goCooking"
+    >
+      去做菜
+    </button>
+  </view>
 
   <button class="btn" wx:if="{{order.status==='completed'}}" bindtap="goBack">已完成（返回）</button>
 </scroll-view>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fantongbao - Profile &amp; Family</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bubbly-blob {
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              "primary": "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              "tertiary": "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              "outline": "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              "surface": "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              "error": "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              "secondary": "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              "background": "#fff5ec",
+              "surface-container-lowest": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="close-up portrait of a cheerful young man with a warm smile in a brightly lit kitchen setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAo8Y-aOM31n5hmrzatkORrLTqmQcwWC-fSzgSY0fwtmi6bxzQ2gidT7oStDB9kZcVxgxaFns1eJDx9Ikmz3Zw1d894bImUhkbtXnjbjeJpLlfOJqqv-FOFQHq52zaS92cplEiUTgK3kqTyxEMaAw3dxFOxnNftq1X1AvSAH91P37fex-S3jUfwY8jOehc0IZBh0uWqTqaJY4XonmtaI2P_oUXU3fYksoI747OpJGbgTKBVYIrF4jfmqxxaUWX8DMdE4_muEkUPqOM"/>
+</div>
+<span class="text-2xl font-black text-orange-700 dark:text-orange-500 italic font-plus-jakarta tracking-tight">Fantongbao</span>
+</div>
+<button class="text-orange-600 dark:text-orange-400 hover:opacity-80 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-2xl" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto space-y-10">
+<!-- Hero Profile Section -->
+<section class="relative flex flex-col items-center py-8">
+<div class="absolute -top-4 -right-4 w-32 h-32 bg-secondary-container/30 bubbly-blob blur-2xl -z-10"></div>
+<div class="relative group">
+<div class="w-32 h-32 rounded-xl overflow-hidden shadow-lg border-4 border-white rotate-3 group-hover:rotate-0 transition-transform duration-500">
+<img alt="Main Avatar" class="w-full h-full object-cover" data-alt="Close up professional headshot of a smiling man with clean background and soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3gX0PYyuL25uRifgl1cAK6UPB2x8R4kVrfksnVLT4LjChAeN0Cax75uQsar7Jo2-ZBCAava6k3SaOA8xOkLBb9hO7NuyCHPh11Dxta3eyBs0YTp2dGL_sOFLq9wfpz7-_Pn3-ZOApbZcwaIINCed-YwDzRaStgE3aYq5v0VPocaEMnJom2hJTA4OBbDvkEtIgd-xTjFKYJuW_j-tY1b25_6QH_nH2AMz_yu-NoTMMq4Gekxni74XJcvRwsFLedF0-5p32eagz1K4"/>
+</div>
+<div class="absolute -bottom-2 -right-2 bg-primary p-2 rounded-full text-on-primary shadow-md">
+<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>
+</div>
+</div>
+<div class="mt-6 text-center">
+<h1 class="text-3xl font-extrabold tracking-tight text-on-surface">Alex Li</h1>
+<p class="text-on-surface-variant font-medium">@alex_chef_li</p>
+</div>
+</section>
+<!-- Li Family Management Section -->
+<section class="bg-surface-container rounded-xl p-8 relative overflow-hidden">
+<div class="flex justify-between items-start mb-8 relative z-10">
+<div>
+<h2 class="text-2xl font-bold tracking-tight mb-1">Li Family</h2>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm" data-icon="group">group</span>
+<span class="text-sm font-semibold uppercase tracking-wider">Household Hub</span>
+</div>
+</div>
+<button class="bg-surface-container-lowest text-primary px-5 py-2 rounded-full text-sm font-bold shadow-sm hover:bg-orange-50 transition-colors">
+                    Switch Family
+                </button>
+</div>
+<!-- Members Grid (Bento Style) -->
+<div class="grid grid-cols-1 gap-4 relative z-10">
+<!-- Member Card: You -->
+<div class="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container overflow-hidden">
+<img alt="Alex" class="w-full h-full object-cover" data-alt="smiling man face portrait in bright lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfpy3io6nQm5DOAzqGnvq96RuqgnztSbWDTZHWQypDdL0PQYyTsjvWV_eDEELLDuUdMCdtBc4DBzXNfesUAeKmnxcaT3gIcUrXgxS11hZIuqH4YdVG8cqW_qfdFXvOFNG-5Ux2vk9wqivtZgkTwPyMKWBv5FkPIP-lVSGdvDarSUdPrUhhd-HzwEyNV0VI6snp2FqruRvsuiGP5NY-aGVBXLu6eN1QZwAEMnAXFHrqMnmb8jsMWnb1S25RRYYU1kr7_hKaGRzbDS0"/>
+</div>
+<div>
+<p class="font-bold">Alex Li</p>
+<p class="text-xs text-on-surface-variant">Primary Account</p>
+</div>
+</div>
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">You</span>
+</div>
+<!-- Member Card: Owner -->
+<div class="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between shadow-sm border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container overflow-hidden">
+<img alt="Sarah" class="w-full h-full object-cover" data-alt="middle aged woman smiling warmly with light hair and natural makeup" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9mi1w9urhvea3n777pHZq_kL_gcWY8tsqiSjijuA6OYQaGW3I5R3vNBd81VEGdepVEl3xGsxT5oEWIKRW-ElrtycR9taEC1hvwT5W5nB9Gnq_JnEvXtKuUSeOqc9ctGGP_Lb5URez5j8YZVGHP-F0nh4lrHL36rf834pvgrSVBBk0W1MQpy2R-FUCw--q3J-QZ12dlydxvhC9OtLICccB5GKbZhF_VkBXn6YxYEkqb8gOgY75I13iEIRmWnBFu7O5EK-1HKNpn2Y"/>
+</div>
+<div>
+<p class="font-bold">Sarah Li</p>
+<p class="text-xs text-on-surface-variant">Active 2m ago</p>
+</div>
+</div>
+<span class="bg-primary text-on-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Owner</span>
+</div>
+<!-- Member Card: Member -->
+<div class="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container overflow-hidden">
+<img alt="Jamie" class="w-full h-full object-cover" data-alt="teenager girl smiling in a park background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2_D2-uTmhMPfw1UPZoSsN5Kz8FdqdzCqX4hNQ13_rgdQar5ne2WwKjRhSanPukyWhhpDtgasOzAHXG-45Ibnp8SdU23rHYCj_6NlPd-ZHz6E177_0zee2bXW837nPS5omktZBAQhXw9hNxpQC7KYWQT5AAXvLjq6lwrVphHV9GtBBpwGQuFshjXTA2dOUXGOgFho8vOpykDGEB0QSgzXNatntr9yWsqrojnm5M3Dp4g-HrrADsWxW7_vrA34Sud0t--TBJmCtCfg"/>
+</div>
+<div>
+<p class="font-bold">Jamie Li</p>
+<p class="text-xs text-on-surface-variant">Joined April 2024</p>
+</div>
+</div>
+<span class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Member</span>
+</div>
+</div>
+<!-- Asymmetric Accent -->
+<div class="absolute -bottom-10 -left-10 w-40 h-40 bg-primary-container/20 bubbly-blob -z-0"></div>
+</section>
+<!-- Invite Members Section -->
+<section class="bg-primary rounded-xl p-8 text-on-primary shadow-xl relative overflow-hidden">
+<div class="relative z-10">
+<h3 class="text-xl font-bold mb-2">Expand the Kitchen</h3>
+<p class="text-on-primary/80 text-sm mb-6 max-w-[80%]">Invite more food lovers to join the Li Family table.</p>
+<div class="bg-on-primary/10 rounded-lg p-4 flex items-center justify-between border border-on-primary/20 backdrop-blur-sm">
+<div>
+<p class="text-[10px] font-black uppercase tracking-widest text-on-primary/60 mb-1">Family Share Code</p>
+<p class="text-2xl font-mono font-bold tracking-tighter">FAN-LI-2024</p>
+</div>
+<button class="bg-on-primary text-primary w-12 h-12 rounded-full flex items-center justify-center hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</button>
+</div>
+</div>
+<!-- Decorative Shape -->
+<div class="absolute top-0 right-0 p-4 opacity-20">
+<span class="material-symbols-outlined text-9xl leading-none" data-icon="restaurant">restaurant</span>
+</div>
+</section>
+<!-- Quick Links -->
+<section class="space-y-4">
+<h4 class="text-xs font-black text-on-surface-variant uppercase tracking-[0.2em] px-2">Account Settings</h4>
+<div class="bg-surface-container-lowest rounded-lg divide-y divide-surface-container-low shadow-sm">
+<a class="flex items-center justify-between p-5 hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+</div>
+<span class="font-bold">Order History</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-5 hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+</div>
+<span class="font-bold">Privacy &amp; Security</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-5 hover:bg-error-container/10 transition-colors group" href="#">
+<div class="flex items-center gap-4 text-error">
+<div class="w-10 h-10 rounded-full bg-error-container/20 flex items-center justify-center group-hover:bg-error group-hover:text-on-error transition-colors">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+</div>
+<span class="font-bold">Logout</span>
+</div>
+</a>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-12px_24px_rgba(67,41,0,0.08)]">
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" data-icon="home">home</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" data-icon="receipt_long">receipt_long</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Orders</span>
+</button>
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" data-icon="restaurant_menu">restaurant_menu</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Recipes</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full px-5 py-2 scale-110 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined text-2xl" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Profile</span>
+</button>
+</nav>
+</body></html>

@@ -2,47 +2,49 @@
   <view class="ft-loading-spinner" />
   <text class="ft-loading-text">加载菜谱…</text>
 </view>
-<scroll-view scroll-y="true" class="page" wx:else>
-  <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
-  <view class="name">{{recipeName}}</view>
+<scroll-view scroll-y="true" class="page ft-page" wx:else>
+  <view class="hero ft-card ft-card-low p-card">
+    <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
+    <view class="name ft-title">{{recipeName}}</view>
+  </view>
 
-  <view class="section-title">食材</view>
-  <view class="section">
+  <view class="section ft-card ft-card-low p-card">
+    <view class="section-title ft-title">食材</view>
     <block wx:for="{{ingredients}}" wx:key="index">
-      <view class="line">
+      <view class="line ft-card-lowest">
         {{item.name}}{{item.amount ? ("（" + item.amount + "）") : ""}}
       </view>
     </block>
     <view wx:if="{{!ingredients || ingredients.length===0}}" class="empty">暂无食材</view>
   </view>
 
-  <view class="section-title">调料</view>
-  <view class="section">
+  <view class="section ft-card ft-card-low p-card">
+    <view class="section-title ft-title">调料</view>
     <block wx:for="{{seasonings}}" wx:key="index">
-      <view class="line">
+      <view class="line ft-card-lowest">
         {{item.name}}{{item.amount ? ("（" + item.amount + "）") : ""}}
       </view>
     </block>
     <view wx:if="{{!seasonings || seasonings.length===0}}" class="empty">暂无调料</view>
   </view>
 
-  <view class="section-title">备菜步骤</view>
-  <view class="section">
+  <view class="section ft-card ft-card-low p-card">
+    <view class="section-title ft-title">备菜步骤</view>
     <block wx:for="{{prepareSteps}}" wx:key="index">
-      <view class="line">{{index+1}}. {{item}}</view>
+      <view class="line ft-card-lowest">{{index+1}}. {{item}}</view>
     </block>
     <view wx:if="{{!prepareSteps || prepareSteps.length===0}}" class="empty">暂无备菜步骤</view>
   </view>
 
-  <view class="section-title">做菜步骤</view>
-  <view class="section">
+  <view class="section ft-card ft-card-low p-card">
+    <view class="section-title ft-title">做菜步骤</view>
     <block wx:for="{{cookingSteps}}" wx:key="index">
-      <view class="line">{{index+1}}. {{item}}</view>
+      <view class="line ft-card-lowest">{{index+1}}. {{item}}</view>
     </block>
     <view wx:if="{{!cookingSteps || cookingSteps.length===0}}" class="empty">暂无做菜步骤</view>
   </view>
 
-  <button class="order-btn" type="primary" bindtap="goNote" wx:if="{{recipeId}}">
+  <button class="ft-btn ft-btn-primary ft-pill order-btn" bindtap="goNote" wx:if="{{recipeId}}">
     点菜
   </button>
 </scroll-view>

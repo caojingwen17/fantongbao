@@ -1,25 +1,46 @@
 <!--index.wxml-->
-<view class="page">
-  <view class="header">
+<view class="page ft-page">
+  <view class="header ft-card ft-card-low p-card">
     <view class="familyBlock">
-      <view class="familyName">{{currentFamily.familyName || "未选择家庭"}}</view>
-      <view class="familyMetaRow">
-        <view class="familyMeta">
-          成员 {{membersCount}} 人
+      <view class="familyNameRow" bindtap="onToggleFamilyPicker">
+        <view class="familyName ft-title">
+          {{(currentFamily && currentFamily.familyName) ? currentFamily.familyName : "未选择家庭"}}
         </view>
-        <view class="home-refresh-hint" wx:if="{{homeRefreshing}}">更新中…</view>
+        <view class="familyCaret {{showFamilyPicker ? 'caretUp' : ''}}">▾</view>
+      </view>
+      <view class="familyMetaRow">
+        <view class="familyMeta ft-subtle">成员 {{membersCount}} 人</view>
+        <view class="home-refresh-hint ft-subtle" wx:if="{{homeRefreshing}}">更新中…</view>
       </view>
     </view>
-    <button class="manageBtn" bindtap="goFamily">家庭管理</button>
+  </view>
+
+  <view class="picker-mask" wx:if="{{showFamilyPicker}}" catchtap="onCloseFamilyPicker">
+    <view class="picker-panel ft-card ft-card-lowest" catchtap="noop">
+      <view class="picker-id ft-subtle">{{(currentFamily && currentFamily.inviteCode) ? currentFamily.inviteCode : ""}}</view>
+      <view class="picker-list">
+        <block wx:for="{{families}}" wx:key="_id">
+          <view
+            class="picker-item {{currentFamily && currentFamily._id===item._id ? 'picker-item-active' : ''}}"
+            data-familyid="{{item._id}}"
+            bindtap="onSwitchFamily"
+          >
+            <view class="picker-item-name ft-title">{{item.familyName}}</view>
+            <view class="picker-item-sub ft-subtle">{{currentFamily && currentFamily._id===item._id ? "当前" : ""}}</view>
+          </view>
+        </block>
+      </view>
+      <button class="ft-btn ft-pill picker-manage" bindtap="goFamily">家庭管理</button>
+    </view>
   </view>
 
   <view class="section">
-    <view class="sectionTitle">待处理点菜单</view>
-    <view class="mergedOrderCard" wx:if="{{pendingOrders && pendingOrders.length}}">
+    <view class="sectionTitle ft-title">待处理点菜单</view>
+    <view class="mergedOrderCard ft-card ft-card-low" wx:if="{{pendingOrders && pendingOrders.length}}">
       <block wx:for="{{pendingOrders}}" wx:key="_id">
         <view class="pending-item" bindtap="goPendingOrder" data-orderid="{{item._id}}">
-          <view class="orderStatus">{{item.statusText}}</view>
-          <view class="orderName">{{item.orderName}}</view>
+          <view class="orderStatus ft-subtle">{{item.statusText}}</view>
+          <view class="orderName ft-title">{{item.orderName}}</view>
         </view>
       </block>
     </view>
@@ -27,20 +48,20 @@
   </view>
 
   <view class="section">
-    <view class="sectionTitle">常用菜谱</view>
+    <view class="sectionTitle ft-title">常用菜谱</view>
     <view class="recipes">
       <block wx:for="{{recipes}}" wx:key="id">
-        <view class="recipeCard" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
+        <view class="recipeCard ft-card ft-card-low" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
           <image class="recipeImg" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
-          <view class="recipeName">{{item.recipeName}}</view>
+          <view class="recipeName ft-title">{{item.recipeName}}</view>
         </view>
       </block>
       <view class="empty" wx:if="{{!recipes || recipes.length===0}}">暂无菜谱</view>
     </view>
 
     <view class="actions">
-      <button class="btn" bindtap="goRecipeList">查看全部</button>
-      <button class="btn primary" bindtap="goRecipeAdd">添加菜谱</button>
+      <button class="ft-btn ft-pill btn" bindtap="goRecipeList">查看全部</button>
+      <button class="ft-btn ft-btn-primary ft-pill btn" bindtap="goRecipeAdd">添加菜谱</button>
     </view>
   </view>
 </view>

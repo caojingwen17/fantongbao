@@ -1,27 +1,37 @@
 const cloud = require("../../../utils/cloud");
-const { resolveBatch } = require("../../../utils/cloudDisplay");
+const { resolveBatch, attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
     familyName: "",
     inviteCode: "",
     families: [],
+    familiesDisplay: [],
+    recipeCounts: {},
     currentFamily: null,
     members: [],
+    recipes: [],
     /** 首屏拉取家庭/成员 */
     pageBooting: true,
-    /** 切换家庭后、成员列表尚未返回时 */
+    /** 切换家庭/加载详情时 */
+    detailLoading: false,
     membersLoading: false,
+    recipesLoading: false,
     /** 防止重复点击：切换 / 创建 / 加入 / 踢人 / 退出 */
     actionBusy: false,
     /** 正在切换到的家庭 id，用于切换按钮 loading */
     switchingFamilyId: "",
+    /** 页面模式：先列表，再详情 */
+    viewMode: "list",
+    /** 弹窗：创建/加入家庭 */
+    dialogVisible: false,
+    dialogMode: "",
+    dialogValue: "",
   },
 
   async onLoad() {
     try {
-      await this.refreshFamilies();
-      await this.refreshMembers();
+      await this.refreshFamiliesList();
     } finally {
       this.setData({ pageBooting: false });
     }
@@ -35,7 +45,45 @@ Page({
     this.setData({ inviteCode: e.detail.value || "" });
   },
 
-  async refreshFamilies() {
+  openJoinDialog() {
+    if (this.data.actionBusy) return;
+    this.setData({ dialogVisible: true, dialogMode: "join", dialogValue: "" });
+  },
+
+  openCreateDialog() {
+    if (this.data.actionBusy) return;
+    this.setData({ dialogVisible: true, dialogMode: "create", dialogValue: "" });
+  },
+
+  closeDialog() {
+    if (!this.data.dialogVisible) return;
+    this.setData({ dialogVisible: false, dialogMode: "", dialogValue: "" });
+  },
+
+  onDialogValueInput(e) {
+    this.setData({ dialogValue: (e && e.detail && e.detail.value) || "" });
+  },
+
+  async onDialogConfirm() {
+    const v = (this.data.dialogValue || "").trim();
+    if (!v) {
+      wx.showToast({
+        title: this.data.dialogMode === "create" ? "请输入家庭名称" : "请输入家庭邀请码",
+        icon: "none",
+      });
+      return;
+    }
+    if (this.data.dialogMode === "create") {
+      this.setData({ familyName: v });
+      await this.onCreateFamily();
+    } else if (this.data.dialogMode === "join") {
+      this.setData({ inviteCode: v });
+      await this.onJoinFamily();
+    }
+    this.closeDialog();
+  },
+
+  async refreshFamiliesList() {
     const app = getApp();
     const resp = await cloud.callFunction("familyFunctions", {
       type: "getMyFamilies",
@@ -54,38 +102,87 @@ Page({
       app.globalData.currentFamilyId = families[0]._id;
       current = families[0];
     }
-    this.setData({ currentFamily: current });
+    this.setData({ currentFamily: current || null });
+
+    const ids = families.map((f) => f && f._id).filter(Boolean);
+    const countsResp = await cloud
+      .callFunction("recipeFunctions", {
+        type: "countRecipesByFamilyIds",
+        familyIds: ids,
+      })
+      .catch(() => ({}));
+    const recipeCounts = (countsResp && countsResp.counts) || {};
+    this.setData({ recipeCounts });
+
+    const openid = app.globalData.openid;
+    const familiesDisplay = families.map((f) => {
+      const isAdmin = !!(openid && f && f.adminId === openid);
+      const roleText = isAdmin ? "管理员" : "成员";
+      const recipeCount = recipeCounts && typeof recipeCounts[f._id] === "number" ? recipeCounts[f._id] : 0;
+      return {
+        ...f,
+        isCurrent: !!(current && current._id === f._id),
+        subtitle: `${roleText} | ${recipeCount}个菜谱`,
+      };
+    });
+    this.setData({ familiesDisplay });
   },
 
-  async refreshMembers() {
-    const { currentFamily } = this.data;
-    if (!currentFamily || !currentFamily._id) {
-      this.setData({ members: [], membersLoading: false });
-      return;
-    }
+  async fetchFamilyDetail(familyId) {
+    const app = getApp();
+    const families = this.data.families || app.globalData.families || [];
+    const family = families.find((f) => f && f._id === familyId) || null;
+    if (!family) return;
+
+    this.setData({
+      currentFamily: family,
+      detailLoading: true,
+      membersLoading: true,
+      recipesLoading: true,
+      members: [],
+      recipes: [],
+    });
+
     try {
-      const resp = await cloud.callFunction("familyFunctions", {
-        type: "getFamilyMembers",
-        familyId: currentFamily._id,
-      });
-      const raw = (resp && resp.members) || [];
-      const quickMembers = raw.map((m) => {
+      const [membersResp, recipesResp] = await Promise.all([
+        cloud
+          .callFunction("familyFunctions", { type: "getFamilyMembers", familyId })
+          .catch(() => ({})),
+        cloud
+          .callFunction("recipeFunctions", { type: "listRecipes", familyId, keyword: "" })
+          .catch(() => ({})),
+      ]);
+
+      const rawMembers = (membersResp && membersResp.members) || [];
+      const sortedRawMembers = (() => {
+        const adminId = family && family.adminId ? family.adminId : "";
+        if (!adminId) return rawMembers;
+        const admin = rawMembers.find((m) => m && m._id === adminId);
+        const rest = rawMembers.filter((m) => !(m && m._id === adminId));
+        return admin ? [admin, ...rest] : rawMembers;
+      })();
+
+      const quickMembers = sortedRawMembers.map((m) => {
         if (!m) return m;
         return { ...m, avatarUrlDisplay: m.avatarUrl };
       });
       this.setData({ members: quickMembers, membersLoading: false });
 
-      const urls = raw.map((m) => m && m.avatarUrl).filter(Boolean);
-      const map = await resolveBatch(urls, { familyId: currentFamily._id });
-      const members = raw.map((m) => {
+      const urls = sortedRawMembers.map((m) => m && m.avatarUrl).filter(Boolean);
+      const map = await resolveBatch(urls, { familyId });
+      const members = sortedRawMembers.map((m) => {
         if (!m) return m;
         const u = m.avatarUrl;
         const display = u && map[u] ? map[u] : u;
         return { ...m, avatarUrlDisplay: display || u };
       });
-      this.setData({ members });
-    } catch (e) {
-      this.setData({ members: [], membersLoading: false });
+
+      const rawRecipes = (recipesResp && recipesResp.recipes) || [];
+      const recipes = await attachRecipeImgDisplay(rawRecipes.slice(0, 60));
+
+      this.setData({ members, recipes, recipesLoading: false });
+    } finally {
+      this.setData({ detailLoading: false, membersLoading: false, recipesLoading: false });
     }
   },
 
@@ -103,8 +200,7 @@ Page({
         familyName: this.data.familyName,
       });
       this.setData({ familyName: "" });
-      await this.refreshFamilies();
-      await this.refreshMembers();
+      await this.refreshFamiliesList();
     } finally {
       wx.hideLoading();
       this.setData({ actionBusy: false });
@@ -125,45 +221,53 @@ Page({
         inviteCode: this.data.inviteCode,
       });
       this.setData({ inviteCode: "" });
-      await this.refreshFamilies();
-      await this.refreshMembers();
+      await this.refreshFamiliesList();
     } finally {
       wx.hideLoading();
       this.setData({ actionBusy: false });
     }
   },
 
-  async onSwitchFamily(e) {
+  async onOpenFamily(e) {
     const familyId = e.currentTarget.dataset.familyid;
     if (!familyId || this.data.actionBusy) return;
-    const families = this.data.families || [];
-    const next = families.find((f) => f._id === familyId) || null;
     const app = getApp();
     app.globalData.currentFamilyId = familyId;
     this.setData({
       actionBusy: true,
-      membersLoading: true,
-      members: [],
-      currentFamily: next || this.data.currentFamily,
       switchingFamilyId: familyId,
+      viewMode: "detail",
     });
     try {
       await cloud.callFunctionWithErrorToast("familyFunctions", {
         type: "switchFamily",
         familyId,
       });
-      await this.refreshFamilies();
-      await this.refreshMembers();
+      await this.refreshFamiliesList();
+      await this.fetchFamilyDetail(familyId);
     } catch (e) {
-      await this.refreshFamilies();
-      await this.refreshMembers();
+      await this.refreshFamiliesList();
+      await this.fetchFamilyDetail(familyId);
     } finally {
       this.setData({
         actionBusy: false,
-        membersLoading: false,
         switchingFamilyId: "",
       });
     }
+  },
+
+  onBackToList() {
+    this.setData({ viewMode: "list" });
+  },
+
+  onGoManage() {
+    wx.pageScrollTo({ selector: "#manageAnchor", duration: 260 });
+  },
+
+  roleTextForMember(memberId) {
+    const { currentFamily } = this.data;
+    if (!currentFamily) return "成员";
+    return currentFamily.adminId === memberId ? "管理员" : "成员";
   },
 
   async onCopyInviteCode() {
@@ -188,7 +292,7 @@ Page({
         familyId: currentFamily._id,
         memberId,
       });
-      await this.refreshMembers();
+      await this.fetchFamilyDetail(currentFamily._id);
     } finally {
       wx.hideLoading();
       this.setData({ actionBusy: false });
@@ -206,8 +310,8 @@ Page({
         type: "exitFamily",
         familyId: currentFamily._id,
       });
-      await this.refreshFamilies();
-      await this.refreshMembers();
+      await this.refreshFamiliesList();
+      this.setData({ viewMode: "list" });
     } finally {
       wx.hideLoading();
       this.setData({ actionBusy: false });

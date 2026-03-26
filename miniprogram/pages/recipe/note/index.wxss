@@ -5,36 +5,40 @@
   display: flex;
   gap: 18rpx;
   align-items: center;
+  border-radius: var(--ft-r-xl);
+  padding: 18rpx;
+  margin-bottom: 16rpx;
 }
 .img{
   width: 140rpx;
   height: 110rpx;
-  border-radius: 14rpx;
-  background: rgba(0,0,0,0.04);
+  border-radius: var(--ft-r-lg);
+  background: var(--ft-surface-container-high);
+}
+.dish-meta{
+  flex: 1;
 }
 .dish-name{
   font-size: 34rpx;
-  font-weight: 700;
   word-break: break-all;
 }
+.dish-sub{
+  margin-top: 8rpx;
+  font-size: 24rpx;
+}
 .section-title{
-  margin-top: 22rpx;
   font-size: 28rpx;
-  color: rgba(0,0,0,0.45);
   margin-bottom: 14rpx;
 }
 .textarea{
   width: 100%;
-  border-radius: 14rpx;
-  border: 1px solid rgba(0,0,0,0.12);
-  padding: 16rpx;
-  background: rgba(0,0,0,0.02);
+  min-height: 220rpx;
 }
 .btn{
-  margin-top: 24rpx;
+  margin-top: 16rpx;
 }
-.secondary{
-  margin-top: 12rpx;
-  background: rgba(0,0,0,0.06);
+.section{
+  border-radius: var(--ft-r-xl);
+  padding: 18rpx;
 }
 

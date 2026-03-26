@@ -6,7 +6,21 @@ Page({
     pageLoading: true,
     orderId: "",
     order: {},
+    statusText: "",
     actionBusy: false,
+  },
+
+  getStatusText(status) {
+    switch (status) {
+      case "pending_shopping":
+        return "待买菜";
+      case "pending_cooking":
+        return "待制作";
+      case "completed":
+        return "已完成";
+      default:
+        return status || "";
+    }
   },
 
   async refreshOrder() {
@@ -17,7 +31,8 @@ Page({
       orderId,
     });
     if (result && result.order) {
-      this.setData({ order: result.order });
+      const order = result.order;
+      this.setData({ order, statusText: this.getStatusText(order && order.status) });
     }
   },
 

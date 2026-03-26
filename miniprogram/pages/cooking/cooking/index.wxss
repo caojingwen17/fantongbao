@@ -1,6 +1,15 @@
 .page{
   padding: 20rpx;
 }
+.p-card{
+  padding: 22rpx;
+}
+.header-left{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
 .header{
   margin-bottom: 18rpx;
   display: flex;
@@ -9,17 +18,15 @@
 }
 .order-name{
   font-size: 36rpx;
-  font-weight: 800;
-  margin-bottom: 10rpx;
 }
 .progress{
   font-size: 24rpx;
-  color: rgba(0,0,0,0.5);
 }
 .backBtn{
-  height: 50rpx;
+  height: 64rpx;
   font-size: 22rpx;
   margin-left: auto;
+  padding: 0 24rpx;
 }
 .group{
   margin-bottom: 22rpx;
@@ -59,12 +66,12 @@
 }
 .row-text{
   flex: 1;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  padding-bottom: 10rpx;
+  background: var(--ft-surface-container-lowest);
+  border-radius: var(--ft-r-lg);
+  padding: 14rpx 16rpx;
 }
 .step-text{
   font-size: 26rpx;
-  color: rgba(0,0,0,0.65);
   word-break: break-all;
 }
 

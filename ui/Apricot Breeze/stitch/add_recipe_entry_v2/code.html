@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fantongbao - Add New Recipe</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              "primary": "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              "tertiary": "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              "outline": "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              "surface": "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              "error": "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              "secondary": "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              "background": "#fff5ec",
+              "surface-container-lowest": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      .bubbly-bg {
+        background: radial-gradient(circle at 10% 20%, rgba(255, 152, 0, 0.05) 0%, transparent 20%),
+                    radial-gradient(circle at 90% 80%, rgba(0, 107, 27, 0.05) 0%, transparent 20%);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen bubbly-bg pb-32">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<button class="hover:opacity-80 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-orange-700">arrow_back</span>
+</button>
+<span class="text-2xl font-black text-orange-700 dark:text-orange-500 italic">Fantongbao</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="User profile avatar" data-alt="close-up portrait of a smiling young chef wearing a white uniform with soft kitchen lighting background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9XPRX2koHdY362c83KFP2o-2M0JEu6bKZQ5WB3eo84ughPbRPXCpYvhYFaIzNmwASxNV6w7wehXusgaeRUhZSZ5eV5d4AmSpdTi5vl_6fxnvaJCViPf-rIFV3tK6KE4VAC57jPal8mB6-zdbVJNxTShj-yVB9Ue4a9_i_stO0POawYPxnNeoUm5SmgB7nV5WZBmM5YHWmOzg_i-VhNKuaW8QMhHESCm-EiVzhJFhezRxRqE1RbOG_jIvjWJYqS4XAvD0jfpKfcpo"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto">
+<!-- Hero Title Section -->
+<section class="mb-10 text-center md:text-left relative">
+<div class="absolute -top-6 -left-4 w-16 h-16 bg-secondary-fixed opacity-20 rounded-full blur-2xl"></div>
+<h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2">Add New Recipe</h1>
+<p class="text-on-surface-variant font-medium">How would you like to build your masterpiece today?</p>
+</section>
+<!-- Bento Card Options -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+<!-- Image OCR Card -->
+<button class="group flex flex-col items-center justify-center p-8 bg-surface-container-lowest rounded-xl hover:bg-tertiary-container transition-all duration-300 transform hover:-translate-y-1 shadow-sm">
+<div class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="camera" style="font-variation-settings: 'FILL' 1;">camera</span>
+</div>
+<span class="text-lg font-bold text-on-surface">Image OCR</span>
+<span class="text-xs text-on-surface-variant mt-1">Scan physical books</span>
+</button>
+<!-- Manual Entry Card -->
+<button class="group flex flex-col items-center justify-center p-8 bg-surface-container-lowest rounded-xl hover:bg-secondary-container transition-all duration-300 transform hover:-translate-y-1 shadow-sm">
+<div class="w-16 h-16 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="edit" style="font-variation-settings: 'FILL' 1;">edit</span>
+</div>
+<span class="text-lg font-bold text-on-surface">Manual Entry</span>
+<span class="text-xs text-on-surface-variant mt-1">Start from scratch</span>
+</button>
+<!-- Parse via Link Card (Spans 2 columns on mobile/tablet) -->
+<div class="md:col-span-2 p-8 bg-primary-container/10 rounded-xl relative overflow-hidden">
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-primary-container/20 rounded-full blur-3xl"></div>
+<div class="flex items-center gap-4 mb-6">
+<div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="link">link</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-on-surface">Parse via Link</h3>
+<p class="text-sm text-on-surface-variant">Import from any food blog or website</p>
+</div>
+</div>
+<div class="relative group">
+<input class="w-full h-16 px-6 bg-surface-container-lowest border-none rounded-full text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container transition-shadow shadow-sm" placeholder="Paste recipe URL here..." type="url"/>
+<button class="absolute right-2 top-2 bottom-2 px-6 bg-primary-container text-on-primary-container font-bold rounded-full hover:scale-105 active:scale-95 transition-all">
+                        Import
+                    </button>
+</div>
+</div>
+</div>
+<!-- Checklist Section -->
+<section class="bg-surface-container p-8 rounded-xl relative overflow-hidden">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary" data-icon="assignment_turned_in">assignment_turned_in</span>
+<h4 class="text-lg font-bold text-on-surface">Structure Required</h4>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="flex items-center gap-3 p-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-tertiary" data-icon="restaurant">restaurant</span>
+<span class="text-sm font-semibold text-on-surface">Ingredients List</span>
+</div>
+<div class="flex items-center gap-3 p-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-primary" data-icon="list_alt">list_alt</span>
+<span class="text-sm font-semibold text-on-surface">Step-by-Step Guide</span>
+</div>
+<div class="flex items-center gap-3 p-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-secondary" data-icon="timer">timer</span>
+<span class="text-sm font-semibold text-on-surface">Cooking Times</span>
+</div>
+<div class="flex items-center gap-3 p-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-error" data-icon="camera_alt">camera_alt</span>
+<span class="text-sm font-semibold text-on-surface">Result Photo</span>
+</div>
+</div>
+<!-- Illustration bleed -->
+<div class="absolute -bottom-10 -right-10 opacity-10">
+<span class="material-symbols-outlined text-[120px]" data-icon="skillet">skillet</span>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Shell (Destination Anchor) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-12px_24px_rgba(67,41,0,0.08)]">
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all">
+<span class="material-symbols-outlined text-2xl" data-icon="home">home</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all">
+<span class="material-symbols-outlined text-2xl" data-icon="receipt_long">receipt_long</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Orders</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full px-5 py-2 scale-110 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined text-2xl" data-icon="restaurant_menu" style="font-variation-settings: 'FILL' 1;">restaurant_menu</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Recipes</span>
+</button>
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full transition-all">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider mt-1">Profile</span>
+</button>
+</nav>
+</body></html>

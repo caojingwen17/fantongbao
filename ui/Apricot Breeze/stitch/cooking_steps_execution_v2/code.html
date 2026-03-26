@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "error-dim": "#b92902",
+            "outline-variant": "#d0a66d",
+            "surface-container-low": "#ffeedc",
+            "primary": "#874e00",
+            "on-primary": "#fff0e5",
+            "on-error-container": "#520c00",
+            "primary-dim": "#764400",
+            "tertiary": "#006b1b",
+            "on-secondary-container": "#5b5300",
+            "primary-container": "#ff9800",
+            "on-surface-variant": "#765524",
+            "on-surface": "#432900",
+            "secondary-fixed": "#f9e534",
+            "on-tertiary-container": "#005e17",
+            "inverse-on-surface": "#bf965e",
+            "inverse-surface": "#170c00",
+            "surface-container-highest": "#ffd6a2",
+            "tertiary-fixed": "#91f78e",
+            "on-secondary-fixed-variant": "#665c00",
+            "tertiary-dim": "#005d16",
+            "primary-fixed-dim": "#ec8c00",
+            "on-tertiary-fixed": "#00480f",
+            "on-background": "#432900",
+            "on-primary-container": "#4a2800",
+            "on-tertiary": "#d1ffc8",
+            "tertiary-fixed-dim": "#83e881",
+            "inverse-primary": "#ff9800",
+            "secondary-fixed-dim": "#ead723",
+            "on-secondary": "#fff4b0",
+            "surface-tint": "#874e00",
+            "outline": "#95703c",
+            "error-container": "#f95630",
+            "secondary-dim": "#595000",
+            "on-primary-fixed-variant": "#563000",
+            "surface": "#fff5ec",
+            "primary-fixed": "#ff9800",
+            "on-tertiary-fixed-variant": "#00691a",
+            "surface-container": "#ffe4c4",
+            "surface-bright": "#fff5ec",
+            "error": "#b02500",
+            "on-primary-fixed": "#271300",
+            "secondary-container": "#f9e534",
+            "surface-container-high": "#ffddb3",
+            "secondary": "#665c00",
+            "on-error": "#ffefec",
+            "on-secondary-fixed": "#474000",
+            "tertiary-container": "#91f78e",
+            "surface-variant": "#ffd6a2",
+            "surface-dim": "#ffcc86",
+            "background": "#fff5ec",
+            "surface-container-lowest": "#ffffff"
+          },
+          fontFamily: {
+            "headline": ["Plus Jakarta Sans"],
+            "body": ["Plus Jakarta Sans"],
+            "label": ["Plus Jakarta Sans"]
+          },
+          borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #d0a66d;
+      border-radius: 10px;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface custom-scrollbar selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden border-2 border-primary-container">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="close-up portrait of a friendly man in a kitchen setting with soft natural lighting and warm tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYZpoiE1RbukSxjtx-mAJLD8nxewolhQpHJ-2UWlUyJWnvBuL06dz8G3ajd-w6boZaRIDbyyim9jkxzkJ9y9a35ijj4pcdYmpJXrwIeCUL_MtdVjcThSjvgq_UxKqIIq8OabitQiYoDeuks2IaHqVb0HpTR1JvCPIIYOsBuctdfrH47kOs1PY64TDi8_HBREEEWs9dap_vmtHfaxScPf6jam0_4i39HHbMyma7S3Fhufk1K3SzfZtwLczUemN8V_OzR-0qUx2jEuc"/>
+</div>
+<span class="text-2xl font-black text-orange-700 dark:text-orange-500 italic font-headline tracking-tight">Fantongbao</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-orange-600 dark:text-orange-400 hover:opacity-80 transition-opacity scale-95 active:scale-90 transition-transform">notifications</button>
+</div>
+</header>
+<main class="pt-24 pb-32 px-4 max-w-5xl mx-auto space-y-8">
+<!-- Status Banner -->
+<div class="relative overflow-hidden bg-primary-container text-on-primary-container p-6 rounded-xl shadow-none flex items-center justify-between">
+<div class="relative z-10">
+<span class="text-label text-xs font-bold uppercase tracking-widest bg-on-primary-container/10 px-3 py-1 rounded-full">Status</span>
+<h2 class="text-display-md font-extrabold mt-1">Phase: Cooking</h2>
+</div>
+<div class="material-symbols-outlined text-6xl opacity-20 absolute -right-4 -bottom-4 rotate-12" style="font-variation-settings: 'FILL' 1;">restaurant</div>
+</div>
+<!-- Main Content Bento Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Current Dish Hero Section -->
+<section class="lg:col-span-8 space-y-6">
+<div class="bg-surface-container-lowest rounded-xl p-2 shadow-none overflow-hidden group">
+<div class="relative h-[300px] rounded-lg overflow-hidden">
+<img alt="Mapo Tofu" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="vibrant authentic mapo tofu dish with silky tofu cubes, red chili oil, and green onions in a dark stone bowl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYLP-r_bwijORyJdCUPTLWgYngRUlVrojzyz9AeDMzWXCVVX1ux8hhSyygm2zwJMbKKLHDnHMKORjKut0aI_ijIyZ0o32PCjd85bwUv8WvQ3KHhqiAZN7lAWM289RWjQ9vmXR9llftNwUuw7ukSx_KtepqzKs0hwxFAR-C_9Z_2Lo6vIq-RL-iXQEm-9xpQ5xC-XVHzh0-6UR05zTJQDGL2-GskxKoAQ-EENVRDQzL4FgdqBtdy3WbO6w5pPeRPJrXWNA64ZW4N78"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-8">
+<div>
+<span class="bg-secondary-container text-on-secondary-container px-4 py-1 rounded-full text-sm font-bold mb-2 inline-block">Current Dish</span>
+<h1 class="text-white text-4xl font-extrabold tracking-tight">Mapo Tofu</h1>
+</div>
+</div>
+</div>
+</div>
+<!-- Progress for Other Dishes -->
+<div class="bg-surface-container rounded-lg p-6 space-y-4">
+<h3 class="font-headline font-bold text-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">pending_actions</span>
+            Kitchen Queue
+          </h3>
+<div class="space-y-4">
+<div class="bg-surface-container-lowest p-4 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">eco</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Garlic Bok Choy</p>
+<p class="text-sm text-on-surface-variant">Waiting for wok...</p>
+</div>
+</div>
+<div class="w-24 bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-tertiary h-full w-1/4"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Checklist Section -->
+<section class="lg:col-span-4 space-y-6">
+<div class="bg-surface-container-high rounded-xl p-6 h-full border-none">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline font-black text-2xl uppercase tracking-tighter text-primary">Execution</h3>
+<span class="bg-primary text-on-primary px-3 py-1 rounded-full text-xs font-bold">75% Done</span>
+</div>
+<div class="space-y-8">
+<!-- Preparation -->
+<div class="space-y-4">
+<div class="flex items-center gap-2 border-b border-outline-variant/20 pb-2">
+<span class="text-sm font-black text-on-surface-variant uppercase tracking-widest">Preparation</span>
+</div>
+<div class="flex items-start gap-3 group cursor-pointer">
+<div class="mt-1 w-6 h-6 rounded border-2 border-primary bg-primary flex items-center justify-center transition-all">
+<span class="material-symbols-outlined text-on-primary text-sm font-bold">check</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface line-through opacity-50">Dice Tofu into 1-inch cubes</p>
+<div class="flex -space-x-2 mt-2">
+<img class="w-6 h-6 rounded-full border-2 border-surface-container-high object-cover" data-alt="headshot of a woman laughing in a bright setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVgpcwKFmu6G1dE9rxSNd8hP-AWcNiSKlfEKQe6OEj91ZdSAo4c4TkRksFDVImMjv64rypB_UhyDLhETWvARb3HxPH4bwOIVsJMhqMKD3Hf_UOUpWIpCiaNHk5sCjo-TuadryMwQzfeK24aoyghN_KmjQ-HCRTzBamiwVGcrgncqEERHFQSaUbFTIUX5hQP_5UQV0pW1MgCFfALDOVY7E0NzYs0d55Rauzix73L43zWIHjiiyF5uCLn31c83qYoKB3Ku-wV_vHLio"/>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-3 group cursor-pointer">
+<div class="mt-1 w-6 h-6 rounded border-2 border-primary bg-primary flex items-center justify-center transition-all">
+<span class="material-symbols-outlined text-on-primary text-sm font-bold">check</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface line-through opacity-50">Mince garlic &amp; ginger</p>
+<div class="flex -space-x-2 mt-2">
+<img class="w-6 h-6 rounded-full border-2 border-surface-container-high object-cover" data-alt="close up of a man smiling warmly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARpjcNaDlcDWh-gbNkCE1ZRIc8S6FEOeqBVbfc7uc4O_e2D7q8KA1vcPcQb9ZHq2byVhq-JPIsXAA8dMsoaBhm1YBeDwtupeya2Wk5OXJoBF_XoZHrW_KkuOegl_kEmG6P7RGlXhO9326rfCIHvf0hklTEAxmB0rbwtIoovEu0rSca8YB7l-TO9YzJQz0f5fx9W5JplbEvcUpCmwq5iyND7RqCNv5OeSuQ5R1aaxI0o_ahKuGzfF5jmn21OvpKwOQwl3cLDA4oGPg"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Cooking Steps -->
+<div class="space-y-4">
+<div class="flex items-center gap-2 border-b border-outline-variant/20 pb-2">
+<span class="text-sm font-black text-on-surface-variant uppercase tracking-widest">Cooking Steps</span>
+</div>
+<div class="flex items-start gap-3 group cursor-pointer">
+<div class="mt-1 w-6 h-6 rounded border-2 border-primary bg-primary-container/20 flex items-center justify-center group-hover:bg-primary-container/40 transition-all"></div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface leading-tight">1. Brown the beef/pork in the wok over high heat until crispy</p>
+<div class="mt-2 flex items-center gap-2">
+<span class="text-[10px] font-bold text-primary bg-surface-container-lowest px-2 py-0.5 rounded border border-primary/10">ACTIVE STEP</span>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-3 group cursor-pointer">
+<div class="mt-1 w-6 h-6 rounded border-2 border-primary bg-primary-container/20 flex items-center justify-center group-hover:bg-primary-container/40 transition-all"></div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface opacity-70">2. Add Doubanjiang and stir-fry until oil turns red</p>
+</div>
+</div>
+<div class="flex items-start gap-3 group cursor-pointer">
+<div class="mt-1 w-6 h-6 rounded border-2 border-primary bg-primary-container/20 flex items-center justify-center group-hover:bg-primary-container/40 transition-all"></div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface opacity-70">3. Gently fold in tofu cubes and simmer in broth</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Action Bar -->
+<div class="flex flex-col md:flex-row gap-4 justify-between items-center bg-surface-container-lowest p-6 rounded-xl shadow-[0_12px_24px_rgba(67,41,0,0.08)]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center animate-pulse">
+<span class="material-symbols-outlined text-on-secondary-container">timer</span>
+</div>
+<div>
+<p class="text-xs font-bold text-secondary uppercase tracking-wider">Estimated Time Left</p>
+<p class="text-2xl font-black text-on-surface">12:45</p>
+</div>
+</div>
+<button class="w-full md:w-auto px-12 py-4 bg-gradient-to-br from-primary to-primary-container text-on-primary font-black text-lg rounded-full shadow-lg hover:shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-3">
+        Finish Cooking
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-12px_24px_rgba(67,41,0,0.08)]">
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full px-5 py-2 scale-110 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full" href="#">
+<span class="material-symbols-outlined mb-1">restaurant_menu</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Recipes</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 px-5 py-2 hover:bg-orange-50 dark:hover:bg-stone-800 rounded-full" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-plus-jakarta text-[11px] font-bold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+<!-- Decorative Kitchen Bubbles -->
+<div class="fixed top-1/4 -left-12 w-48 h-48 bg-secondary-container/10 rounded-full blur-3xl -z-10"></div>
+<div class="fixed bottom-1/4 -right-12 w-64 h-64 bg-primary-container/10 rounded-full blur-3xl -z-10"></div>
+</body></html>

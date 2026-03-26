@@ -31,6 +31,37 @@ exports.main = async (event) => {
   if (!event || !event.type) throw new Error("缺少 type");
 
   switch (event.type) {
+    case "countRecipesByFamilyIds": {
+      const { familyIds } = event;
+      const ids = Array.isArray(familyIds)
+        ? [...new Set(familyIds.filter((x) => x && String(x).trim()))]
+        : [];
+      if (!ids.length) return { success: true, counts: {} };
+
+      // 只允许统计“我所在家庭”
+      const famRes = await db
+        .collection("families")
+        .where({ _id: db.command.in(ids) })
+        .get();
+      const allowed = (famRes.data || [])
+        .filter((f) => Array.isArray(f.memberIds) && f.memberIds.includes(openid))
+        .map((f) => f._id);
+
+      const counts = {};
+      await Promise.all(
+        allowed.map(async (familyId) => {
+          const c = await db.collection("recipes").where({ familyId }).count();
+          counts[familyId] = (c && typeof c.total === "number" ? c.total : 0) || 0;
+        })
+      );
+
+      // 其他未授权/不存在的家庭 id 统一返回 0
+      ids.forEach((id) => {
+        if (typeof counts[id] !== "number") counts[id] = 0;
+      });
+      return { success: true, counts };
+    }
+
     case "listRecipes": {
       const { familyId, keyword } = event;
       if (!familyId) throw new Error("缺少 familyId");

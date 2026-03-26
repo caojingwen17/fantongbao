@@ -2,22 +2,27 @@
   <view class="ft-loading-spinner" />
   <text class="ft-loading-text">加载中…</text>
 </view>
-<scroll-view scroll-y="true" class="page" wx:else>
-  <view class="dish">
+<scroll-view scroll-y="true" class="page ft-page" wx:else>
+  <view class="dish ft-card ft-card-low p-card">
     <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
-    <view class="dish-name">{{recipeName}}</view>
+    <view class="dish-meta">
+      <view class="dish-name ft-title">{{recipeName}}</view>
+      <view class="dish-sub ft-subtle">添加到点菜单前，可写备注</view>
+    </view>
   </view>
 
-  <view class="section-title">备注（选填）</view>
-  <textarea
-    class="textarea"
-    maxlength="200"
-    placeholder="可输入口味偏好、食材替换、制作要求等"
-    value="{{note}}"
-    bindinput="onNoteInput"
-  />
+  <view class="section ft-card ft-card-low p-card">
+    <view class="section-title ft-title">备注（选填）</view>
+    <textarea
+      class="textarea ft-textarea"
+      maxlength="200"
+      placeholder="可输入口味偏好、食材替换、制作要求等"
+      value="{{note}}"
+      bindinput="onNoteInput"
+    />
+  </view>
 
-  <button class="btn" type="primary" bindtap="onConfirm">确认添加到点菜单</button>
-  <button class="btn secondary" bindtap="onCancel">取消</button>
+  <button class="ft-btn ft-btn-primary ft-pill btn" bindtap="onConfirm">确认添加到点菜单</button>
+  <button class="ft-btn ft-pill btn" bindtap="onCancel">取消</button>
 </scroll-view>
 
