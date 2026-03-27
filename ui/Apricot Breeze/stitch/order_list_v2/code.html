@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Fantongbao - 点菜单</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              primary: "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              tertiary: "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              outline: "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              surface: "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              error: "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              secondary: "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              background: "#fff5ec",
+              "surface-container-lowest": "#ffffff",
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans"],
+              body: ["Plus Jakarta Sans"],
+              label: ["Plus Jakarta Sans"],
+            },
+            borderRadius: {
+              DEFAULT: "1rem",
+              lg: "2rem",
+              xl: "3rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+      .sticky-blur {
+        background: rgba(255, 245, 236, 0.88);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+    </style>
+  </head>
+  <body class="bg-surface text-on-surface min-h-screen">
+    <div class="mx-auto w-full max-w-[375px] min-h-[812px] bg-surface relative overflow-hidden">
+      <!-- Decorative blobs -->
+      <div class="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-secondary-fixed opacity-18 blur-3xl"></div>
+      <div class="pointer-events-none absolute top-52 -left-24 w-64 h-64 rounded-full bg-tertiary-fixed opacity-12 blur-3xl"></div>
+
+      <!-- Top App Bar -->
+      <header class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-50 flex items-center justify-between px-5 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+        <button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant active:scale-90 transition-transform" aria-label="返回">
+          <span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <div class="text-lg font-black tracking-tight">点菜单</div>
+        <div class="w-10 h-10" aria-hidden="true"></div>
+      </header>
+
+      <main class="relative z-10 pt-24 px-5 pb-10 space-y-5">
+        <!-- Intro card -->
+        <section class="bg-surface-container rounded-lg p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-xs font-black uppercase tracking-widest text-on-surface-variant">点菜单</div>
+              <div class="mt-1 text-xl font-extrabold tracking-tight">按状态查看与继续处理</div>
+              <div class="mt-1 text-sm font-semibold text-on-surface-variant">待买菜 → 买菜清单，待制作 → 做菜清单</div>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-on-secondary-container" data-icon="receipt_long">receipt_long</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tabs -->
+        <section class="bg-surface-container-lowest rounded-lg p-2">
+          <div class="grid grid-cols-3 gap-2">
+            <button data-tab="pending_shopping" class="tab-btn px-3 py-3 rounded-full font-extrabold text-sm transition-all bg-primary-container text-on-primary-container active:scale-95" aria-label="待买菜">
+              待买菜
+            </button>
+            <button data-tab="pending_cooking" class="tab-btn px-3 py-3 rounded-full font-extrabold text-sm transition-all bg-surface-container text-on-surface-variant active:scale-95" aria-label="待制作">
+              待制作
+            </button>
+            <button data-tab="completed" class="tab-btn px-3 py-3 rounded-full font-extrabold text-sm transition-all bg-surface-container text-on-surface-variant active:scale-95" aria-label="已完成">
+              已完成
+            </button>
+          </div>
+        </section>
+
+        <!-- List -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <div class="text-sm font-extrabold text-on-surface">
+              当前：<span id="tabLabel" class="text-primary">待买菜</span>
+            </div>
+            <span id="countBadge" class="text-xs font-extrabold text-primary px-3 py-1 bg-surface-container-high rounded-full">2 项</span>
+          </div>
+
+          <div id="orderList" class="space-y-3"></div>
+
+          <div id="emptyState" class="hidden bg-surface-container-lowest rounded-lg p-8 text-center">
+            <div class="mx-auto w-14 h-14 rounded-full bg-surface-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-outline" data-icon="receipt">receipt</span>
+            </div>
+            <div class="mt-4 text-lg font-extrabold text-on-surface">暂无点菜单</div>
+            <div class="mt-1 text-sm font-semibold text-on-surface-variant">去菜谱里点几道菜吧</div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-10 z-[90] bg-inverse-surface/90 text-inverse-on-surface px-4 py-2 rounded-full text-sm font-extrabold shadow-[0_12px_24px_rgba(0,0,0,0.25)]">
+        提示
+      </div>
+
+      <script>
+        (function () {
+          const el = (id) => document.getElementById(id);
+          const orderList = el("orderList");
+          const emptyState = el("emptyState");
+          const toast = el("toast");
+          const tabLabel = el("tabLabel");
+          const countBadge = el("countBadge");
+
+          const show = (node) => node && node.classList.remove("hidden");
+          const hide = (node) => node && node.classList.add("hidden");
+          const setText = (node, text) => node && (node.textContent = text);
+
+          const toastMsg = (msg) => {
+            setText(toast, msg);
+            show(toast);
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => hide(toast), 1400);
+          };
+
+          const LABELS = {
+            pending_shopping: "待买菜",
+            pending_cooking: "待制作",
+            completed: "已完成",
+          };
+
+          const DATA = {
+            pending_shopping: [
+              { id: "o1", name: "周末家常（3 道菜）", time: "2026-03-26 10:18", badge: "进行中" },
+              { id: "o2", name: "晚餐计划（2 道菜）", time: "2026-03-25 18:42", badge: "进行中" },
+            ],
+            pending_cooking: [{ id: "o3", name: "工作日晚餐（2 道菜）", time: "2026-03-24 19:10", badge: "进行中" }],
+            completed: [{ id: "o4", name: "周日午餐（4 道菜）", time: "2026-03-20 12:05", badge: "已完成" }],
+          };
+
+          let currentTab = "pending_shopping";
+
+          const render = () => {
+            const list = DATA[currentTab] || [];
+            orderList.innerHTML = "";
+
+            setText(tabLabel, LABELS[currentTab] || "");
+            if (currentTab === "pending_shopping") tabLabel.className = "text-primary";
+            else if (currentTab === "pending_cooking") tabLabel.className = "text-on-tertiary-container";
+            else tabLabel.className = "text-on-surface-variant";
+
+            setText(countBadge, `${list.length} 项`);
+
+            if (list.length === 0) {
+              show(emptyState);
+              return;
+            }
+            hide(emptyState);
+
+            list.forEach((o) => {
+              const a = document.createElement("button");
+              a.className =
+                "w-full text-left bg-surface-container-lowest rounded-lg p-4 hover:bg-surface-container active:scale-[0.995] transition-all";
+              a.setAttribute("data-order-id", o.id);
+
+              const statusPill =
+                currentTab === "completed"
+                  ? "bg-surface-container text-on-surface-variant"
+                  : currentTab === "pending_cooking"
+                  ? "bg-tertiary-container text-on-tertiary-container"
+                  : "bg-secondary-container text-on-secondary-container";
+
+              a.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${statusPill}">${LABELS[currentTab]}</span>
+                      <span class="text-xs font-extrabold text-on-surface-variant">${o.badge}</span>
+                    </div>
+                    <div class="mt-2 text-lg font-extrabold text-on-surface truncate">${o.name}</div>
+                    <div class="mt-1 text-xs font-semibold text-on-surface-variant">创建时间：${o.time}</div>
+                  </div>
+                  <span class="material-symbols-outlined text-outline mt-1" data-icon="chevron_right">chevron_right</span>
+                </div>
+              `;
+
+              a.addEventListener("click", () => {
+                if (currentTab === "pending_shopping") toastMsg("将跳转：买菜清单（示例）");
+                else if (currentTab === "pending_cooking") toastMsg("将跳转：做菜清单（示例）");
+                else toastMsg("将跳转：点菜单详情（示例）");
+              });
+
+              orderList.appendChild(a);
+            });
+          };
+
+          const setActiveTabStyle = () => {
+            document.querySelectorAll(".tab-btn").forEach((btn) => {
+              const tab = btn.getAttribute("data-tab");
+              const active = tab === currentTab;
+              btn.classList.toggle("bg-primary-container", active && tab === "pending_shopping");
+              btn.classList.toggle("text-on-primary-container", active && tab === "pending_shopping");
+
+              btn.classList.toggle("bg-tertiary-container", active && tab === "pending_cooking");
+              btn.classList.toggle("text-on-tertiary-container", active && tab === "pending_cooking");
+
+              btn.classList.toggle("bg-surface-container-high", active && tab === "completed");
+              btn.classList.toggle("text-on-surface", active && tab === "completed");
+
+              if (!active) {
+                btn.classList.remove("bg-primary-container", "text-on-primary-container", "bg-tertiary-container", "text-on-tertiary-container", "bg-surface-container-high", "text-on-surface");
+                btn.classList.add("bg-surface-container", "text-on-surface-variant");
+              } else {
+                btn.classList.remove("bg-surface-container", "text-on-surface-variant");
+              }
+            });
+          };
+
+          document.addEventListener("click", (e) => {
+            const tabBtn = e.target.closest?.("[data-tab]");
+            if (!tabBtn) return;
+            currentTab = tabBtn.getAttribute("data-tab");
+            setActiveTabStyle();
+            render();
+          });
+
+          setActiveTabStyle();
+          render();
+        })();
+      </script>
+    </div>
+  </body>
+</html>

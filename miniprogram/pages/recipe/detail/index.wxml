@@ -2,50 +2,110 @@
   <view class="ft-loading-spinner" />
   <text class="ft-loading-text">加载菜谱…</text>
 </view>
-<scroll-view scroll-y="true" class="page ft-page" wx:else>
-  <view class="hero ft-card ft-card-low p-card">
-    <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
-    <view class="name ft-title">{{recipeName}}</view>
-  </view>
+<view class="ft-page recipe-detail-page" wx:else>
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="section-title ft-title">食材</view>
-    <block wx:for="{{ingredients}}" wx:key="index">
-      <view class="line ft-card-lowest">
-        {{item.name}}{{item.amount ? ("（" + item.amount + "）") : ""}}
+  <!-- Top App Bar (height rule kept) -->
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="onBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
       </view>
-    </block>
-    <view wx:if="{{!ingredients || ingredients.length===0}}" class="empty">暂无食材</view>
+      <view class="top-title">菜谱详情</view>
+    </view>
+    <view class="top-spacer" aria-hidden="true"></view>
   </view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="section-title ft-title">调料</view>
-    <block wx:for="{{seasonings}}" wx:key="index">
-      <view class="line ft-card-lowest">
-        {{item.name}}{{item.amount ? ("（" + item.amount + "）") : ""}}
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <!-- Hero -->
+      <view class="card hero-card">
+        <view class="hero-media">
+          <image class="hero-img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" aria-label="菜谱图片" />
+          <view class="hero-grad" aria-hidden="true"></view>
+          <view class="hero-edit-btn" bindtap="goEdit" aria-label="修改菜谱">修改</view>
+          <view class="hero-bottom">
+            <view class="hero-kicker">家常快手</view>
+            <view class="hero-title">{{recipeName}}</view>
+          </view>
+        </view>
       </view>
-    </block>
-    <view wx:if="{{!seasonings || seasonings.length===0}}" class="empty">暂无调料</view>
-  </view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="section-title ft-title">备菜步骤</view>
-    <block wx:for="{{prepareSteps}}" wx:key="index">
-      <view class="line ft-card-lowest">{{index+1}}. {{item}}</view>
-    </block>
-    <view wx:if="{{!prepareSteps || prepareSteps.length===0}}" class="empty">暂无备菜步骤</view>
-  </view>
+      <!-- 食材 -->
+      <view class="card section-card">
+        <view class="section-head">
+          <view class="section-title">食材</view>
+          <view class="count-pill">{{ingredients ? ingredients.length : 0}} 项</view>
+        </view>
+        <view class="list" wx:if="{{ingredients && ingredients.length}}">
+          <block wx:for="{{ingredients}}" wx:key="index">
+            <view class="row">
+              <view class="row-name">{{item.name}}</view>
+              <view class="row-amt">{{item.amount}}</view>
+            </view>
+          </block>
+        </view>
+        <view class="empty" wx:if="{{!ingredients || ingredients.length===0}}">暂无食材</view>
+      </view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="section-title ft-title">做菜步骤</view>
-    <block wx:for="{{cookingSteps}}" wx:key="index">
-      <view class="line ft-card-lowest">{{index+1}}. {{item}}</view>
-    </block>
-    <view wx:if="{{!cookingSteps || cookingSteps.length===0}}" class="empty">暂无做菜步骤</view>
-  </view>
+      <!-- 调料 -->
+      <view class="card section-card">
+        <view class="section-head">
+          <view class="section-title">调料</view>
+          <view class="count-pill">{{seasonings ? seasonings.length : 0}} 项</view>
+        </view>
+        <view class="list" wx:if="{{seasonings && seasonings.length}}">
+          <block wx:for="{{seasonings}}" wx:key="index">
+            <view class="row">
+              <view class="row-name">{{item.name}}</view>
+              <view class="row-amt">{{item.amount}}</view>
+            </view>
+          </block>
+        </view>
+        <view class="empty" wx:if="{{!seasonings || seasonings.length===0}}">暂无调料</view>
+      </view>
 
-  <button class="ft-btn ft-btn-primary ft-pill order-btn" bindtap="goNote" wx:if="{{recipeId}}">
-    点菜
-  </button>
-</scroll-view>
+      <!-- 备菜步骤 -->
+      <view class="card section-card">
+        <view class="section-head">
+          <view class="section-title">备菜步骤</view>
+          <view class="count-pill">{{prepareSteps ? prepareSteps.length : 0}} 步</view>
+        </view>
+        <view class="steps" wx:if="{{prepareSteps && prepareSteps.length}}">
+          <block wx:for="{{prepareSteps}}" wx:key="index">
+            <view class="step-item">
+              <view class="step-num">{{index+1}}</view>
+              <view class="step-text">{{item}}</view>
+            </view>
+          </block>
+        </view>
+        <view class="empty" wx:if="{{!prepareSteps || prepareSteps.length===0}}">暂无备菜步骤</view>
+      </view>
+
+      <!-- 做菜步骤 -->
+      <view class="card section-card">
+        <view class="section-head">
+          <view class="section-title">做菜步骤</view>
+          <view class="count-pill">{{cookingSteps ? cookingSteps.length : 0}} 步</view>
+        </view>
+        <view class="steps" wx:if="{{cookingSteps && cookingSteps.length}}">
+          <block wx:for="{{cookingSteps}}" wx:key="index">
+            <view class="step-item">
+              <view class="step-num">{{index+1}}</view>
+              <view class="step-text">{{item}}</view>
+            </view>
+          </block>
+        </view>
+        <view class="empty" wx:if="{{!cookingSteps || cookingSteps.length===0}}">暂无做菜步骤</view>
+      </view>
+
+      <view class="bottom-spacer" aria-hidden="true"></view>
+    </view>
+  </scroll-view>
+
+  <view class="recipe-detail-footer" wx:if="{{recipeId}}">
+    <view class="recipe-del-btn" bindtap="onAskDeleteRecipe">删除菜谱</view>
+  </view>
+</view>
 

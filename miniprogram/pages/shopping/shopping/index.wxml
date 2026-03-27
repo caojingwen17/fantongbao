@@ -1,60 +1,104 @@
-<scroll-view scroll-y="true" class="page ft-page">
-  <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
-    <view class="ft-loading-spinner" />
-    <text class="ft-loading-text">加载采购清单…</text>
-  </view>
-  <view class="header ft-card ft-card-low p-card">
-    <view class="header-left">
-      <view class="order-name ft-title">{{order.orderName || ""}}</view>
-      <view class="progress ft-subtle">
-        已购买 {{progress.doneCount}} / {{progress.totalCount}}
+<view class="ft-page shopping-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="goBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
       </view>
+      <view class="top-title">买菜清单</view>
     </view>
-    <button class="ft-btn ft-pill backBtn" bindtap="goBack">返回</button>
+    <view class="top-spacer" aria-hidden="true"></view>
   </view>
 
-  <view class="merged">
-    <block wx:for="{{mergedItems}}" wx:key="key">
-      <view class="row ft-card-lowest ft-card-lowest-pad">
-        <checkbox
-          checked="{{item.allDone}}"
-          disabled="{{item.allDone || order.status !== 'pending_shopping' || actionBusy}}"
-          bindtap="onCheckItem"
-          data-itemids="{{item.itemIds}}"
-        />
-        <view class="row-text">
-          <view class="row-name">
-            {{item.name}}{{item.totalAmountText ? "（" + item.totalAmountText + "）" : ""}}
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
+        <view class="ft-loading-spinner" />
+        <text class="ft-loading-text">加载采购清单…</text>
+      </view>
+
+      <view class="header-card" wx:if="{{!checklistLoading}}">
+        <view class="header-row">
+          <view>
+            <view class="head-kicker">点菜单</view>
+            <view class="head-name">{{order.orderName || "未命名点菜单"}}</view>
+            <view class="head-progress">采购进度：<text class="head-progress-v">{{progress.doneCount}}/{{progress.totalCount}}</text></view>
           </view>
-          <view class="row-src ft-source" wx:if="{{item.sourcesText}}">{{item.sourcesText}}</view>
+          <view class="head-icon">🧺</view>
         </view>
-        <button
-          class="ft-btn ft-btn-danger ft-pill delBtn"
-          wx:if="{{order.status==='pending_shopping' && item.manualItemIds && item.manualItemIds.length && !item.allDone}}"
-          disabled="{{actionBusy}}"
-          bindtap="onDeleteItem"
-          data-itemids="{{item.manualItemIds}}"
+      </view>
+
+      <view class="section-head" wx:if="{{!checklistLoading}}">
+        <view class="section-title">归并清单</view>
+        <view
+          class="manual-del-btn {{(order.status!=='pending_shopping' || !manualItemIdsFlat || !manualItemIdsFlat.length) ? 'hidden' : ''}}"
+          bindtap="onDeleteManualAll"
+          aria-label="删除手动项"
         >
           删除手动项
-        </button>
+        </view>
       </view>
-    </block>
-    <view class="empty" wx:if="{{!mergedItems || mergedItems.length===0}}">暂无采购清单</view>
-  </view>
 
-  <view class="extra ft-card ft-card-low p-card" wx:if="{{order.status==='pending_shopping'}}">
-    <view class="section-title ft-title">添加额外采购项</view>
-    <input class="input" placeholder="食材/调料名称" value="{{extraName}}" bindinput="onExtraNameInput" />
-    <input class="input" placeholder="用量（如 5g / 1份）" value="{{extraAmount}}" bindinput="onExtraAmountInput" />
-    <button class="ft-btn ft-pill" bindtap="onAddExtra">添加</button>
+      <view class="items-group" wx:if="{{!checklistLoading && viewItems && viewItems.length}}">
+        <view class="group-title-row" wx:if="{{viewItemsSeasoning && viewItemsSeasoning.length}}">
+          <view class="group-title">调料</view>
+          <view
+            class="season-all-btn {{(order.status!=='pending_shopping' || actionBusy) ? 'hidden' : ''}}"
+            bindtap="onConfirmAllSeasonings"
+            aria-label="调料全部确认"
+          >
+            全部确认
+          </view>
+        </view>
+        <view class="items" wx:if="{{viewItemsSeasoning && viewItemsSeasoning.length}}">
+          <block wx:for="{{viewItemsSeasoning}}" wx:key="key">
+            <view class="item-card" bindtap="onCheckItem" data-itemids="{{item.itemIds}}" data-alldone="{{item.allDone}}">
+              <view
+                class="cb {{item.allDone ? 'cb-on' : ''}} {{(order.status !== 'pending_shopping') ? 'cb-dis' : ''}}"
+                aria-label="勾选采购项"
+              ></view>
+              <view class="item-mid">
+                <view class="item-name">{{item.displayName}}</view>
+                <view class="item-sub">{{item.displaySource}}</view>
+              </view>
+              <view class="item-tag {{item.tagClass}}">{{item.tagText}}</view>
+            </view>
+          </block>
+        </view>
 
-    <button class="ft-btn ft-pill" bindtap="onContinueAdd" disabled="{{actionBusy}}">
-      继续加菜
-    </button>
+        <view class="group-title" wx:if="{{viewItemsFood && viewItemsFood.length}}">食材</view>
+        <view class="items" wx:if="{{viewItemsFood && viewItemsFood.length}}">
+          <block wx:for="{{viewItemsFood}}" wx:key="key">
+            <view class="item-card" bindtap="onCheckItem" data-itemids="{{item.itemIds}}" data-alldone="{{item.allDone}}">
+              <view
+                class="cb {{item.allDone ? 'cb-on' : ''}} {{(order.status !== 'pending_shopping') ? 'cb-dis' : ''}}"
+                aria-label="勾选采购项"
+              ></view>
+              <view class="item-mid">
+                <view class="item-name">{{item.displayName}}</view>
+                <view class="item-sub">{{item.displaySource}}</view>
+              </view>
+              <view class="item-tag {{item.tagClass}}">{{item.tagText}}</view>
+            </view>
+          </block>
+        </view>
+      </view>
+      <view class="empty-card" wx:if="{{!checklistLoading && (!viewItems || viewItems.length===0)}}">
+        <view class="empty-ico">🛒</view>
+        <view class="empty-title">暂无采购清单</view>
+        <view class="empty-sub">去继续加菜生成清单</view>
+      </view>
 
-    <button class="ft-btn ft-btn-primary ft-pill" bindtap="onCompleteShopping" disabled="{{actionBusy}}">
+      <view class="bottom-spacer" aria-hidden="true"></view>
+    </view>
+  </scroll-view>
+
+  <view class="fab">
+    <view class="fab-btn {{actionBusy ? 'disabled' : ''}}" bindtap="onCompleteShopping" aria-label="完成购物">
       完成买菜
-    </button>
+    </view>
   </view>
-</scroll-view>
+</view>
 

@@ -10,6 +10,7 @@
     "pages/recipe/note/index",
     "pages/order/list/index",
     "pages/order/choose/index",
+    "pages/order/pick/index",
     "pages/order/detail/index",
     "pages/shopping/shopping/index",
     "pages/cooking/cooking/index"

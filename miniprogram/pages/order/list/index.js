@@ -3,6 +3,7 @@ const cloud = require("../../../utils/cloud");
 Page({
   data: {
     status: "pending_shopping",
+    statusText: "0（待购物）",
     familyId: null,
     orders: [],
     listLoading: false,
@@ -20,7 +21,11 @@ Page({
   },
 
   onChangeStatus(e) {
-    this.setData({ status: e.currentTarget.dataset.status });
+    const status = e.currentTarget.dataset.status;
+    this.setData({
+      status,
+      statusText: status === "pending_shopping" ? "0（待购物）" : status === "pending_cooking" ? "1（待制作）" : "2（已完成）",
+    });
     this.fetchOrders();
   },
 
@@ -55,6 +60,19 @@ Page({
       return;
     }
     wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+  },
+
+  goFirstOrder() {
+    const first = (this.data.orders || [])[0];
+    if (!first || !first._id) {
+      wx.showToast({ title: "暂无可处理点菜单", icon: "none" });
+      return;
+    }
+    this.onOrderTap({ currentTarget: { dataset: { orderid: first._id } } });
+  },
+
+  goRecipeList() {
+    wx.navigateTo({ url: "/pages/recipe/list/index" });
   },
 });
 

@@ -10,6 +10,125 @@ function now() {
   return new Date();
 }
 
+/** 干饭日历用时间：优先 completedAt，旧数据无该字段时用 updateTime / createTime */
+function pickOrderCalendarTime(o) {
+  const candidates = [o.completedAt, o.updateTime, o.createTime];
+  for (const c of candidates) {
+    if (c == null) continue;
+    const d = new Date(c);
+    if (!Number.isNaN(d.getTime())) return c;
+  }
+  return null;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+/** 时段展示为东八区（中国标准时间），避免云函数默认时区按 UTC 解析 */
+function formatHHmm(d) {
+  const x = new Date(d);
+  if (Number.isNaN(x.getTime())) return "";
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Shanghai",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(x);
+    const hPart = parts.find((p) => p.type === "hour");
+    const mPart = parts.find((p) => p.type === "minute");
+    const h = hPart ? parseInt(hPart.value, 10) : 0;
+    const m = mPart ? parseInt(mPart.value, 10) : 0;
+    return `${pad2(h)}:${pad2(m)}`;
+  } catch (e) {
+    const t = new Date(x.getTime() + 8 * 60 * 60 * 1000);
+    return `${pad2(t.getUTCHours())}:${pad2(t.getUTCMinutes())}`;
+  }
+}
+
+function formatDurationMs(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return "—";
+  const totalMin = Math.round(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}小时${m}分钟`;
+  return `${m}分钟`;
+}
+
+/** 优先用步骤 doneTime；无步骤时间时用下单→完成时段（与「一键完成」等场景兼容） */
+function computeCookingDisplay(steps, completedAtFallback, createTimeFallback) {
+  const doneTimes = (steps || [])
+    .filter((s) => s && s.done && s.doneTime)
+    .map((s) => new Date(s.doneTime).getTime())
+    .filter((t) => !Number.isNaN(t));
+
+  const end = completedAtFallback && new Date(completedAtFallback);
+  const startOrder = createTimeFallback && new Date(createTimeFallback);
+  const orderSpanMs =
+    end && startOrder && !Number.isNaN(end.getTime()) && !Number.isNaN(startOrder.getTime()) && end > startOrder
+      ? end - startOrder
+      : 0;
+
+  if (doneTimes.length >= 1) {
+    const startMs = Math.min(...doneTimes);
+    const endMs = Math.max(...doneTimes);
+    const range = `${formatHHmm(new Date(startMs))}-${formatHHmm(new Date(endMs))}`;
+    const durMs = endMs - startMs;
+    const durationText =
+      durMs > 0 ? formatDurationMs(durMs) : orderSpanMs > 0 ? formatDurationMs(orderSpanMs) : "—";
+    return { timeRangeText: range, durationText };
+  }
+
+  if (end && !Number.isNaN(end.getTime()) && startOrder && !Number.isNaN(startOrder.getTime()) && end > startOrder) {
+    return {
+      timeRangeText: `${formatHHmm(startOrder)}-${formatHHmm(end)}`,
+      durationText: formatDurationMs(end - startOrder),
+    };
+  }
+  if (end && !Number.isNaN(end.getTime())) {
+    return { timeRangeText: formatHHmm(end), durationText: "—" };
+  }
+  return { timeRangeText: "—", durationText: "—" };
+}
+
+async function enrichOrdersForCalendarDetail(monthOrders, familyId) {
+  if (!monthOrders.length) return [];
+
+  const _ = db.command;
+  const orderIds = monthOrders.map((o) => o._id);
+  let allSteps = [];
+  for (let i = 0; i < orderIds.length; i += 100) {
+    const slice = orderIds.slice(i, i + 100);
+    const res = await db.collection("order_cooking_steps").where({ familyId, orderId: _.in(slice) }).get();
+    allSteps = allSteps.concat(res.data || []);
+  }
+  const stepsByOrder = {};
+  for (const s of allSteps) {
+    const oid = s.orderId;
+    if (!stepsByOrder[oid]) stepsByOrder[oid] = [];
+    stepsByOrder[oid].push(s);
+  }
+
+  const results = await Promise.all(
+    monthOrders.map(async (o) => {
+      const t = pickOrderCalendarTime(o);
+      const mapped = await mapOrderRecipesWithNames(o.recipes, o.creatorId);
+      const recipeNames = mapped.map((x) => (x.recipeName || "").trim()).filter(Boolean);
+      const stats = computeCookingDisplay(stepsByOrder[o._id] || [], t, o.createTime);
+      return {
+        _id: o._id,
+        orderName: o.orderName || "",
+        completedAt: t,
+        recipeNames,
+        durationText: stats.durationText,
+        timeRangeText: stats.timeRangeText,
+      };
+    })
+  );
+  return results;
+}
+
 function getWXContext() {
   return cloud.getWXContext();
 }
@@ -42,13 +161,17 @@ async function getOrderById(orderId) {
 
 async function mapOrderRecipesWithNames(recipes, orderCreatorId) {
   const list = Array.isArray(recipes) ? recipes : [];
-  const recipeIds = list.map((r) => r && r.recipeId).filter(Boolean);
+  const recipeIds = list.map((r) => r && (r.recipeId || r.id)).filter(Boolean);
 
   let recipeNameMap = {};
   if (recipeIds.length) {
-    const recipeRes = await db.collection("recipes").where({ _id: db.command.in(recipeIds) }).get();
-    for (const r of recipeRes.data || []) {
-      recipeNameMap[r._id] = r.recipeName;
+    const _ = db.command;
+    for (let i = 0; i < recipeIds.length; i += 100) {
+      const slice = recipeIds.slice(i, i + 100);
+      const recipeRes = await db.collection("recipes").where({ _id: _.in(slice) }).get();
+      for (const r of recipeRes.data || []) {
+        recipeNameMap[r._id] = r.recipeName;
+      }
     }
   }
 
@@ -65,10 +188,11 @@ async function mapOrderRecipesWithNames(recipes, orderCreatorId) {
   }
 
   return list.map((r) => {
+    const rid = (r && (r.recipeId || r.id)) || "";
     const creatorId = (r && (r.creatorId || orderCreatorId)) || "";
     return {
-      recipeId: r.recipeId,
-      recipeName: recipeNameMap[r.recipeId] || "",
+      recipeId: rid,
+      recipeName: recipeNameMap[rid] || "",
       note: r.note || "",
       creatorId,
       creatorNickName: nickNameMap[creatorId] || "未知用户",
@@ -81,7 +205,7 @@ async function removeRecipeFromOrder({ openid, orderId, recipeId }) {
   if (!order) throw new Error("点菜单不存在");
   await assertFamilyMember({ openid, familyId: order.familyId });
 
-  if (order.status !== "pending_shopping") {
+  if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {
     throw new Error("当前点菜单已不可删菜");
   }
 
@@ -144,6 +268,18 @@ async function deleteOrderWithDetailsIfEmpty({ openid, orderId }) {
   await db.collection("order_shopping_items").where({ orderId, familyId: order.familyId }).remove();
   await db.collection("order_cooking_steps").where({ orderId, familyId: order.familyId }).remove();
 
+  return { success: true, deleted: true };
+}
+
+/** 强制删除点菜单（含已点菜品、买菜/做菜清单），家庭成员均可触发，由业务确认框约束 */
+async function deleteOrderCompletely({ openid, orderId }) {
+  const order = await getOrderById(orderId);
+  if (!order) throw new Error("点菜单不存在");
+  await assertFamilyMember({ openid, familyId: order.familyId });
+  const familyId = order.familyId;
+  await db.collection("order_shopping_items").where({ orderId, familyId }).remove();
+  await db.collection("order_cooking_steps").where({ orderId, familyId }).remove();
+  await db.collection("orders").where({ _id: orderId }).remove();
   return { success: true, deleted: true };
 }
 
@@ -238,16 +374,16 @@ async function addRecipeToOrder({ openid, orderId, recipeId, note }) {
   if (!recipe) throw new Error("菜谱不存在");
   if (recipe.familyId !== familyId) throw new Error("菜谱不属于当前家庭");
 
-  // 更新 orders.recipes：若存在则覆盖 note；否则追加
+  if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {
+    throw new Error("当前点菜单已不可加菜");
+  }
+
   const recipes = Array.isArray(order.recipes) ? order.recipes : [];
   const existingIdx = recipes.findIndex((r) => r.recipeId === recipeId);
   if (existingIdx >= 0) {
-    recipes[existingIdx].note = note || "";
-    // 记录“这道菜由谁点的”（同一 recipeId 会覆盖为最新点菜用户）
-    recipes[existingIdx].creatorId = openid;
-  } else {
-    recipes.push({ recipeId, note: note || "", creatorId: openid });
+    throw new Error("该菜品已在点菜单中");
   }
+  recipes.push({ recipeId, note: note || "", creatorId: openid });
 
   await db.collection("orders").where({ _id: orderId }).update({
     data: {
@@ -391,6 +527,12 @@ exports.main = async (event) => {
       return await deleteOrderWithDetailsIfEmpty({ openid, orderId });
     }
 
+    case "deleteOrder": {
+      const { orderId } = event;
+      if (!orderId) throw new Error("缺少 orderId");
+      return await deleteOrderCompletely({ openid, orderId });
+    }
+
     case "listOrders": {
       const { familyId, status } = event;
       if (!familyId) throw new Error("缺少 familyId");
@@ -409,8 +551,38 @@ exports.main = async (event) => {
           orderName: o.orderName,
           status: o.status,
           createTime: o.createTime,
+          recipeCount: Array.isArray(o.recipes) ? o.recipes.length : 0,
         })),
       };
+    }
+
+    /** 首页「点菜单」：列出进行中（待买菜 + 待制作）的全部点菜单 */
+    case "listActiveOrders": {
+      const { familyId } = event;
+      if (!familyId) throw new Error("缺少 familyId");
+      await assertFamilyMember({ openid, familyId });
+
+      const [shopRes, cookRes] = await Promise.all([
+        db.collection("orders").where({ familyId, status: "pending_shopping" }).orderBy("createTime", "desc").get(),
+        db.collection("orders").where({ familyId, status: "pending_cooking" }).orderBy("createTime", "desc").get(),
+      ]);
+
+      const mapOne = (o) => ({
+        _id: o._id,
+        orderName: o.orderName,
+        status: o.status,
+        createTime: o.createTime,
+        recipeCount: Array.isArray(o.recipes) ? o.recipes.length : 0,
+      });
+
+      const merged = [...(shopRes.data || []), ...(cookRes.data || [])].map(mapOne);
+      merged.sort((a, b) => {
+        const ta = a.createTime ? new Date(a.createTime).getTime() : 0;
+        const tb = b.createTime ? new Date(b.createTime).getTime() : 0;
+        return tb - ta;
+      });
+
+      return { success: true, orders: merged };
     }
 
     /** 首页等场景：云函数内并行查各状态最新一条点菜单，减少客户端往返次数 */
@@ -477,6 +649,58 @@ exports.main = async (event) => {
           recipes,
         },
       };
+    }
+
+    /** 家庭内各菜谱在历史点菜单中的出现次数（用于 TOP 排序） */
+    case "countRecipeOrdersInFamily": {
+      const { familyId } = event;
+      if (!familyId) throw new Error("缺少 familyId");
+      await assertFamilyMember({ openid, familyId });
+
+      const ordersRes = await db.collection("orders").where({ familyId }).get();
+      const counts = {};
+      for (const o of ordersRes.data || []) {
+        const list = Array.isArray(o.recipes) ? o.recipes : [];
+        for (const r of list) {
+          const id = r && r.recipeId;
+          if (!id) continue;
+          counts[id] = (counts[id] || 0) + 1;
+        }
+      }
+      return { success: true, counts };
+    }
+
+    /** 某月内已完成的点菜单（用于家庭页干饭日历） */
+    case "listCompletedOrdersInMonth": {
+      const { familyId, year, month } = event;
+      if (!familyId) throw new Error("缺少 familyId");
+      const y = parseInt(year, 10);
+      const m = parseInt(month, 10);
+      if (!y || !m || m < 1 || m > 12) throw new Error("缺少 year/month");
+      await assertFamilyMember({ openid, familyId });
+
+      const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+      const end = new Date(y, m, 0, 23, 59, 59, 999);
+
+      const ordersRes = await db
+        .collection("orders")
+        .where({ familyId, status: "completed" })
+        .limit(1000)
+        .get();
+      const monthOrders = (ordersRes.data || [])
+        .map((o) => {
+          const t = pickOrderCalendarTime(o);
+          if (!t) return null;
+          const d = new Date(t);
+          if (Number.isNaN(d.getTime())) return null;
+          if (d < start || d > end) return null;
+          return o;
+        })
+        .filter(Boolean);
+
+      const orders = await enrichOrdersForCalendarDetail(monthOrders, familyId);
+
+      return { success: true, orders };
     }
 
     default:

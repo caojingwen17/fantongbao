@@ -1,49 +1,67 @@
-<view class="page ft-page">
-  <view class="ft-loading-mask" wx:if="{{listLoading}}">
-    <view class="ft-loading-spinner" />
-    <text class="ft-loading-text">加载点菜单…</text>
-  </view>
-  <view class="top ft-card ft-card-low p-card">
-    <view class="family-title ft-title">点菜单</view>
-    <view class="family-sub ft-subtle">按状态查看与继续处理</view>
+<view class="ft-page order-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+
+  <!-- Top bar -->
+  <view class="topbar">
+    <view class="top-left">
+      <view class="top-avatar" aria-hidden="true"></view>
+      <view class="brand">Fantongbao</view>
+    </view>
+    <view class="top-icon" aria-hidden="true">🔔</view>
   </view>
 
-  <view class="tabs ft-card ft-card-lowest">
-    <view
-      class="seg {{status==='pending_shopping' ? 'seg-on' : ''}}"
-      bindtap="onChangeStatus"
-      data-status="pending_shopping"
-    >
-      待买菜
-    </view>
-    <view
-      class="seg {{status==='pending_cooking' ? 'seg-on' : ''}}"
-      bindtap="onChangeStatus"
-      data-status="pending_cooking"
-    >
-      待制作
-    </view>
-    <view
-      class="seg {{status==='completed' ? 'seg-on' : ''}}"
-      bindtap="onChangeStatus"
-      data-status="completed"
-    >
-      已完成
-    </view>
-  </view>
-
-  <view class="list {{listLoading ? 'ft-list-dim' : ''}}">
-    <block wx:for="{{orders}}" wx:key="_id">
-      <view class="card ft-card ft-card-low" bindtap="onOrderTap" data-orderid="{{item._id}}">
-        <view class="card-top">
-          <view class="card-title ft-title">{{item.orderName}}</view>
-          <view class="badge ft-badge ft-badge-warn" wx:if="{{status!=='completed'}}">进行中</view>
-          <view class="badge ft-badge ft-badge-success" wx:if="{{status==='completed'}}">完成</view>
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="state-card">
+        <view class="state-left">
+          <view class="state-chip">进行中订单</view>
+          <view class="state-title">规划阶段</view>
+          <view class="state-sub">状态：{{statusText}}</view>
         </view>
-        <view class="card-sub ft-subtle" wx:if="{{item.createTime}}">创建：{{item.createTime}}</view>
+        <view class="avatar-stack" aria-hidden="true">
+          <view class="avatar"></view>
+          <view class="avatar"></view>
+          <view class="avatar-more">+1</view>
+        </view>
       </view>
-    </block>
-    <view wx:if="{{!orders || orders.length===0}}" class="empty">暂无点菜单</view>
-  </view>
+
+      <view class="section">
+        <view class="section-head">
+          <view class="section-title">已选菜品</view>
+          <view class="count-pill">{{orders.length}} 项</view>
+        </view>
+        <view class="dish-list {{listLoading ? 'ft-list-dim' : ''}}">
+          <block wx:for="{{orders}}" wx:key="_id">
+            <view class="dish-card" bindtap="onOrderTap" data-orderid="{{item._id}}">
+              <view class="dish-img"></view>
+              <view class="dish-mid">
+                <view class="dish-name">{{item.orderName}}</view>
+                <view class="dish-tags">
+                  <view class="tag {{item.status==='completed' ? 'tag-completed' : (!item.recipeCount && item.status!=='completed' ? 'tag-pending' : 'tag-main')}}">{{!item.recipeCount && item.status!=='completed' ? '待点菜' : (item.status==='pending_cooking' ? '待制作' : (item.status==='pending_shopping' ? '待买菜' : '已完成'))}}</view>
+                  <view class="tag tag-sub">进行中</view>
+                </view>
+              </view>
+              <view class="dish-del" aria-hidden="true">🗑️</view>
+            </view>
+          </block>
+          <view wx:if="{{!orders || orders.length===0}}" class="empty">暂无点菜单</view>
+        </view>
+      </view>
+
+      <view class="collab-card">
+        <view class="collab-title">💬 协同规划</view>
+        <view class="collab-item">
+          <view class="collab-avatar"></view>
+          <view class="collab-text"><text class="collab-name">家庭成员</text> 刚刚更新了点菜单。</view>
+        </view>
+      </view>
+
+      <view class="actions">
+        <view class="btn btn-primary" bindtap="goFirstOrder">🛒 前往购物清单</view>
+        <view class="btn btn-secondary" bindtap="goRecipeList">➕ 继续添加菜品</view>
+      </view>
+    </view>
+  </scroll-view>
 </view>
 

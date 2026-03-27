@@ -6,15 +6,24 @@ Page({
   data: {
     pageLoading: true,
     recipeId: "",
+    xiaohongshuUrl: "",
     recipeName: "",
     recipeImg: "",
     recipeImgDisplay: "",
     familyId: null,
-    xiaohongshuUrl: "",
-    ingredients: [{ name: "", amount: "" }],
-    seasonings: [{ name: "", amount: "" }],
-    prepareSteps: ["备菜步骤（1）"],
-    cookingSteps: ["做菜步骤（1）"],
+    ingredients: [],
+    seasonings: [],
+    prepareSteps: [],
+    cookingSteps: [],
+    isImportingImage: false,
+    isGeneratingCommon: false,
+    canImport: false,
+    accordion: {
+      ingredients: true,
+      seasonings: false,
+      prep: false,
+      cook: false,
+    },
   },
 
   async onLoad(options) {
@@ -45,6 +54,7 @@ Page({
           recipeImg,
           recipeImgDisplay: recipeImgDisplay || recipeImg,
           xiaohongshuUrl: r.xiaohongshuUrl || "",
+          canImport: !!String(r.recipeName || "").trim(),
           ingredients: r.ingredients && r.ingredients.length ? r.ingredients : [{ name: "", amount: "" }],
           seasonings: r.seasonings || [{ name: "", amount: "" }],
           prepareSteps: r.prepareSteps && r.prepareSteps.length ? r.prepareSteps : ["备菜步骤（1）"],
@@ -58,13 +68,21 @@ Page({
     }
   },
 
-  onRecipeNameInput(e) {
-    this.setData({ recipeName: e.detail.value || "" });
+  onBack() {
+    wx.navigateBack();
   },
 
-  onImgInput(e) {
-    // 兼容手填 fileID
-    this.setData({ recipeImg: e.detail.value || "" });
+  toggleAccordion(e) {
+    const key = e && e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset.key : "";
+    if (!key) return;
+    const next = { ...(this.data.accordion || {}) };
+    next[key] = !next[key];
+    this.setData({ accordion: next });
+  },
+
+  onRecipeNameInput(e) {
+    const recipeName = e.detail.value || "";
+    this.setData({ recipeName, canImport: !!String(recipeName).trim() });
   },
 
   onChooseImage() {
@@ -181,35 +199,6 @@ Page({
     this.setData({ cookingSteps: cookingSteps.length ? cookingSteps : [""] });
   },
 
-  movePrepareStepUp(e) {
-    const idx = e.currentTarget.dataset.index;
-    const prepareSteps = this.data.prepareSteps || [];
-    if (idx <= 0) return;
-    [prepareSteps[idx - 1], prepareSteps[idx]] = [prepareSteps[idx], prepareSteps[idx - 1]];
-    this.setData({ prepareSteps });
-  },
-  movePrepareStepDown(e) {
-    const idx = e.currentTarget.dataset.index;
-    const prepareSteps = this.data.prepareSteps || [];
-    if (idx >= prepareSteps.length - 1) return;
-    [prepareSteps[idx + 1], prepareSteps[idx]] = [prepareSteps[idx], prepareSteps[idx + 1]];
-    this.setData({ prepareSteps });
-  },
-  moveCookingStepUp(e) {
-    const idx = e.currentTarget.dataset.index;
-    const cookingSteps = this.data.cookingSteps || [];
-    if (idx <= 0) return;
-    [cookingSteps[idx - 1], cookingSteps[idx]] = [cookingSteps[idx], cookingSteps[idx - 1]];
-    this.setData({ cookingSteps });
-  },
-  moveCookingStepDown(e) {
-    const idx = e.currentTarget.dataset.index;
-    const cookingSteps = this.data.cookingSteps || [];
-    if (idx >= cookingSteps.length - 1) return;
-    [cookingSteps[idx + 1], cookingSteps[idx]] = [cookingSteps[idx], cookingSteps[idx + 1]];
-    this.setData({ cookingSteps });
-  },
-
   async onSubmit() {
     const {
       recipeId,
@@ -230,15 +219,10 @@ Page({
       wx.showToast({ title: "请填写菜名", icon: "none" });
       return;
     }
-    if (!recipeImg) {
-      wx.showToast({ title: "请上传/填写菜品图片", icon: "none" });
-      return;
-    }
-
     const cleanedIngredients = (ingredients || []).filter((i) => i && i.name);
     const cleanedSeasonings = (seasonings || []).filter((s) => s && s.name);
-    const cleanedPrepareSteps = (prepareSteps || []).filter((s) => String(s).trim() !== "");
-    const cleanedCookingSteps = (cookingSteps || []).filter((s) => String(s).trim() !== "");
+    const cleanedPrepareSteps = (prepareSteps || []).filter((s) => s !== undefined && String(s).trim() !== "");
+    const cleanedCookingSteps = (cookingSteps || []).filter((s) => s !== undefined && String(s).trim() !== "");
 
     if (!cleanedIngredients.length) {
       wx.showToast({ title: "至少填写1种食材", icon: "none" });

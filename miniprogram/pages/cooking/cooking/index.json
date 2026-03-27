@@ -1,4 +1,5 @@
 {
-  "navigationBarTitleText": "做菜清单"
+  "navigationBarTitleText": "做菜清单",
+  "navigationStyle": "custom"
 }
 

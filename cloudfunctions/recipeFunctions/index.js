@@ -121,7 +121,6 @@ exports.main = async (event) => {
 
       if (!familyId) throw new Error("缺少 familyId");
       if (!recipeName) throw new Error("缺少 recipeName");
-      if (!recipeImg) throw new Error("缺少 recipeImg");
       if (!ingredients || !ingredients.length) throw new Error("至少1种食材");
       if (!prepareSteps || !prepareSteps.length) throw new Error("至少1个备菜步骤");
 
@@ -131,7 +130,7 @@ exports.main = async (event) => {
         data: {
           familyId,
           recipeName,
-          recipeImg,
+          recipeImg: recipeImg || "",
           xiaohongshuUrl: xiaohongshuUrl || "",
           ingredients,
           seasonings: seasonings || [],

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Fantongbao - 添加菜谱</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              primary: "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              tertiary: "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              outline: "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              surface: "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              error: "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              secondary: "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              background: "#fff5ec",
+              "surface-container-lowest": "#ffffff",
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans"],
+              body: ["Plus Jakarta Sans"],
+              label: ["Plus Jakarta Sans"],
+            },
+            borderRadius: {
+              DEFAULT: "1rem",
+              lg: "2rem",
+              xl: "3rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+      .bubbly-gradient {
+        background: linear-gradient(135deg, #874e00 0%, #ff9800 100%);
+      }
+      .disabled {
+        opacity: 0.45;
+        filter: grayscale(0.2);
+        pointer-events: none;
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .sticky-blur {
+        background: rgba(255, 245, 236, 0.88);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+    </style>
+  </head>
+  <body class="bg-surface text-on-surface min-h-screen">
+    <div class="mx-auto w-full max-w-[375px] min-h-[812px] bg-surface relative overflow-hidden">
+      <!-- Decorative blobs -->
+      <div class="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-secondary-fixed opacity-18 blur-3xl"></div>
+      <div class="pointer-events-none absolute top-44 -left-24 w-64 h-64 rounded-full bg-tertiary-fixed opacity-12 blur-3xl"></div>
+
+      <!-- Top App Bar -->
+      <header class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-50 flex items-center justify-between px-5 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+        <button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant active:scale-90 transition-transform" aria-label="返回">
+          <span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <div class="text-lg font-black tracking-tight">新增菜谱</div>
+        <div class="w-10 h-10" aria-hidden="true"></div>
+      </header>
+
+      <main class="relative z-10 pt-24 px-5 pb-24 space-y-6">
+        <!-- 基础信息：菜名 + 展示图（合并，减少页面长度与跳跃） -->
+        <section class="bg-surface-container-lowest rounded-lg p-5 space-y-5">
+          <div class="flex items-center justify-between">
+            <div class="text-lg font-extrabold">基础信息</div>
+            <span class="text-[10px] font-black uppercase tracking-widest bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full">必填</span>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-extrabold text-on-surface">菜名</div>
+              <span class="text-[10px] font-black uppercase tracking-widest bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">必填</span>
+            </div>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <span class="material-symbols-outlined text-outline" data-icon="restaurant_menu">restaurant_menu</span>
+              </div>
+              <input
+                id="recipeName"
+                class="w-full h-14 pl-12 pr-4 bg-surface-container border-none rounded-lg text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary-container transition-all"
+                placeholder="例如：西红柿炒蛋"
+                type="text"
+                value=""
+              />
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-extrabold text-on-surface">菜品展示图</div>
+              <span class="text-[10px] font-black uppercase tracking-widest bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">必填</span>
+            </div>
+            <div id="coverUploadCard" class="rounded-lg bg-surface-container p-4 flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-extrabold text-on-surface">上传展示图</div>
+                <div class="mt-1 text-xs font-semibold text-on-surface-variant">建议 1:1 或 16:10</div>
+              </div>
+              <button id="uploadCoverBtn" class="h-12 px-4 rounded-full bubbly-gradient text-on-primary font-extrabold shadow-[0_12px_24px_rgba(135,78,0,0.14)] active:scale-95 transition-transform" aria-label="上传图片">
+                上传
+              </button>
+            </div>
+            <div id="coverPreview" class="hidden rounded-lg overflow-hidden bg-surface-container aspect-[16/10] relative">
+              <img id="coverImg" alt="展示图预览" class="w-full h-full object-cover" src="" />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0"></div>
+              <div class="absolute left-4 bottom-4 right-4 flex items-end justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-xs font-black uppercase tracking-widest text-white/80">已上传</div>
+                  <div class="mt-1 text-sm font-extrabold text-white truncate">可重新上传替换图片</div>
+                </div>
+                <button
+                  id="reuploadCoverBtn"
+                  class="h-11 px-4 rounded-full bg-white/25 text-white font-extrabold backdrop-blur-md hover:bg-white/35 active:scale-95 transition-transform flex items-center gap-2"
+                  aria-label="重新上传图片"
+                >
+                  <span class="material-symbols-outlined" data-icon="upload">upload</span>
+                  重新上传
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Import area -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <div class="text-lg font-extrabold">导入</div>
+            <span id="importStatus" class="text-xs font-extrabold text-on-surface-variant">未解锁</span>
+          </div>
+
+          <div id="importCard" class="bg-surface-container-lowest rounded-lg p-5 space-y-4">
+            <!-- Link import -->
+            <div>
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold text-on-surface">小红书链接导入</div>
+                <span class="text-[10px] font-black uppercase tracking-widest bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">开发中</span>
+              </div>
+              <div class="mt-3 bg-surface-container rounded-lg p-4 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-sm font-extrabold text-on-surface">开发中，敬请期待</div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant">后续支持粘贴链接一键解析回填</div>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center">
+                  <span class="material-symbols-outlined text-outline" data-icon="hourglass_empty">hourglass_empty</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="h-px bg-surface-container"></div>
+
+            <!-- Multi image import -->
+            <div>
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold text-on-surface">本地多图导入（AI 识别）</div>
+                <span class="text-[10px] font-black uppercase tracking-widest bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">需解锁</span>
+              </div>
+              <div class="mt-3 flex items-center justify-between gap-3">
+                <div class="text-xs font-semibold text-on-surface-variant">最多 9 张 · 单张 ≤ 10MB</div>
+                <button id="pickImagesBtn" class="h-12 px-4 rounded-full bg-secondary-container text-on-secondary-container font-extrabold active:scale-95 transition-transform" aria-label="选择图片">
+                  选择图片
+                </button>
+              </div>
+              <div id="imagesPreview" class="mt-3 hidden flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+            </div>
+          </div>
+
+          <!-- 不再显示“先填菜名解锁”的提示条；解锁通过置灰状态体现 -->
+        </section>
+
+        <!-- Collapsible groups (optimized for long content) -->
+        <section id="ingredientsSection" class="bg-surface-container-lowest rounded-lg overflow-hidden">
+          <button data-accordion="ingredients" class="w-full px-5 py-4 flex items-center justify-between gap-3 active:scale-[0.995] transition-transform" aria-label="展开/收起 食材">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-on-secondary-container" data-icon="shopping_basket">shopping_basket</span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <div class="text-lg font-extrabold truncate">食材</div>
+                  <span class="text-[10px] font-black uppercase tracking-widest bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full">至少 1</span>
+                </div>
+                <div class="mt-1 text-xs font-semibold text-on-surface-variant">已填 <span id="ingredientsCount">1</span> 项</div>
+              </div>
+            </div>
+            <span id="ingredientsChevron" class="material-symbols-outlined text-outline" data-icon="expand_less">expand_less</span>
+          </button>
+          <div id="ingredientsBody" class="px-5 pb-5 space-y-3">
+            <div id="ingredientsList" class="space-y-3"></div>
+            <button data-action="add-row" data-target="ingredientsList" class="w-full py-3 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform flex items-center justify-center gap-2" aria-label="添加食材">
+              <span class="material-symbols-outlined" data-icon="add">add</span>
+              添加食材
+            </button>
+          </div>
+        </section>
+
+        <section id="seasoningsSection" class="bg-surface-container-lowest rounded-lg overflow-hidden">
+          <button data-accordion="seasonings" class="w-full px-5 py-4 flex items-center justify-between gap-3 active:scale-[0.995] transition-transform" aria-label="展开/收起 调料">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-full bg-tertiary-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-on-tertiary-container" data-icon="science">science</span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <div class="text-lg font-extrabold truncate">调料</div>
+                  <span class="text-xs font-extrabold text-on-surface-variant">可选</span>
+                </div>
+                <div class="mt-1 text-xs font-semibold text-on-surface-variant">已填 <span id="seasoningsCount">0</span> 项</div>
+              </div>
+            </div>
+            <span id="seasoningsChevron" class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+          </button>
+          <div id="seasoningsBody" class="hidden px-5 pb-5 space-y-3">
+            <div id="seasoningsList" class="space-y-3"></div>
+            <button data-action="add-row" data-target="seasoningsList" class="w-full py-3 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform flex items-center justify-center gap-2" aria-label="添加调料">
+              <span class="material-symbols-outlined" data-icon="add">add</span>
+              添加调料
+            </button>
+          </div>
+        </section>
+
+        <section id="prepStepsSection" class="bg-surface-container-lowest rounded-lg overflow-hidden">
+          <button data-accordion="prep" class="w-full px-5 py-4 flex items-center justify-between gap-3 active:scale-[0.995] transition-transform" aria-label="展开/收起 备菜步骤">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-on-surface-variant" data-icon="format_list_numbered">format_list_numbered</span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <div class="text-lg font-extrabold truncate">备菜步骤</div>
+                  <span class="text-[10px] font-black uppercase tracking-widest bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full">至少 1</span>
+                </div>
+                <div class="mt-1 text-xs font-semibold text-on-surface-variant">已填 <span id="prepCount">1</span> 步</div>
+              </div>
+            </div>
+            <span id="prepChevron" class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+          </button>
+          <div id="prepBody" class="hidden px-5 pb-5 space-y-3">
+            <div id="prepStepsList" class="space-y-3"></div>
+            <button data-action="add-row" data-target="prepStepsList" data-kind="step" class="w-full py-3 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform flex items-center justify-center gap-2" aria-label="添加备菜步骤">
+              <span class="material-symbols-outlined" data-icon="add">add</span>
+              添加步骤
+            </button>
+          </div>
+        </section>
+
+        <section id="cookStepsSection" class="bg-surface-container-lowest rounded-lg overflow-hidden">
+          <button data-accordion="cook" class="w-full px-5 py-4 flex items-center justify-between gap-3 active:scale-[0.995] transition-transform" aria-label="展开/收起 做菜步骤">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-on-surface-variant" data-icon="skillet">skillet</span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <div class="text-lg font-extrabold truncate">做菜步骤</div>
+                  <span class="text-[10px] font-black uppercase tracking-widest bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full">至少 1</span>
+                </div>
+                <div class="mt-1 text-xs font-semibold text-on-surface-variant">已填 <span id="cookCount">1</span> 步</div>
+              </div>
+            </div>
+            <span id="cookChevron" class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+          </button>
+          <div id="cookBody" class="hidden px-5 pb-5 space-y-3">
+            <div id="cookStepsList" class="space-y-3"></div>
+            <button data-action="add-row" data-target="cookStepsList" data-kind="step" class="w-full py-3 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform flex items-center justify-center gap-2" aria-label="添加做菜步骤">
+              <span class="material-symbols-outlined" data-icon="add">add</span>
+              添加步骤
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <!-- Sticky submit bar -->
+      <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-[55] px-5 pb-5 pt-3 sticky-blur border-t border-surface-container">
+        <div class="flex items-center gap-3">
+          <button id="submitBtn" class="flex-1 py-4 rounded-full bubbly-gradient text-on-primary font-extrabold text-lg shadow-[0_12px_24px_rgba(135,78,0,0.18)] active:scale-95 transition-transform flex items-center justify-center gap-2" aria-label="提交保存">
+            <span class="material-symbols-outlined" data-icon="save">save</span>
+            提交保存
+          </button>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-10 z-[90] bg-inverse-surface/90 text-inverse-on-surface px-4 py-2 rounded-full text-sm font-extrabold shadow-[0_12px_24px_rgba(0,0,0,0.25)]">
+        提示
+      </div>
+
+      <!-- Loading mask -->
+      <div id="loadingMask" class="hidden fixed inset-0 z-[80] bg-white/60 backdrop-blur-sm">
+        <div class="absolute left-1/2 top-36 -translate-x-1/2 w-[335px] max-w-[90%] bg-white/85 rounded-lg p-5 shadow-[0_12px_24px_rgba(67,41,0,0.10)]">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary animate-spin" data-icon="progress_activity">progress_activity</span>
+            <div id="loadingText" class="text-sm font-extrabold text-on-surface">处理中…</div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          const el = (id) => document.getElementById(id);
+          const recipeName = el("recipeName");
+          const importCard = el("importCard");
+          const importStatus = el("importStatus");
+          // 小红书链接导入：当前开发中（暂无输入与按钮）
+          const pickImagesBtn = el("pickImagesBtn");
+          const imagesPreview = el("imagesPreview");
+          // const xhsUrl = el("xhsUrl");
+
+          const uploadCoverBtn = el("uploadCoverBtn");
+          const coverPreview = el("coverPreview");
+          const coverImg = el("coverImg");
+          const coverUploadCard = el("coverUploadCard");
+          const reuploadCoverBtn = el("reuploadCoverBtn");
+
+          const ingredientsList = el("ingredientsList");
+          const seasoningsList = el("seasoningsList");
+          const prepStepsList = el("prepStepsList");
+          const cookStepsList = el("cookStepsList");
+
+          const ingredientsCount = el("ingredientsCount");
+          const seasoningsCount = el("seasoningsCount");
+          const prepCount = el("prepCount");
+          const cookCount = el("cookCount");
+
+          const submitBtn = el("submitBtn");
+          const toast = el("toast");
+          const loadingMask = el("loadingMask");
+          const loadingText = el("loadingText");
+
+          let coverSelected = false;
+          let mockImageCount = 0;
+
+          const show = (node) => node && node.classList.remove("hidden");
+          const hide = (node) => node && node.classList.add("hidden");
+          const setText = (node, text) => node && (node.textContent = text);
+          const trim = (s) => (s || "").trim();
+
+          const countNonEmptyRows = (container, kind) => {
+            const rows = Array.from(container.querySelectorAll("input"));
+            if (kind === "step") {
+              return Array.from(container.querySelectorAll("input"))
+                .filter((inp) => !inp.classList.contains("hidden"))
+                .filter((inp) => trim(inp.value).length > 0).length;
+            }
+            // pair: count rows where left name has text
+            const rowDivs = Array.from(container.children);
+            return rowDivs.filter((row) => {
+              const left = row.querySelector("input");
+              return left && trim(left.value).length > 0;
+            }).length;
+          };
+
+          function refreshCounts() {
+            const ing = countNonEmptyRows(ingredientsList, "pair");
+            const sea = countNonEmptyRows(seasoningsList, "pair");
+            const prep = countNonEmptyRows(prepStepsList, "step");
+            const cook = countNonEmptyRows(cookStepsList, "step");
+            if (ingredientsCount) ingredientsCount.textContent = String(ing);
+            if (seasoningsCount) seasoningsCount.textContent = String(sea);
+            if (prepCount) prepCount.textContent = String(prep);
+            if (cookCount) cookCount.textContent = String(cook);
+          }
+
+          const toastMsg = (msg) => {
+            setText(toast, msg);
+            show(toast);
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => hide(toast), 1400);
+          };
+
+          const setLoading = (on, text) => {
+            if (on) {
+              setText(loadingText, text || "处理中…");
+              show(loadingMask);
+            } else hide(loadingMask);
+          };
+
+          const setUnlocked = (unlocked) => {
+            if (unlocked) {
+              importCard.classList.remove("disabled");
+              setText(importStatus, "已解锁");
+              importStatus.classList.remove("text-on-surface-variant");
+              importStatus.classList.add("text-primary");
+              uploadCoverBtn.classList.remove("disabled");
+              coverUploadCard.classList.remove("disabled");
+            } else {
+              importCard.classList.add("disabled");
+              setText(importStatus, "未解锁");
+              importStatus.classList.add("text-on-surface-variant");
+              importStatus.classList.remove("text-primary");
+              uploadCoverBtn.classList.add("disabled");
+              coverUploadCard.classList.add("disabled");
+            }
+          };
+
+          const makeRow = ({ placeholderLeft, placeholderRight, kind }) => {
+            const wrap = document.createElement("div");
+            wrap.className = "flex gap-2 items-center";
+            wrap.innerHTML = `
+              <div class="flex-1 min-w-0 flex gap-2">
+                <input class="min-w-0 flex-1 h-12 px-4 bg-surface-container border-none rounded-lg text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary-container transition-all" placeholder="${placeholderLeft}" type="text" value="" />
+                <input class="${kind === "step" ? "hidden" : "w-24 shrink-0"} h-12 px-4 bg-surface-container border-none rounded-lg text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary-container transition-all" placeholder="${placeholderRight}" type="text" value="" />
+              </div>
+              <button class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform" aria-label="删除">
+                <span class="material-symbols-outlined" data-icon="remove">remove</span>
+              </button>
+            `;
+            wrap.querySelector("button").addEventListener("click", () => {
+              wrap.remove();
+              refreshCounts();
+            });
+            wrap.querySelectorAll("input").forEach((inp) => {
+              inp.addEventListener("input", refreshCounts);
+            });
+            return wrap;
+          };
+
+          const ensureMinRow = (container, spec) => {
+            if (container.children.length === 0) container.appendChild(makeRow(spec));
+          };
+
+          // init rows
+          ensureMinRow(ingredientsList, { placeholderLeft: "食材名称", placeholderRight: "用量", kind: "pair" });
+          ensureMinRow(prepStepsList, { placeholderLeft: "例如：切葱花、打蛋", placeholderRight: "", kind: "step" });
+          ensureMinRow(cookStepsList, { placeholderLeft: "例如：热锅下油炒蛋", placeholderRight: "", kind: "step" });
+          refreshCounts();
+
+          // locked by default
+          setUnlocked(false);
+
+          recipeName.addEventListener("input", () => {
+            setUnlocked(!!trim(recipeName.value));
+          });
+
+          // 小红书链接导入：当前开发中（无交互）
+
+          pickImagesBtn.addEventListener("click", () => {
+            setLoading(true, "上传图片并 AI 识别…");
+            setTimeout(() => {
+              setLoading(false);
+              toastMsg("已识别 3 张示例图片");
+              mockImageCount = Math.min(9, mockImageCount + 3);
+              imagesPreview.innerHTML = "";
+              for (let i = 0; i < mockImageCount; i++) {
+                const chip = document.createElement("div");
+                chip.className = "w-14 h-14 rounded-lg bg-surface-container flex items-center justify-center text-xs font-extrabold text-on-surface-variant flex-shrink-0";
+                chip.textContent = `${i + 1}`;
+                imagesPreview.appendChild(chip);
+              }
+              show(imagesPreview);
+            }, 850);
+          });
+
+          uploadCoverBtn.addEventListener("click", () => {
+            setLoading(true, "上传展示图…");
+            setTimeout(() => {
+              setLoading(false);
+              coverSelected = true;
+              coverImg.src =
+                "https://lh3.googleusercontent.com/aida-public/AB6AXuA5fUnKqj8k798-SRzRFWYblPcdYzrHXnJFDfCbY-fXzNeB5GV-pfwA76EKY-C3lND5AIwRuBeHsGFzUwldRbFwQabgR-f6E1SHUWqEY77OoLN1gbo-P_GeT43vyH6uIU1bABoq5KPexOqFfvQAilTn6cXuDCERtBQ7qNTiA3zk_1wl6_kmdrn2GEp-G7RA4iGACUZfN8Kjy72NDnbqYo3hzmia4yQMCOiPDmIt9aPdhvIHVXZCHeickHXExS-HHiIKvZY5LIQu2Q0";
+              hide(coverUploadCard);
+              show(coverPreview);
+              toastMsg("展示图已上传");
+            }, 650);
+          });
+
+          // 重新上传（展示预览上的替换效果）
+          document.addEventListener("click", (e) => {
+            const btn = e.target.closest?.("#reuploadCoverBtn");
+            if (!btn) return;
+            setLoading(true, "重新上传图片…");
+            setTimeout(() => {
+              setLoading(false);
+              coverSelected = true;
+              coverImg.src =
+                "https://lh3.googleusercontent.com/aida-public/AB6AXuBBg5SIQJ2YZiMlJcp3a8nNcLollxI-bJ-rsHbN2a85yG4WDdKU7LH6Vx1TpTymWCAAj5TVuVBm9f5yA5hIgxWO5QRpwoiwMm3XONYPVO8dcV0h7YSNx90SLpmP7C-fZZy7t1WD6cl0Qg2Zy-XcMCb05aW324nmUkq3zByHhjdRAbzzRFKWrqi3K92NI0yDNW9uim-G2ymJwkqbjP0lbJZXDNFIEjAIGjE6w9_0j6Meq4RmKcRIKS6tCIq7CPMgLHNKeHk8e9XlqC0";
+              toastMsg("展示图已更新");
+            }, 650);
+          });
+
+          document.addEventListener("click", (e) => {
+            const jump = e.target.closest?.("[data-jump]");
+            if (jump) {
+              const sel = jump.getAttribute("data-jump");
+              const target = sel ? document.querySelector(sel) : null;
+              if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+              return;
+            }
+
+            const acc = e.target.closest?.("[data-accordion]");
+            if (acc) {
+              const key = acc.getAttribute("data-accordion");
+              const map = {
+                ingredients: ["ingredientsBody", "ingredientsChevron"],
+                seasonings: ["seasoningsBody", "seasoningsChevron"],
+                prep: ["prepBody", "prepChevron"],
+                cook: ["cookBody", "cookChevron"],
+              };
+              const entry = map[key];
+              if (!entry) return;
+              const body = el(entry[0]);
+              const chev = el(entry[1]);
+              const isHidden = body.classList.contains("hidden");
+              if (isHidden) body.classList.remove("hidden");
+              else body.classList.add("hidden");
+              if (chev) chev.textContent = isHidden ? "expand_less" : "expand_more";
+              return;
+            }
+
+            const btn = e.target.closest?.("[data-action='add-row']");
+            if (!btn) return;
+            const targetId = btn.getAttribute("data-target");
+            const kind = btn.getAttribute("data-kind") || "pair";
+            const container = el(targetId);
+            if (!container) return;
+
+            if (targetId === "ingredientsList") container.appendChild(makeRow({ placeholderLeft: "食材名称", placeholderRight: "用量", kind: "pair" }));
+            if (targetId === "seasoningsList") container.appendChild(makeRow({ placeholderLeft: "调料名称", placeholderRight: "用量", kind: "pair" }));
+            if (targetId === "prepStepsList") container.appendChild(makeRow({ placeholderLeft: "输入备菜步骤", placeholderRight: "", kind: "step" }));
+            if (targetId === "cookStepsList") container.appendChild(makeRow({ placeholderLeft: "输入做菜步骤", placeholderRight: "", kind: "step" }));
+            refreshCounts();
+          });
+
+          submitBtn.addEventListener("click", () => {
+            const nameOk = !!trim(recipeName.value);
+            const coverOk = coverSelected;
+            const ingOk = countNonEmptyRows(ingredientsList, "pair") >= 1;
+            const prepOk = countNonEmptyRows(prepStepsList, "step") >= 1;
+            const cookOk = countNonEmptyRows(cookStepsList, "step") >= 1;
+
+            if (!nameOk) return toastMsg("请先填写菜名");
+            if (!coverOk) return toastMsg("请上传菜品展示图");
+            if (!ingOk) return toastMsg("请至少填写 1 个食材");
+            if (!prepOk) return toastMsg("请至少填写 1 条备菜步骤");
+            if (!cookOk) return toastMsg("请至少填写 1 条做菜步骤");
+
+            setLoading(true, "提交保存…");
+            setTimeout(() => {
+              setLoading(false);
+              toastMsg("已保存（示例）");
+            }, 750);
+          });
+        })();
+      </script>
+    </div>
+  </body>
+</html>

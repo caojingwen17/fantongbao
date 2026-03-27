@@ -1,67 +1,202 @@
-<!--index.wxml-->
-<view class="page ft-page">
-  <view class="header ft-card ft-card-low p-card">
-    <view class="familyBlock">
-      <view class="familyNameRow" bindtap="onToggleFamilyPicker">
-        <view class="familyName ft-title">
-          {{(currentFamily && currentFamily.familyName) ? currentFamily.familyName : "未选择家庭"}}
-        </view>
-        <view class="familyCaret {{showFamilyPicker ? 'caretUp' : ''}}">▾</view>
-      </view>
-      <view class="familyMetaRow">
-        <view class="familyMeta ft-subtle">成员 {{membersCount}} 人</view>
-        <view class="home-refresh-hint ft-subtle" wx:if="{{homeRefreshing}}">更新中…</view>
-      </view>
-    </view>
+<view class="ft-page home-page">
+  <!-- Decorative blobs -->
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+
+  <!-- Top App Bar (custom nav) -->
+  <view class="topbar">
+    <view class="brand">FANTONGBABY</view>
+    <view class="topbar-spacer" aria-hidden="true"></view>
   </view>
 
-  <view class="picker-mask" wx:if="{{showFamilyPicker}}" catchtap="onCloseFamilyPicker">
-    <view class="picker-panel ft-card ft-card-lowest" catchtap="noop">
-      <view class="picker-id ft-subtle">{{(currentFamily && currentFamily.inviteCode) ? currentFamily.inviteCode : ""}}</view>
-      <view class="picker-list">
-        <block wx:for="{{families}}" wx:key="_id">
-          <view
-            class="picker-item {{currentFamily && currentFamily._id===item._id ? 'picker-item-active' : ''}}"
-            data-familyid="{{item._id}}"
-            bindtap="onSwitchFamily"
-          >
-            <view class="picker-item-name ft-title">{{item.familyName}}</view>
-            <view class="picker-item-sub ft-subtle">{{currentFamily && currentFamily._id===item._id ? "当前" : ""}}</view>
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+    <!-- 家庭卡片 -->
+    <view class="card family-card ft-card-lowest">
+      <view class="family-top">
+        <view class="family-left">
+          <view class="kicker">当前家庭</view>
+          <view class="family-name-btn" bindtap="onToggleFamilyPicker" role="button" aria-label="切换家庭">
+            <view class="family-name">
+              {{(currentFamily && currentFamily.familyName) ? currentFamily.familyName : "未选择家庭"}}
+            </view>
+            <view class="family-expand {{showFamilyPicker ? 'family-expand-up' : ''}}" aria-hidden="true">
+              <view class="family-expand-l"></view>
+              <view class="family-expand-r"></view>
+            </view>
+          </view>
+          <view class="meta-row">
+            <view class="meta">
+              <text class="meta-ico">👥</text>
+              成员 {{membersCount}} 人
+            </view>
+            <view class="dot"></view>
+            <view class="meta" wx:if="{{homeRefreshing}}">
+              <text class="meta-ico">🔄</text>
+              更新中…
+            </view>
+          </view>
+        </view>
+        <button class="family-settings" bindtap="goFamily" aria-label="家庭管理">
+          <text class="topbar-ico">⚙️</text>
+        </button>
+      </view>
+
+      <!-- Members avatars (real data) -->
+      <view class="avatar-stack" wx:if="{{membersCount && membersCount>0}}">
+        <image
+          class="member-avatar avatar-a"
+          wx:if="{{memberAvatarDisplays && memberAvatarDisplays[0]}}"
+          mode="aspectFill"
+          src="{{memberAvatarDisplays[0]}}"
+          aria-label="成员头像"
+        />
+        <view class="avatar-fallback avatar-a" wx:else aria-hidden="true"></view>
+
+        <image
+          class="member-avatar avatar-b"
+          wx:if="{{memberAvatarDisplays && memberAvatarDisplays[1]}}"
+          mode="aspectFill"
+          src="{{memberAvatarDisplays[1]}}"
+          aria-label="成员头像"
+        />
+        <view class="avatar-fallback avatar-b" wx:else aria-hidden="true"></view>
+
+        <view class="avatar-more" wx:if="{{membersCount>2}}" aria-hidden="true">+{{membersCount-2}}</view>
+      </view>
+    </view>
+
+    <!-- 点菜单 -->
+    <view class="section">
+      <view class="section-head">
+        <view class="section-title">点菜单</view>
+        <view class="section-head-right">
+          <view class="count-pill" wx:if="{{pendingOrders && pendingOrders.length}}">{{pendingOrders.length}} 项</view>
+          <view class="section-add-btn" bindtap="openCreateOrderModal" aria-label="新建点菜单">+</view>
+        </view>
+      </view>
+
+      <view class="order-grid" wx:if="{{pendingOrders && pendingOrders.length}}">
+        <block wx:for="{{pendingOrders}}" wx:key="_id">
+          <view class="order-card ft-card-lowest" bindtap="goPendingOrder" data-orderid="{{item._id}}">
+            <view class="order-row">
+              <view class="order-left">
+                <view class="order-badges">
+                  <view class="chip {{item.statusText==='待点菜' ? 'chip-muted' : (item.statusText==='待制作' ? 'chip-ok' : 'chip-warn')}}">{{item.statusText}}</view>
+                  <view class="order-sub">进行中</view>
+                </view>
+                <view class="order-name">{{item.orderName}}</view>
+                <view class="order-hint">{{item.recipeCount ? (item.statusText==='待买菜' ? "点击继续处理：买菜清单" : "点击继续处理：做菜清单") : "点击去点菜"}}</view>
+              </view>
+              <text class="chev">›</text>
+            </view>
           </view>
         </block>
       </view>
-      <button class="ft-btn ft-pill picker-manage" bindtap="goFamily">家庭管理</button>
+      <view class="empty" wx:if="{{!pendingOrders || pendingOrders.length===0}}">暂无点菜单</view>
     </view>
-  </view>
 
-  <view class="section">
-    <view class="sectionTitle ft-title">待处理点菜单</view>
-    <view class="mergedOrderCard ft-card ft-card-low" wx:if="{{pendingOrders && pendingOrders.length}}">
-      <block wx:for="{{pendingOrders}}" wx:key="_id">
-        <view class="pending-item" bindtap="goPendingOrder" data-orderid="{{item._id}}">
-          <view class="orderStatus ft-subtle">{{item.statusText}}</view>
-          <view class="orderName ft-title">{{item.orderName}}</view>
-        </view>
-      </block>
-    </view>
-    <view class="orderEmpty" wx:if="{{!pendingOrders || pendingOrders.length===0}}">暂无待处理点菜单</view>
-  </view>
+    <!-- 常用菜谱 -->
+    <view class="section">
+      <view class="section-head">
+        <view class="section-title">常用菜谱</view>
+        <view class="count-pill">{{recipeTotalCount}}</view>
+      </view>
 
-  <view class="section">
-    <view class="sectionTitle ft-title">常用菜谱</view>
-    <view class="recipes">
-      <block wx:for="{{recipes}}" wx:key="id">
-        <view class="recipeCard ft-card ft-card-low" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
-          <image class="recipeImg" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
-          <view class="recipeName ft-title">{{item.recipeName}}</view>
-        </view>
-      </block>
+      <view class="recipe-grid" wx:if="{{recipes && recipes.length}}">
+        <block wx:for="{{recipes}}" wx:key="id">
+          <view class="recipe-tile ft-card-lowest" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
+            <view class="recipe-media">
+              <image class="recipe-img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
+              <view class="recipe-grad"></view>
+              <view class="recipe-meta">
+                <view class="recipe-tag">常用</view>
+                <view class="recipe-title">{{item.recipeName}}</view>
+              </view>
+            </view>
+          </view>
+        </block>
+      </view>
       <view class="empty" wx:if="{{!recipes || recipes.length===0}}">暂无菜谱</view>
+
+      <view class="cta-row">
+        <button class="cta secondary" bindtap="goRecipeList" aria-label="查看全部">
+          <view class="ico-apps" aria-hidden="true">
+            <view class="ico-apps-dot"></view>
+            <view class="ico-apps-dot"></view>
+            <view class="ico-apps-dot"></view>
+            <view class="ico-apps-dot"></view>
+          </view>
+          查看全部
+        </button>
+        <button class="cta primary" bindtap="goRecipeAdd" aria-label="添加菜谱">
+          <view class="ico-add-circle" aria-hidden="true">
+            <view class="ico-add-plus-h"></view>
+            <view class="ico-add-plus-v"></view>
+          </view>
+          添加菜谱
+        </button>
+      </view>
+    </view>
+    </view>
+  </scroll-view>
+
+  <!-- 家庭切换浮层（遮罩 + 底部面板） -->
+  <view class="sheet-mask" wx:if="{{showFamilyPicker}}" catchtap="onCloseFamilyPicker"></view>
+  <view class="sheet" wx:if="{{showFamilyPicker}}" catchtap="noop" aria-label="家庭切换面板">
+    <view class="sheet-head">
+      <view class="sheet-head-left">
+        <view class="sheet-kicker">当前家庭邀请码</view>
+        <view class="sheet-code" wx:if="{{(currentFamily && currentFamily.inviteCode)}}">
+          <view class="sheet-code-text">{{currentFamily.inviteCode}}</view>
+          <view class="sheet-copy" bindtap="onCopyInvite" role="button" aria-label="复制邀请码">复制</view>
+        </view>
+      </view>
+      <button class="sheet-close" bindtap="onCloseFamilyPicker" aria-label="关闭" hover-class="none">
+        <text class="sheet-close-x" aria-hidden="true">✕</text>
+      </button>
     </view>
 
-    <view class="actions">
-      <button class="ft-btn ft-pill btn" bindtap="goRecipeList">查看全部</button>
-      <button class="ft-btn ft-btn-primary ft-pill btn" bindtap="goRecipeAdd">添加菜谱</button>
+    <view class="sheet-title">家庭列表</view>
+    <view class="sheet-list">
+      <block wx:for="{{families}}" wx:key="_id">
+        <view
+          class="sheet-item ft-card-lowest {{currentFamily && currentFamily._id===item._id ? 'sheet-item-active' : ''}}"
+          data-familyid="{{item._id}}"
+          bindtap="onSwitchFamily"
+        >
+          <view class="sheet-item-left">
+            <view class="sheet-item-name">{{item.familyName}}</view>
+            <view class="sheet-item-sub">{{currentFamily && currentFamily._id===item._id ? "当前" : "点击切换"}}</view>
+          </view>
+          <view class="sheet-item-right" aria-hidden="true">
+            {{currentFamily && currentFamily._id===item._id ? "✔" : "›"}}
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <button class="sheet-manage" bindtap="goFamily" aria-label="进入家庭管理">
+      <text class="sheet-manage-ico" aria-hidden="true">⚙️</text>
+      家庭管理
+    </button>
+  </view>
+
+  <!-- 新建点菜单 -->
+  <view class="create-order-mask" wx:if="{{showCreateOrderModal}}" catchtap="closeCreateOrderModal"></view>
+  <view class="create-order-modal" wx:if="{{showCreateOrderModal}}" catchtap="noop">
+    <view class="create-order-kicker">新建点菜单</view>
+    <view class="create-order-label">点菜单名称</view>
+    <input
+      class="create-order-input"
+      placeholder="请输入名称"
+      value="{{newOrderName}}"
+      bindinput="onNewOrderNameInput"
+      focus="{{showCreateOrderModal}}"
+    />
+    <view class="create-order-actions">
+      <view class="create-order-btn cancel" bindtap="closeCreateOrderModal">取消</view>
+      <view class="create-order-btn ok" bindtap="confirmCreateOrder">创建</view>
     </view>
   </view>
 </view>

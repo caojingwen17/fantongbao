@@ -1,0 +1,95 @@
+<view class="ft-page order-pick-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="onBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
+      </view>
+      <view class="top-title">点菜</view>
+    </view>
+    <view class="top-spacer"></view>
+  </view>
+
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="search-wrap">
+        <text class="search-icon">⌕</text>
+        <input class="search-input" placeholder="搜索菜名" value="{{keyword}}" bindinput="onKeywordInput" />
+        <view class="clear-btn" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+
+      <view class="count-row">
+        <view class="count-text">共 {{viewRecipes.length}} 个菜谱</view>
+      </view>
+
+      <view class="recipe-list" wx:if="{{viewRecipes.length}}">
+        <block wx:for="{{viewRecipes}}" wx:key="id">
+          <view class="recipe-item">
+            <view class="recipe-row" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
+              <view class="recipe-media">
+                <image class="recipe-img" wx:if="{{item.recipeImgDisplay || item.recipeImg}}" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
+                <view class="recipe-img-placeholder" wx:else>待上传</view>
+              </view>
+              <view class="recipe-body">
+                <view class="recipe-name">{{item.recipeName}}</view>
+                <view class="recipe-date">添加于 {{item.createDateText}}</view>
+              </view>
+              <view
+                class="recipe-add {{item.inOrder ? 'recipe-add-off' : ''}}"
+                catchtap="onTapAdd"
+                data-recipeid="{{item.id}}"
+                data-inorder="{{item.inOrder}}"
+                aria-label="加入点菜单"
+              >+</view>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <view class="empty-card" wx:if="{{!viewRecipes.length && !listLoading}}">
+        <view class="empty-title">暂无菜谱</view>
+        <view class="empty-sub">请先在家庭里添加常用菜谱</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="pick-bottom" id="pick-bottom-bar">
+    <view class="pick-bottom-inner">
+      <view class="pick-count" bindtap="togglePickedSheet">
+        <text class="pick-count-n">已点 {{pickedCount}} 道</text>
+        <text class="pick-count-chev">›</text>
+      </view>
+      <view class="pick-submit" bindtap="onSubmit">提交</view>
+    </view>
+  </view>
+
+  <view class="picked-mask" wx:if="{{pickedSheetVisible}}" catchtap="closePickedSheet"></view>
+  <view class="picked-sheet" wx:if="{{pickedSheetVisible}}" catchtap="noop">
+    <view class="picked-head">
+      <view class="picked-title">已点菜品</view>
+      <view class="picked-close" bindtap="closePickedSheet">×</view>
+    </view>
+    <scroll-view scroll-y="true" class="picked-scroll" show-scrollbar="false">
+      <block wx:for="{{pickedRows}}" wx:key="recipeId">
+        <view class="picked-row">
+          <text class="picked-name">{{item.recipeName || item.recipeId}}</text>
+          <view
+            class="picked-remove"
+            catchtap="onPickedRemove"
+            data-recipeid="{{item.recipeId}}"
+            aria-label="从已点中移除"
+          >−</view>
+        </view>
+      </block>
+      <view class="picked-empty" wx:if="{{!pickedRows || pickedRows.length===0}}">暂无</view>
+    </scroll-view>
+  </view>
+
+  <view class="loading-mask" wx:if="{{listLoading}}">
+    <view class="loading-card">
+      <view class="loading-title">加载中…</view>
+    </view>
+  </view>
+</view>

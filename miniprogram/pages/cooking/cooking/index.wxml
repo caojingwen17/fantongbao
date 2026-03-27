@@ -1,59 +1,95 @@
-<scroll-view scroll-y="true" class="page ft-page">
-  <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
-    <view class="ft-loading-spinner" />
-    <text class="ft-loading-text">加载制作步骤…</text>
-  </view>
-  <view class="header ft-card ft-card-low p-card">
-    <view class="header-left">
-      <view class="order-name ft-title">{{order.orderName || ""}}</view>
-      <view class="progress ft-subtle">
-        已完成 {{progress.doneCount}} / {{progress.totalCount}} 步
+<view class="ft-page cooking-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="goBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
       </view>
+      <view class="top-title">做菜清单</view>
     </view>
-    <button class="ft-btn ft-pill backBtn" bindtap="goBack">返回</button>
+    <view class="top-spacer" aria-hidden="true"></view>
   </view>
 
-  <block wx:for="{{groups}}" wx:key="recipeId">
-    <view class="group">
-      <view class="group-header" bindtap="toggleRecipe" data-recipeid="{{item.recipeId}}">
-        <view class="group-title">{{item.recipeName}}</view>
-        <view class="toggle-text">{{item.open ? "收起" : "展开"}}</view>
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
+        <view class="ft-loading-spinner" />
+        <text class="ft-loading-text">加载制作步骤…</text>
       </view>
 
-      <view class="note" wx:if="{{item.note && item.open}}">备注：{{item.note}}</view>
+      <view class="header-card" wx:if="{{!checklistLoading}}">
+        <view class="header-row">
+          <view>
+            <view class="head-kicker">点菜单</view>
+            <view class="head-name">{{order.orderName || "未命名点菜单"}}</view>
+            <view class="head-progress">进度：<text class="head-progress-v">{{progress.doneCount}}/{{progress.totalCount}}</text></view>
+          </view>
+          <view class="head-icon">🍳</view>
+        </view>
+        <view class="head-tip">按菜分组勾选备菜/做菜步骤，全部完成后闭环</view>
+      </view>
 
-      <view wx:if="{{item.open}}">
-        <view class="phase-title">备菜步骤</view>
-        <block wx:for="{{item.prepareSteps}}" wx:key="_id">
-          <view class="row">
-            <checkbox
-              checked="{{item.done}}"
-              disabled="{{item.done || order.status !== 'pending_cooking'}}"
-              bindtap="onCheckStep"
-              data-stepid="{{item._id}}"
-            />
-            <view class="row-text">
-              <view class="step-text">{{item.stepText}}</view>
+      <view class="group-list" wx:if="{{!checklistLoading}}">
+        <block wx:for="{{groups}}" wx:key="recipeId">
+          <view class="group-card">
+            <view class="group-toggle" bindtap="onToggleGroup" data-recipeid="{{item.recipeId}}">
+              <view class="group-main">
+                <view class="group-name">{{item.recipeName}}</view>
+                <view class="group-note" wx:if="{{item.note}}">备注：{{item.note}}</view>
+              </view>
+              <view class="group-right">
+                <view class="group-count">{{item.doneCount}}/{{item.totalCount}}</view>
+                <view class="group-chev">{{item.open ? "⌃" : "⌄"}}</view>
+              </view>
+            </view>
+
+            <view class="group-body" wx:if="{{item.open}}">
+              <view class="phase">
+                <view class="phase-title">备菜步骤</view>
+                <block wx:for="{{item.prepareSteps}}" wx:key="_id">
+                  <view class="step-item" bindtap="onCheckStep" data-stepid="{{item._id}}" data-done="{{item.done}}">
+                    <view class="step-cb {{item.done ? 'step-done' : ''}}"></view>
+                    <view class="step-text">{{item.stepText}}</view>
+                  </view>
+                </block>
+              </view>
+
+              <view class="phase">
+                <view class="phase-title">做菜步骤</view>
+                <block wx:for="{{item.cookingSteps}}" wx:key="_id">
+                  <view class="step-item" bindtap="onCheckStep" data-stepid="{{item._id}}" data-done="{{item.done}}">
+                    <view class="step-cb {{item.done ? 'step-done' : ''}}"></view>
+                    <view class="step-text">{{item.stepText}}</view>
+                  </view>
+                </block>
+              </view>
             </view>
           </view>
         </block>
-
-        <view class="phase-title">做菜步骤</view>
-        <block wx:for="{{item.cookingSteps}}" wx:key="_id">
-          <view class="row">
-            <checkbox
-              checked="{{item.done}}"
-              disabled="{{item.done || order.status !== 'pending_cooking'}}"
-              bindtap="onCheckStep"
-              data-stepid="{{item._id}}"
-            />
-            <view class="row-text">
-              <view class="step-text">{{item.stepText}}</view>
-            </view>
-          </view>
-        </block>
       </view>
     </view>
-  </block>
-</scroll-view>
+  </scroll-view>
+
+  <view class="modal-mask" wx:if="{{showCompleteModal}}" bindtap="closeCompleteModal"></view>
+  <view class="complete-modal" wx:if="{{showCompleteModal}}">
+    <view class="modal-head">
+      <view>
+        <view class="modal-kicker">提示</view>
+        <view class="modal-title">确认已完成所有制作步骤吗？</view>
+      </view>
+      <view class="modal-x" bindtap="closeCompleteModal">×</view>
+    </view>
+    <view class="modal-desc">确认后将把点菜单状态更新为已完成，并回到首页。</view>
+    <view class="modal-actions">
+      <view class="modal-btn cancel" bindtap="closeCompleteModal">取消</view>
+      <view class="modal-btn ok" bindtap="confirmCompleteModal">确认完成</view>
+    </view>
+  </view>
+
+  <view class="bottom-actions">
+    <view class="complete-btn {{actionBusy ? 'disabled' : ''}}" bindtap="onCompleteCooking">制作完成</view>
+  </view>
+</view>
 

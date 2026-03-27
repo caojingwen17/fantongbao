@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Fantongbao - 菜谱详情</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              primary: "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              tertiary: "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              outline: "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              surface: "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              error: "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              secondary: "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              background: "#fff5ec",
+              "surface-container-lowest": "#ffffff",
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans"],
+              body: ["Plus Jakarta Sans"],
+              label: ["Plus Jakarta Sans"],
+            },
+            borderRadius: {
+              DEFAULT: "1rem",
+              lg: "2rem",
+              xl: "3rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+      .bubbly-gradient {
+        background: linear-gradient(135deg, #874e00 0%, #ff9800 100%);
+      }
+      .sticky-blur {
+        background: rgba(255, 245, 236, 0.88);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+    </style>
+  </head>
+  <body class="bg-surface text-on-surface min-h-screen">
+    <div class="mx-auto w-full max-w-[375px] min-h-[812px] bg-surface relative overflow-hidden">
+      <!-- Decorative blobs -->
+      <div class="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-secondary-fixed opacity-18 blur-3xl"></div>
+      <div class="pointer-events-none absolute top-52 -left-24 w-64 h-64 rounded-full bg-tertiary-fixed opacity-12 blur-3xl"></div>
+
+      <!-- Top App Bar -->
+      <header class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-50 flex items-center justify-between px-5 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+        <button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant active:scale-90 transition-transform" aria-label="返回">
+          <span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <div class="text-lg font-black tracking-tight">菜谱详情</div>
+        <div class="w-10 h-10" aria-hidden="true"></div>
+      </header>
+
+      <main class="relative z-10 pt-24 px-5 pb-24 space-y-5">
+        <!-- Hero -->
+        <section class="bg-surface-container-lowest rounded-lg overflow-hidden">
+          <div class="aspect-[16/10] bg-surface-container relative">
+            <img
+              alt="菜谱图片"
+              class="w-full h-full object-cover"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBg5SIQJ2YZiMlJcp3a8nNcLollxI-bJ-rsHbN2a85yG4WDdKU7LH6Vx1TpTymWCAAj5TVuVBm9f5yA5hIgxWO5QRpwoiwMm3XONYPVO8dcV0h7YSNx90SLpmP7C-fZZy7t1WD6cl0Qg2Zy-XcMCb05aW324nmUkq3zByHhjdRAbzzRFKWrqi3K92NI0yDNW9uim-G2ymJwkqbjP0lbJZXDNFIEjAIGjE6w9_0j6Meq4RmKcRIKS6tCIq7CPMgLHNKeHk8e9XlqC0"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/45 via-black/0 to-black/0"></div>
+            <div class="absolute left-4 right-4 bottom-4">
+              <div class="text-xs font-black uppercase tracking-widest text-white/80">家常快手</div>
+              <h1 class="mt-1 text-2xl font-black text-white tracking-tight">西红柿炒蛋</h1>
+            </div>
+          </div>
+        </section>
+
+        <!-- 食材 -->
+        <section class="bg-surface-container-lowest rounded-lg p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-lg font-extrabold">食材</div>
+            <span class="text-xs font-extrabold text-primary px-3 py-1 bg-surface-container-high rounded-full">2 项</span>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between bg-surface-container rounded-lg px-4 py-3">
+              <div class="font-extrabold text-on-surface">西红柿</div>
+              <div class="text-sm font-extrabold text-on-surface-variant">2 个</div>
+            </div>
+            <div class="flex items-center justify-between bg-surface-container rounded-lg px-4 py-3">
+              <div class="font-extrabold text-on-surface">鸡蛋</div>
+              <div class="text-sm font-extrabold text-on-surface-variant">3 个</div>
+            </div>
+          </div>
+          <div class="hidden text-sm font-semibold text-on-surface-variant text-center py-4">暂无食材</div>
+        </section>
+
+        <!-- 调料 -->
+        <section class="bg-surface-container-lowest rounded-lg p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-lg font-extrabold">调料</div>
+            <span class="text-xs font-extrabold text-primary px-3 py-1 bg-surface-container-high rounded-full">1 项</span>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between bg-surface-container rounded-lg px-4 py-3">
+              <div class="font-extrabold text-on-surface">盐</div>
+              <div class="text-sm font-extrabold text-on-surface-variant">适量</div>
+            </div>
+          </div>
+          <div class="hidden text-sm font-semibold text-on-surface-variant text-center py-4">暂无调料</div>
+        </section>
+
+        <!-- 备菜步骤 -->
+        <section class="bg-surface-container-lowest rounded-lg p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-lg font-extrabold">备菜步骤</div>
+            <span class="text-xs font-extrabold text-primary px-3 py-1 bg-surface-container-high rounded-full">1 步</span>
+          </div>
+          <ol class="space-y-2">
+            <li class="flex gap-3 bg-surface-container rounded-lg px-4 py-3">
+              <div class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container font-black flex items-center justify-center text-xs flex-shrink-0">1</div>
+              <div class="font-semibold text-on-surface leading-relaxed">切西红柿，打散鸡蛋。</div>
+            </li>
+          </ol>
+          <div class="hidden text-sm font-semibold text-on-surface-variant text-center py-4">暂无备菜步骤</div>
+        </section>
+
+        <!-- 做菜步骤 -->
+        <section class="bg-surface-container-lowest rounded-lg p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-lg font-extrabold">做菜步骤</div>
+            <span class="text-xs font-extrabold text-primary px-3 py-1 bg-surface-container-high rounded-full">2 步</span>
+          </div>
+          <ol class="space-y-2">
+            <li class="flex gap-3 bg-surface-container rounded-lg px-4 py-3">
+              <div class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container font-black flex items-center justify-center text-xs flex-shrink-0">1</div>
+              <div class="font-semibold text-on-surface leading-relaxed">热锅下油，倒入蛋液快速翻炒，盛出备用。</div>
+            </li>
+            <li class="flex gap-3 bg-surface-container rounded-lg px-4 py-3">
+              <div class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container font-black flex items-center justify-center text-xs flex-shrink-0">2</div>
+              <div class="font-semibold text-on-surface leading-relaxed">炒软西红柿后回锅鸡蛋，加盐调味即可。</div>
+            </li>
+          </ol>
+          <div class="hidden text-sm font-semibold text-on-surface-variant text-center py-4">暂无做菜步骤</div>
+        </section>
+      </main>
+
+      <!-- Sticky CTA -->
+      <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-[55] px-5 pb-5 pt-3 sticky-blur border-t border-surface-container">
+        <button id="orderBtn" class="w-full py-4 rounded-full bubbly-gradient text-on-primary font-extrabold text-lg shadow-[0_12px_24px_rgba(135,78,0,0.18)] active:scale-95 transition-transform flex items-center justify-center gap-2" aria-label="点菜">
+          <span class="material-symbols-outlined" data-icon="add_shopping_cart">add_shopping_cart</span>
+          点菜
+        </button>
+      </div>
+
+      <!-- 点菜备注弹窗（同页） -->
+      <div id="noteOverlay" class="hidden fixed inset-0 z-[85] bg-black/35 backdrop-blur-[2px]"></div>
+      <div id="noteModal" class="hidden fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-[90] w-[335px] max-w-[90%] bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-lg shadow-[0_12px_24px_rgba(67,41,0,0.12)] p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs font-black uppercase tracking-widest text-on-surface-variant">点菜备注</div>
+            <div class="mt-1 text-xl font-extrabold tracking-tight">添加到点菜单前，可写备注</div>
+          </div>
+          <button data-action="close-note" class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center active:scale-90 transition-transform" aria-label="关闭备注">
+            <span class="material-symbols-outlined text-on-surface-variant" data-icon="close">close</span>
+          </button>
+        </div>
+
+        <div class="mt-4 bg-surface-container-lowest rounded-lg p-4 flex items-center gap-3">
+          <div class="w-14 h-14 rounded-lg overflow-hidden bg-surface-container flex-shrink-0">
+            <img
+              alt="菜谱图"
+              class="w-full h-full object-cover"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBg5SIQJ2YZiMlJcp3a8nNcLollxI-bJ-rsHbN2a85yG4WDdKU7LH6Vx1TpTymWCAAj5TVuVBm9f5yA5hIgxWO5QRpwoiwMm3XONYPVO8dcV0h7YSNx90SLpmP7C-fZZy7t1WD6cl0Qg2Zy-XcMCb05aW324nmUkq3zByHhjdRAbzzRFKWrqi3K92NI0yDNW9uim-G2ymJwkqbjP0lbJZXDNFIEjAIGjE6w9_0j6Meq4RmKcRIKS6tCIq7CPMgLHNKeHk8e9XlqC0"
+            />
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-extrabold text-on-surface truncate">西红柿炒蛋</div>
+            <div class="mt-1 text-xs font-semibold text-on-surface-variant">备注最多 200 字</div>
+          </div>
+        </div>
+
+        <div class="mt-4 space-y-2">
+          <label class="text-sm font-extrabold text-on-surface" for="noteText">备注</label>
+          <textarea
+            id="noteText"
+            maxlength="200"
+            class="w-full min-h-[110px] px-4 py-3 bg-surface-container border-none rounded-lg text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary-container transition-all resize-none"
+            placeholder="可输入口味偏好、食材替换、制作要求等"
+          ></textarea>
+          <div class="flex items-center justify-between">
+            <div class="text-[11px] font-semibold text-on-surface-variant">选填</div>
+            <div class="text-[11px] font-extrabold text-on-surface-variant"><span id="noteCount">0</span>/200</div>
+          </div>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button data-action="close-note" class="py-4 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform" aria-label="取消">取消</button>
+          <button id="confirmAddToOrderBtn" class="py-4 rounded-full bubbly-gradient text-on-primary font-extrabold shadow-[0_12px_24px_rgba(135,78,0,0.16)] active:scale-95 transition-transform" aria-label="确认添加到点菜单">
+            确认添加到点菜单
+          </button>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-10 z-[90] bg-inverse-surface/90 text-inverse-on-surface px-4 py-2 rounded-full text-sm font-extrabold shadow-[0_12px_24px_rgba(0,0,0,0.25)]">
+        提示
+      </div>
+
+      <script>
+        (function () {
+          const el = (id) => document.getElementById(id);
+          const orderBtn = el("orderBtn");
+          const noteOverlay = el("noteOverlay");
+          const noteModal = el("noteModal");
+          const noteText = el("noteText");
+          const noteCount = el("noteCount");
+          const confirmAddToOrderBtn = el("confirmAddToOrderBtn");
+          const toast = el("toast");
+
+          const show = (node) => node && node.classList.remove("hidden");
+          const hide = (node) => node && node.classList.add("hidden");
+          const setText = (node, text) => node && (node.textContent = text);
+
+          const toastMsg = (msg) => {
+            setText(toast, msg);
+            show(toast);
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => hide(toast), 1400);
+          };
+
+          const openNote = () => {
+            show(noteOverlay);
+            show(noteModal);
+            if (noteText) {
+              noteText.focus();
+              if (noteCount) noteCount.textContent = String(noteText.value.length || 0);
+            }
+          };
+          const closeNote = () => {
+            hide(noteModal);
+            hide(noteOverlay);
+          };
+
+          orderBtn.addEventListener("click", openNote);
+          noteOverlay.addEventListener("click", closeNote);
+          document.addEventListener("click", (e) => {
+            const action = e.target?.closest?.("[data-action]")?.getAttribute?.("data-action");
+            if (action === "close-note") closeNote();
+          });
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+              closeNote();
+            }
+          });
+
+          noteText?.addEventListener("input", () => {
+            if (noteCount) noteCount.textContent = String(noteText.value.length || 0);
+          });
+
+          confirmAddToOrderBtn?.addEventListener("click", () => {
+            closeNote();
+            toastMsg("添加成功（示例）");
+          });
+        })();
+      </script>
+    </div>
+  </body>
+</html>

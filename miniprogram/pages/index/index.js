@@ -1,19 +1,40 @@
 const cloud = require("../../utils/cloud");
-const { attachRecipeImgDisplay } = require("../../utils/cloudDisplay");
+const { attachRecipeImgDisplay, resolveBatch } = require("../../utils/cloudDisplay");
 const auth = require("../../utils/auth");
+
+function getDefaultNewOrderName() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const ymd = (date) => `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+  const h = d.getHours();
+  if (h >= 6 && h < 12) return `${ymd(d)}-午餐`;
+  if (h >= 12 && h < 18) return `${ymd(d)}-晚餐`;
+  if (h >= 18) {
+    const nd = new Date(d);
+    nd.setDate(nd.getDate() + 1);
+    return `${ymd(nd)}-早餐`;
+  }
+  return `${ymd(d)}-早餐`;
+}
 
 Page({
   data: {
     currentFamily: null,
     families: [],
     membersCount: 0,
+    memberAvatarDisplays: [],
     pendingShopping: null,
     pendingCooking: null,
     pendingOrders: [],
     recipes: [],
+    /** 家庭菜谱总数（列表接口全量；首页只展示前 6 个卡片） */
+    recipeTotalCount: 0,
     homeRefreshing: false,
     showFamilyPicker: false,
     switchingFamilyId: "",
+    showCreateOrderModal: false,
+    newOrderName: "",
+    createOrderBusy: false,
   },
 
   async ensureEntryContext() {
@@ -102,7 +123,7 @@ Page({
           .catch(() => ({})),
         cloud
           .callFunction("orderFunctions", {
-            type: "listFirstOrdersByStatuses",
+            type: "listActiveOrders",
             familyId,
           })
           .catch(() => ({})),
@@ -116,39 +137,50 @@ Page({
       ]);
 
       const members = (membersResp && membersResp.members) || [];
-      this.setData({ membersCount: members.length });
+      const avatarIds = members
+        .map((m) => (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "")
+        .filter(Boolean);
+      const avatarMap = await resolveBatch(avatarIds, familyId ? { familyId } : {});
+      const memberAvatarDisplays = members
+        .map((m) => {
+          const id = (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "";
+          if (!id) return "";
+          if (typeof id === "string" && id.indexOf("cloud://") === 0) return avatarMap[id] || id;
+          return id;
+        })
+        .filter(Boolean)
+        .slice(0, 2);
+
+      this.setData({ membersCount: members.length, memberAvatarDisplays });
+
+      const rawOrders = (ordersResp && ordersResp.orders) || [];
+      const pendingOrders = rawOrders.map((o) => {
+        const rc = o.recipeCount || 0;
+        let statusText = o.status === "pending_cooking" ? "待制作" : "待买菜";
+        if (rc === 0) statusText = "待点菜";
+        return { ...o, statusText };
+      });
 
       const pendingShopping =
-        ordersResp && ordersResp.pendingShopping ? ordersResp.pendingShopping : null;
+        pendingOrders.find((x) => x.status === "pending_shopping") || null;
       const pendingCooking =
-        ordersResp && ordersResp.pendingCooking ? ordersResp.pendingCooking : null;
-
-      const pendingOrders = [];
-      if (pendingShopping) {
-        pendingOrders.push({
-          ...pendingShopping,
-          statusText: "待买菜",
-        });
-      }
-      if (pendingCooking) {
-        pendingOrders.push({
-          ...pendingCooking,
-          statusText: "待制作",
-        });
-      }
+        pendingOrders.find((x) => x.status === "pending_cooking") || null;
 
       this.setData({ pendingShopping, pendingCooking, pendingOrders });
 
       const list = (recipeResp && recipeResp.recipes) || [];
+      const recipeTotalCount = list.length;
       const withImg = await attachRecipeImgDisplay(list.slice(0, 6));
-      this.setData({ recipes: withImg });
+      this.setData({ recipes: withImg, recipeTotalCount });
     } catch (e) {
       this.setData({
         membersCount: 0,
+        memberAvatarDisplays: [],
         pendingShopping: null,
         pendingCooking: null,
         pendingOrders: [],
         recipes: [],
+        recipeTotalCount: 0,
       });
     } finally {
       wx.hideNavigationBarLoading();
@@ -210,10 +242,56 @@ Page({
 
   noop() {},
 
+  onCopyInvite() {
+    const code = this.data.currentFamily && this.data.currentFamily.inviteCode;
+    if (!code) return;
+    wx.setClipboardData({ data: code });
+  },
+
   goPendingOrder(e) {
     const orderId = e.currentTarget.dataset.orderid;
     if (!orderId) return;
     wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+  },
+
+  openCreateOrderModal() {
+    if (this.data.showFamilyPicker) this.setData({ showFamilyPicker: false });
+    this.setData({
+      showCreateOrderModal: true,
+      newOrderName: getDefaultNewOrderName(),
+    });
+  },
+
+  closeCreateOrderModal() {
+    if (this.data.createOrderBusy) return;
+    this.setData({ showCreateOrderModal: false, newOrderName: "" });
+  },
+
+  onNewOrderNameInput(e) {
+    this.setData({ newOrderName: (e.detail && e.detail.value) || "" });
+  },
+
+  async confirmCreateOrder() {
+    const app = getApp();
+    const familyId = app.globalData.currentFamilyId;
+    if (!familyId || this.data.createOrderBusy) return;
+    const orderName = (this.data.newOrderName || "").trim() || getDefaultNewOrderName();
+    this.setData({ createOrderBusy: true });
+    try {
+      const res = await cloud.callFunctionWithErrorToast("orderFunctions", {
+        type: "createOrder",
+        familyId,
+        orderName,
+      });
+      const orderId = res && res.orderId;
+      this.setData({ showCreateOrderModal: false, newOrderName: "" });
+      if (orderId) {
+        await this.refreshHome();
+        wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+      }
+    } finally {
+      this.setData({ createOrderBusy: false });
+    }
   },
 
   goRecipeList() {

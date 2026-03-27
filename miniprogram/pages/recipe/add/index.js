@@ -15,7 +15,14 @@ Page({
     cookingSteps: [],
     isExtracting: false,
     isImportingImage: false,
+    isGeneratingCommon: false,
     canImport: false,
+    accordion: {
+      ingredients: true,
+      seasonings: false,
+      prep: false,
+      cook: false,
+    },
   },
 
   onLoad() {
@@ -29,6 +36,18 @@ Page({
       prepareSteps: ["备菜步骤（1）"],
       cookingSteps: ["做菜步骤（1）"],
     });
+  },
+
+  onBack() {
+    wx.navigateBack();
+  },
+
+  toggleAccordion(e) {
+    const key = e && e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset.key : "";
+    if (!key) return;
+    const next = { ...(this.data.accordion || {}) };
+    next[key] = !next[key];
+    this.setData({ accordion: next });
   },
 
   onUrlInput(e) {
@@ -132,7 +151,7 @@ Page({
         const paths = (res.tempFilePaths || []).filter(Boolean);
         if (!paths.length) return;
         this.setData({ isImportingImage: true });
-        wx.showLoading({ title: "校验中..." });
+        wx.showLoading({ title: "请耐心等待", mask: true });
         try {
           const okPaths = [];
           for (const filePath of paths) {
@@ -152,11 +171,11 @@ Page({
             return;
           }
 
-          wx.showLoading({ title: `上传中 0/${okPaths.length}` });
+          wx.showLoading({ title: "请耐心等待", mask: true });
           const imageFileIds = [];
           for (let i = 0; i < okPaths.length; i++) {
             const filePath = okPaths[i];
-            wx.showLoading({ title: `上传中 ${i + 1}/${okPaths.length}` });
+            wx.showLoading({ title: "请耐心等待", mask: true });
             const cloudPath = `imports/recipe_ocr/${this.data.familyId || "unknown"}/${Date.now()}-${i}-${Math.random()
               .toString(16)
               .slice(2)}.png`;
@@ -165,7 +184,7 @@ Page({
           }
           if (!imageFileIds.length) throw new Error("上传失败");
 
-          wx.showLoading({ title: "正在识别图片内容..." });
+          wx.showLoading({ title: "请耐心等待", mask: true });
           const result = await cloud.callFunction("aiFunctions", {
             type: "extractRecipeFromImage",
             recipeName: this.data.recipeName,
@@ -197,6 +216,58 @@ Page({
         // 用户取消
       },
     });
+  },
+
+  async onGenerateCommonRecipe() {
+    if (!this.data.familyId) {
+      wx.showToast({ title: "请先选择家庭", icon: "none" });
+      return;
+    }
+    if (!String(this.data.recipeName || "").trim()) {
+      wx.showToast({ title: "请先输入菜谱名称", icon: "none" });
+      return;
+    }
+    if (this.data.isGeneratingCommon) return;
+    this.setData({ isGeneratingCommon: true });
+    wx.showLoading({ title: "请耐心等待", mask: true });
+    try {
+      // 先尝试走云端生成；若云端暂未实现则回退本地模板，保证按钮可用。
+      const result = await cloud
+        .callFunction("aiFunctions", {
+          type: "generateCommonRecipe",
+          recipeName: this.data.recipeName,
+        })
+        .catch(() => null);
+
+      const payload = result && result.recipeName ? result : null;
+      if (payload) {
+        this.setData({
+          ingredients: payload.ingredients || [],
+          seasonings: payload.seasonings || [],
+          prepareSteps: payload.prepareSteps || [],
+          cookingSteps: payload.cookingSteps || [],
+        });
+        wx.showToast({ title: payload.tip || "已生成常规菜谱", icon: "none" });
+        return;
+      }
+
+      this.setData({
+        ingredients: [
+          { name: "主食材", amount: "300g" },
+          { name: "辅料", amount: "适量" },
+        ],
+        seasonings: [
+          { name: "盐", amount: "少许" },
+          { name: "生抽", amount: "1勺" },
+        ],
+        prepareSteps: ["清洗并处理食材", "按块/片/丝切配，备齐调料"],
+        cookingSteps: ["热锅下油，先下主食材翻炒", "加入辅料和调料，翻炒至熟后出锅"],
+      });
+      wx.showToast({ title: "已生成家常菜模板，可继续编辑", icon: "none" });
+    } finally {
+      wx.hideLoading();
+      this.setData({ isGeneratingCommon: false });
+    }
   },
 
   // ---------- 食材/调料增删改 ----------
@@ -334,11 +405,6 @@ Page({
       wx.showToast({ title: "请填写菜名", icon: "none" });
       return;
     }
-    if (!recipeImg) {
-      wx.showToast({ title: "请上传/填写菜品图片", icon: "none" });
-      return;
-    }
-
     const cleanedIngredients = (ingredients || []).filter((i) => i && i.name);
     const cleanedSeasonings = (seasonings || []).filter((s) => s && s.name);
     const cleanedPrepareSteps = (prepareSteps || []).filter((s) => s !== undefined && String(s).trim() !== "");

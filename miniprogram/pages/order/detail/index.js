@@ -6,11 +6,17 @@ Page({
     pageLoading: true,
     orderId: "",
     order: {},
+    recipeCount: 0,
     statusText: "",
+    statusCodeText: "0（待购物）",
     actionBusy: false,
   },
 
-  getStatusText(status) {
+  getStatusText(status, recipeCount) {
+    const n = typeof recipeCount === "number" ? recipeCount : 0;
+    if (n === 0 && status !== "completed") {
+      return "待点菜";
+    }
     switch (status) {
       case "pending_shopping":
         return "待买菜";
@@ -23,6 +29,23 @@ Page({
     }
   },
 
+  getStatusCodeText(status, recipeCount) {
+    const n = typeof recipeCount === "number" ? recipeCount : 0;
+    if (n === 0 && status !== "completed") {
+      return "待点菜";
+    }
+    switch (status) {
+      case "pending_shopping":
+        return "0（待购物）";
+      case "pending_cooking":
+        return "1（待制作）";
+      case "completed":
+        return "2（已完成）";
+      default:
+        return "0（待购物）";
+    }
+  },
+
   async refreshOrder() {
     const { orderId } = this.data;
     if (!orderId) return;
@@ -32,7 +55,13 @@ Page({
     });
     if (result && result.order) {
       const order = result.order;
-      this.setData({ order, statusText: this.getStatusText(order && order.status) });
+      const recipeCount = Array.isArray(order.recipes) ? order.recipes.length : 0;
+      this.setData({
+        order,
+        recipeCount,
+        statusText: this.getStatusText(order && order.status, recipeCount),
+        statusCodeText: this.getStatusCodeText(order && order.status, recipeCount),
+      });
     }
   },
 
@@ -50,6 +79,11 @@ Page({
     } finally {
       this.setData({ pageLoading: false });
     }
+  },
+
+  onShow() {
+    if (!this.data.orderId || this.data.pageLoading) return;
+    this.refreshOrder();
   },
 
   async onRemoveRecipe(e) {
@@ -113,19 +147,52 @@ Page({
     wx.navigateTo({ url: `/pages/cooking/cooking/index?orderId=${orderId}` });
   },
 
+  goOrder() {
+    const { orderId } = this.data;
+    if (!orderId) return;
+    wx.navigateTo({ url: `/pages/order/pick/index?orderId=${orderId}` });
+  },
+
   goContinueAdd() {
-    const { order } = this.data;
-    if (!order || !order._id) {
-      wx.navigateTo({ url: "/pages/order/choose/index" });
-      return;
-    }
-    // V3：pending_shopping/pending_cooking 都允许“继续加菜”入口；
-    // 若当前点菜单已进入待制作，则后续点菜会自动创建新待买菜单。
-    wx.navigateTo({ url: "/pages/order/choose/index" });
+    this.goOrder();
   },
 
   goBack() {
-    wx.navigateBack();
+    wx.reLaunch({ url: "/pages/index/index" });
+  },
+
+  onCompletedToHome() {
+    wx.reLaunch({ url: "/pages/index/index" });
+  },
+
+  onBack() {
+    this.goBack();
+  },
+
+  onAskDeleteOrder() {
+    if (this.data.actionBusy || !this.data.orderId) return;
+    wx.showModal({
+      title: "删除点菜单",
+      content: "将删除本点菜单及关联的买菜/做菜清单，且不可恢复。确定删除？",
+      confirmText: "删除",
+      confirmColor: "#e64545",
+      success: async (r) => {
+        if (!r.confirm) return;
+        this.setData({ actionBusy: true });
+        try {
+          await ui.withLoading(async () => {
+            await cloud.callFunctionWithErrorToast("orderFunctions", {
+              type: "deleteOrder",
+              orderId: this.data.orderId,
+            });
+          }, "删除中…");
+          wx.showToast({ title: "已删除", icon: "none" });
+          wx.reLaunch({ url: "/pages/index/index" });
+        } finally {
+          this.setData({ actionBusy: false });
+        }
+      },
+    });
   },
 });
 

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Fantongbao - 买菜清单</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              primary: "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              tertiary: "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              outline: "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              surface: "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              error: "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              secondary: "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              background: "#fff5ec",
+              "surface-container-lowest": "#ffffff",
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans"],
+              body: ["Plus Jakarta Sans"],
+              label: ["Plus Jakarta Sans"],
+            },
+            borderRadius: {
+              DEFAULT: "1rem",
+              lg: "2rem",
+              xl: "3rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+      .bubbly-gradient {
+        background: linear-gradient(135deg, #874e00 0%, #ff9800 100%);
+      }
+      .sticky-blur {
+        background: rgba(255, 245, 236, 0.88);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+      .disabled {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body class="bg-surface text-on-surface min-h-screen">
+    <div class="mx-auto w-full max-w-[375px] min-h-[812px] bg-surface relative overflow-hidden">
+      <!-- Decorative blobs -->
+      <div class="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-secondary-fixed opacity-18 blur-3xl"></div>
+      <div class="pointer-events-none absolute top-52 -left-24 w-64 h-64 rounded-full bg-tertiary-fixed opacity-12 blur-3xl"></div>
+
+      <!-- Top App Bar -->
+      <header class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-50 flex items-center justify-between px-5 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+        <button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant active:scale-90 transition-transform" aria-label="返回">
+          <span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <div class="text-lg font-black tracking-tight">买菜清单</div>
+        <div class="w-10 h-10" aria-hidden="true"></div>
+      </header>
+
+      <main class="relative z-10 pt-24 px-5 pb-32 space-y-5">
+        <!-- Header -->
+        <section class="bg-surface-container-lowest rounded-lg p-5 space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-black uppercase tracking-widest text-on-surface-variant">点菜单</div>
+              <div class="mt-1 text-2xl font-extrabold tracking-tight truncate">周末家常（3 道菜）</div>
+              <div class="mt-1 text-sm font-semibold text-on-surface-variant">
+                采购进度：<span id="progressText" class="font-extrabold text-primary">0/6</span>
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-on-secondary-container" data-icon="shopping_basket">shopping_basket</span>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Merged items -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <div class="text-sm font-extrabold">归并清单</div>
+            <button id="deleteManualEntryBtn" class="hidden text-xs font-extrabold text-error px-3 py-1 rounded-full bg-error-container/15 active:scale-95 transition-transform" aria-label="删除手动项">
+              删除手动项
+            </button>
+          </div>
+
+          <div id="mergedList" class="space-y-3">
+            <!-- Item -->
+            <label class="merged-item block bg-surface-container-lowest rounded-lg p-4 cursor-pointer" data-id="m1" data-manual="false">
+              <div class="flex items-start gap-3">
+                <input class="merged-check mt-1 h-5 w-5 rounded border-surface-container text-primary focus:ring-primary-container" type="checkbox" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="font-extrabold text-on-surface truncate">西红柿</div>
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full">食材</span>
+                  </div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant truncate">来自：西红柿炒蛋（2个）</div>
+                </div>
+              </div>
+            </label>
+
+            <label class="merged-item block bg-surface-container-lowest rounded-lg p-4 cursor-pointer" data-id="m2" data-manual="false">
+              <div class="flex items-start gap-3">
+                <input class="merged-check mt-1 h-5 w-5 rounded border-surface-container text-primary focus:ring-primary-container" type="checkbox" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="font-extrabold text-on-surface truncate">鸡蛋</div>
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full">食材</span>
+                  </div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant truncate">来自：西红柿炒蛋（2个）、蒸鸡蛋（1个）</div>
+                </div>
+              </div>
+            </label>
+
+            <label class="merged-item block bg-surface-container-lowest rounded-lg p-4 cursor-pointer" data-id="m3" data-manual="false">
+              <div class="flex items-start gap-3">
+                <input class="merged-check mt-1 h-5 w-5 rounded border-surface-container text-primary focus:ring-primary-container" type="checkbox" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="font-extrabold text-on-surface truncate">豆腐</div>
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full">食材</span>
+                  </div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant truncate">来自：麻婆豆腐（1盒）</div>
+                </div>
+              </div>
+            </label>
+
+            <label class="merged-item block bg-surface-container-lowest rounded-lg p-4 cursor-pointer" data-id="m4" data-manual="false">
+              <div class="flex items-start gap-3">
+                <input class="merged-check mt-1 h-5 w-5 rounded border-surface-container text-primary focus:ring-primary-container" type="checkbox" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="font-extrabold text-on-surface truncate">盐</div>
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full">调料</span>
+                  </div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant truncate">来自：西红柿炒蛋（少许）、麻婆豆腐（少许）</div>
+                </div>
+              </div>
+            </label>
+
+            <label class="merged-item block bg-surface-container-lowest rounded-lg p-4 cursor-pointer" data-id="m5" data-manual="false">
+              <div class="flex items-start gap-3">
+                <input class="merged-check mt-1 h-5 w-5 rounded border-surface-container text-primary focus:ring-primary-container" type="checkbox" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="font-extrabold text-on-surface truncate">豆瓣酱</div>
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full">调料</span>
+                  </div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant truncate">来自：麻婆豆腐（1勺）</div>
+                </div>
+              </div>
+            </label>
+
+            <label class="merged-item block bg-surface-container-lowest rounded-lg p-4 cursor-pointer" data-id="m6" data-manual="true">
+              <div class="flex items-start gap-3">
+                <input class="merged-check mt-1 h-5 w-5 rounded border-surface-container text-primary focus:ring-primary-container" type="checkbox" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="font-extrabold text-on-surface truncate">葱</div>
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">手动添加</span>
+                  </div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant truncate">来自：手动添加（1把）</div>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div id="mergedEmpty" class="hidden bg-surface-container-lowest rounded-lg p-8 text-center">
+            <div class="mx-auto w-14 h-14 rounded-full bg-surface-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-outline" data-icon="shopping_cart_off">shopping_cart_off</span>
+            </div>
+            <div class="mt-4 text-lg font-extrabold text-on-surface">暂无采购清单</div>
+            <div class="mt-1 text-sm font-semibold text-on-surface-variant">去继续加菜生成清单</div>
+          </div>
+        </section>
+
+        <!-- Extra items (pending_shopping only) -->
+        <section id="extraSection" class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <div class="text-sm font-extrabold">额外采购项</div>
+          </div>
+
+          <div class="bg-surface-container-lowest rounded-lg p-5 space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                id="extraName"
+                class="h-12 px-4 bg-surface-container border-none rounded-lg text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary-container transition-all"
+                placeholder="名称"
+                type="text"
+              />
+              <input
+                id="extraAmount"
+                class="h-12 px-4 bg-surface-container border-none rounded-lg text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary-container transition-all"
+                placeholder="用量"
+                type="text"
+              />
+            </div>
+            <div>
+              <button id="addExtraBtn" class="w-full py-4 rounded-full bg-secondary-container text-on-secondary-container font-extrabold active:scale-95 transition-transform" aria-label="添加">
+                添加
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Sticky actions -->
+      <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-[55] px-5 pb-5 pt-3 sticky-blur border-t border-surface-container">
+        <button id="completeBtn" class="w-full py-4 rounded-full bubbly-gradient text-on-primary font-extrabold text-lg shadow-[0_12px_24px_rgba(135,78,0,0.16)] active:scale-95 transition-transform" aria-label="完成买菜">
+          完成买菜
+        </button>
+      </div>
+
+      <!-- 完成买菜确认 -->
+      <div id="confirmOverlay" class="hidden fixed inset-0 z-[70] bg-black/35 backdrop-blur-[2px]"></div>
+      <div id="confirmModal" class="hidden fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-[80] w-[335px] max-w-[90%] bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-lg shadow-[0_12px_24px_rgba(67,41,0,0.12)] p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs font-black uppercase tracking-widest text-on-surface-variant">确认完成买菜</div>
+            <div class="mt-1 text-xl font-extrabold tracking-tight">确认完成采购？</div>
+          </div>
+          <button data-action="close-confirm" class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center active:scale-90 transition-transform" aria-label="关闭">
+            <span class="material-symbols-outlined text-on-surface-variant" data-icon="close">close</span>
+          </button>
+        </div>
+        <div class="mt-3 text-sm font-semibold text-on-surface-variant leading-relaxed">
+          完成后将无法加菜、删菜。
+        </div>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button data-action="close-confirm" class="py-4 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform" aria-label="取消">取消</button>
+          <button id="confirmCompleteBtn" class="py-4 rounded-full bubbly-gradient text-on-primary font-extrabold shadow-[0_12px_24px_rgba(135,78,0,0.16)] active:scale-95 transition-transform" aria-label="确认完成">
+            确认完成
+          </button>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-10 z-[90] bg-inverse-surface/90 text-inverse-on-surface px-4 py-2 rounded-full text-sm font-extrabold shadow-[0_12px_24px_rgba(0,0,0,0.25)]">
+        提示
+      </div>
+
+      <script>
+        (function () {
+          const el = (id) => document.getElementById(id);
+          const mergedList = el("mergedList");
+          const mergedEmpty = el("mergedEmpty");
+          const progressText = el("progressText");
+
+          const extraSection = el("extraSection");
+          const extraName = el("extraName");
+          const extraAmount = el("extraAmount");
+          const addExtraBtn = el("addExtraBtn");
+          const deleteManualEntryBtn = el("deleteManualEntryBtn");
+
+          const completeBtn = el("completeBtn");
+          const confirmOverlay = el("confirmOverlay");
+          const confirmModal = el("confirmModal");
+          const confirmCompleteBtn = el("confirmCompleteBtn");
+
+          const toast = el("toast");
+
+          const show = (node) => node && node.classList.remove("hidden");
+          const hide = (node) => node && node.classList.add("hidden");
+          const setText = (node, text) => node && (node.textContent = text);
+          const trim = (s) => (s || "").trim();
+
+          const toastMsg = (msg) => {
+            setText(toast, msg);
+            show(toast);
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => hide(toast), 1400);
+          };
+
+          let status = "pending_shopping";
+          let completed = false;
+
+          const updateProgress = () => {
+            const checks = Array.from(mergedList.querySelectorAll(".merged-check"));
+            const total = checks.length;
+            const done = checks.filter((c) => c.checked).length;
+            setText(progressText, `${done}/${total}`);
+            if (total === 0) show(mergedEmpty);
+            else hide(mergedEmpty);
+            const hasManual = !!mergedList.querySelector('.merged-item[data-manual="true"]');
+            if (status === "pending_shopping" && hasManual && !completed) show(deleteManualEntryBtn);
+            else hide(deleteManualEntryBtn);
+          };
+
+          const applyStatusState = () => {
+            const canEdit = status === "pending_shopping";
+            extraSection.classList.toggle("disabled", !canEdit);
+            completeBtn.classList.toggle("disabled", !canEdit);
+            mergedList.querySelectorAll("input").forEach((inp) => (inp.disabled = !canEdit ? false : false));
+            // checkbox always can be clicked in prototype; real app can restrict on status
+            updateProgress();
+          };
+
+          const openConfirm = () => {
+            show(confirmOverlay);
+            show(confirmModal);
+          };
+          const closeConfirm = () => {
+            hide(confirmModal);
+            hide(confirmOverlay);
+          };
+
+          document.addEventListener("click", (e) => {
+            const action = e.target.closest?.("[data-action]")?.getAttribute?.("data-action");
+            if (action === "close-confirm") closeConfirm();
+          });
+          confirmOverlay.addEventListener("click", closeConfirm);
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeConfirm();
+          });
+
+          mergedList.addEventListener("change", (e) => {
+            if (!e.target.classList.contains("merged-check")) return;
+            updateProgress();
+          });
+
+          addExtraBtn.addEventListener("click", () => {
+            if (status !== "pending_shopping" || completed) return;
+            const name = trim(extraName.value);
+            const amount = trim(extraAmount.value);
+            if (!name) return toastMsg("请填写名称");
+            const label = document.createElement("label");
+            label.className = "merged-item block bg-surface-container-lowest rounded-lg p-4 cursor-pointer";
+            label.setAttribute("data-id", `manual_${Date.now()}`);
+            label.setAttribute("data-manual", "true");
+            label.innerHTML = `
+              <div class="flex items-start gap-3">
+                <input class="merged-check mt-1 h-5 w-5 rounded border-surface-container text-primary focus:ring-primary-container" type="checkbox" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="font-extrabold text-on-surface truncate">${name}</div>
+                    <span class="text-[10px] font-black uppercase tracking-widest bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">手动添加</span>
+                  </div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant truncate">来自：手动添加${amount ? `（${amount}）` : ""}</div>
+                </div>
+              </div>
+            `;
+            mergedList.appendChild(label);
+            extraName.value = "";
+            extraAmount.value = "";
+            toastMsg("已添加手动项（示例）");
+            updateProgress();
+          });
+
+          deleteManualEntryBtn.addEventListener("click", () => {
+            if (status !== "pending_shopping" || completed) return;
+            mergedList.querySelectorAll('.merged-item[data-manual="true"]').forEach((node) => node.remove());
+            toastMsg("已删除手动项（示例）");
+            updateProgress();
+          });
+
+          completeBtn.addEventListener("click", () => {
+            if (status !== "pending_shopping" || completed) return;
+            openConfirm();
+          });
+
+          confirmCompleteBtn.addEventListener("click", () => {
+            closeConfirm();
+            completed = true;
+            extraSection.classList.add("disabled");
+            completeBtn.classList.add("disabled");
+            hide(deleteManualEntryBtn);
+            toastMsg("已完成买菜（示例）");
+          });
+
+          // init
+          updateProgress();
+          applyStatusState();
+        })();
+      </script>
+    </div>
+  </body>
+</html>

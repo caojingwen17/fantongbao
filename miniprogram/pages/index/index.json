@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "饭桶宝",
+  "navigationStyle": "custom",
   "usingComponents": {
     "cloud-tip-modal": "/components/cloudTipModal/index"
   }

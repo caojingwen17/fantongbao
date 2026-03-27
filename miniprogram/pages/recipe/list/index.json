@@ -1,4 +1,5 @@
 {
-  "navigationBarTitleText": "菜谱"
+  "navigationBarTitleText": "菜谱",
+  "navigationStyle": "custom"
 }
 

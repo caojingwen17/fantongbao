@@ -1,61 +1,88 @@
-<view class="ft-loading-mask" wx:if="{{pageLoading}}">
-  <view class="ft-loading-spinner" />
-  <text class="ft-loading-text">加载点菜单…</text>
-</view>
-<scroll-view scroll-y="true" class="page ft-page" wx:else>
-  <view class="title">{{order.orderName || ""}}</view>
-  <view class="sub ft-subtle">状态：{{statusText || order.status || ""}}</view>
+<view class="ft-page order-detail-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
 
-  <view class="section-title ft-title">点菜内容</view>
-  <block wx:for="{{order.recipes || []}}" wx:key="recipeId">
-    <view class="recipe-row ft-card ft-card-low">
-      <view class="recipe-row-top">
-        <view class="recipe-name-wrap">
-          <view class="recipe-name ft-title">{{item.recipeName || item.recipeId}}</view>
-          <view class="creator-text ft-subtle">
-            点菜：{{item.creatorNickName || "未知用户"}}
-          </view>
-        </view>
-        <button
-          class="ft-btn ft-btn-danger ft-pill remove-btn"
-          wx:if="{{order.status==='pending_shopping'}}"
-          disabled="{{actionBusy}}"
-          data-recipeid="{{item.recipeId}}"
-          bindtap="onRemoveRecipe"
-        >
-          删除
-        </button>
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="onBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
       </view>
-      <view wx:if="{{item.note}}" class="note">备注：{{item.note}}</view>
+      <view class="top-title">点菜单详情</view>
     </view>
-  </block>
-
-  <view class="footer" wx:if="{{order.status!=='completed'}}">
-    <button
-      class="ft-btn ft-pill footer-btn"
-      wx:if="{{order.status==='pending_shopping' || order.status==='pending_cooking'}}"
-      bindtap="goContinueAdd"
-    >
-      继续加菜
-    </button>
-
-    <button
-      class="ft-btn ft-btn-primary ft-pill footer-btn"
-      wx:if="{{order.status==='pending_shopping'}}"
-      bindtap="goShopping"
-    >
-      去买菜
-    </button>
-
-    <button
-      class="ft-btn ft-btn-primary ft-pill footer-btn"
-      wx:if="{{order.status==='pending_cooking'}}"
-      bindtap="goCooking"
-    >
-      去做菜
-    </button>
+    <view class="top-spacer" aria-hidden="true"></view>
   </view>
 
-  <button class="btn" wx:if="{{order.status==='completed'}}" bindtap="goBack">已完成（返回）</button>
-</scroll-view>
+  <view class="ft-loading-mask" wx:if="{{pageLoading}}">
+    <view class="ft-loading-spinner" />
+    <text class="ft-loading-text">加载点菜单…</text>
+  </view>
+
+  <scroll-view scroll-y="true" class="main" wx:else show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="header-card">
+        <view>
+          <view class="head-kicker">点菜单名</view>
+          <view class="head-name">{{order.orderName || "未命名点菜单"}}</view>
+          <view class="head-status">状态：<text class="head-status-text {{statusText==='待点菜' ? 'head-status-muted' : ''}}">{{statusText || order.status || ""}}</text></view>
+        </view>
+        <view class="head-icon" aria-hidden="true">
+          <text class="head-icon-glyph">≣</text>
+        </view>
+      </view>
+
+      <view class="order-empty-cta" wx:if="{{recipeCount===0 && order.status!=='completed'}}">
+        <view class="order-empty-cta-hint">还没有点菜</view>
+        <view class="btn btn-primary order-empty-cta-btn" bindtap="goOrder">点菜</view>
+      </view>
+
+      <view class="dish-section" wx:if="{{recipeCount > 0}}">
+        <view class="dish-head">
+          <view class="dish-title">已点菜品</view>
+          <view class="dish-count">{{recipeCount}} 道</view>
+        </view>
+
+        <view class="dish-list" wx:if="{{order.recipes && order.recipes.length}}">
+          <block wx:for="{{order.recipes || []}}" wx:key="recipeId">
+            <view class="dish-card">
+              <view class="dish-mid">
+                <view class="dish-name">{{item.recipeName || item.recipeId}}</view>
+                <view class="dish-owner">点菜人：{{item.creatorNickName || "未知用户"}}</view>
+                <view class="dish-note" wx:if="{{item.note}}">备注：{{item.note}}</view>
+              </view>
+              <view
+                class="dish-del"
+                wx:if="{{order.status==='pending_shopping'}}"
+                data-recipeid="{{item.recipeId}}"
+                bindtap="onRemoveRecipe"
+                aria-label="删除菜品"
+              >🗑</view>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <view class="order-delete-panel" wx:if="{{order && order._id}}">
+        <view class="btn btn-delete-order" bindtap="onAskDeleteOrder">删除点菜单</view>
+      </view>
+
+      <view class="bottom-safe-spacer" aria-hidden="true"></view>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-actions" wx:if="{{order.status==='completed'}}">
+    <view class="actions-single">
+      <view class="btn btn-completed" bindtap="onCompletedToHome">已完成（返回首页）</view>
+    </view>
+  </view>
+  <view class="bottom-actions" wx:elif="{{recipeCount > 0}}">
+    <view class="actions-grid" wx:if="{{order.status==='pending_shopping'}}">
+      <view class="btn btn-secondary" bindtap="goContinueAdd">继续加菜</view>
+      <view class="btn btn-primary" bindtap="goShopping">去买菜</view>
+    </view>
+    <view class="actions-grid" wx:if="{{order.status==='pending_cooking'}}">
+      <view class="btn btn-secondary" bindtap="goContinueAdd">继续加菜</view>
+      <view class="btn btn-cooking" bindtap="goCooking">去做菜</view>
+    </view>
+  </view>
+</view>
 

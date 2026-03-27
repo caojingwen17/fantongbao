@@ -1,101 +1,243 @@
-<scroll-view scroll-y="true" class="page ft-page">
-  <view class="hero ft-card ft-card-low p-card">
-    <view class="hero-title ft-title">新增菜谱</view>
-    <view class="hero-sub ft-subtle">先填菜名，再用链接/图片导入快速生成</view>
-  </view>
+<view class="ft-page recipe-add-page">
+  <!-- Decorative blobs -->
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">菜名（必填）</view>
-    <input class="input ft-input" placeholder="请先输入菜谱名称" value="{{recipeName}}" bindinput="onRecipeNameInput" focus="{{true}}" />
-    <view class="subtip ft-subtle">菜名填写完成后，才可解锁链接解析 / 图片导入等功能</view>
-  </view>
-
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">小红书链接导入</view>
-    <input
-      class="input ft-input"
-      placeholder="{{canImport ? '粘贴小红书链接（用于解析）' : '请先输入菜谱名称，再进行解析'}}"
-      value="{{xiaohongshuUrl}}"
-      bindinput="onUrlInput"
-      disabled="{{!canImport}}"
-    />
-    <button class="ft-btn ft-btn-primary ft-pill btn" bindtap="onExtract" disabled="{{isExtracting || !canImport}}">
-      {{isExtracting ? "正在解析，请稍候..." : "解析小红书链接"}}
-    </button>
-  </view>
-
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">本地菜谱图片导入（AI识别）</view>
-    <view class="subtip ft-subtle">可一次选多张从小红书保存的截图/图片，单张 JPG/PNG ≤ 10MB，最多 9 张</view>
-    <button class="ft-btn ft-pill btn" bindtap="onImportFromLocalImage" disabled="{{isImportingImage || !canImport}}">
-      {{isImportingImage ? "正在识别图片内容..." : "选择多张图片并导入"}}
-    </button>
-  </view>
-
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">菜品展示图</view>
-    <view class="img-row">
-      <image class="preview" mode="aspectFill" wx:if="{{recipeImg}}" src="{{recipeImgDisplay || recipeImg}}" />
-      <view class="img-actions">
-        <button class="ft-btn ft-pill btn" bindtap="onChooseImage" disabled="{{!canImport}}">上传本地图片</button>
+  <!-- Top App Bar -->
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="onBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
       </view>
+      <view class="top-title">新增菜谱</view>
     </view>
+    <view class="top-spacer" aria-hidden="true"></view>
   </view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">食材（至少1项）</view>
-    <block wx:for="{{ingredients}}" wx:key="index">
-      <view class="listRow">
-        <input class="input ft-input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onIngredientNameInput" />
-        <input class="input ft-input" placeholder="用量（可选）" data-index="{{index}}" value="{{item.amount}}" bindinput="onIngredientAmountInput" />
-        <button class="ft-btn ft-btn-danger ft-pill danger" bindtap="removeIngredient" data-index="{{index}}">删除</button>
-      </view>
-    </block>
-    <button class="ft-btn ft-pill btn" bindtap="addIngredient">添加食材</button>
-  </view>
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <!-- 基础信息 -->
+      <view class="card base-card">
+        <view class="card-head">
+          <view class="card-title">基础信息</view>
+        </view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">调料（可选/可多项）</view>
-    <block wx:for="{{seasonings}}" wx:key="index">
-      <view class="listRow">
-        <input class="input ft-input" placeholder="名称" data-index="{{index}}" value="{{item.name}}" bindinput="onSeasoningNameInput" />
-        <input class="input ft-input" placeholder="用量（如 5g）" data-index="{{index}}" value="{{item.amount}}" bindinput="onSeasoningAmountInput" />
-        <button class="ft-btn ft-btn-danger ft-pill danger" bindtap="removeSeasoning" data-index="{{index}}">删除</button>
-      </view>
-    </block>
-    <button class="ft-btn ft-pill btn" bindtap="addSeasoning">添加调料</button>
-  </view>
+        <view class="field">
+          <view class="field-head">
+            <view class="field-label">菜名</view>
+          <view class="pill pill-warn" aria-hidden="true">必填</view>
+          </view>
+          <view class="input-wrap">
+            <view class="input-ico" aria-hidden="true">🍽️</view>
+            <input
+              class="input input-name"
+              placeholder="例如：西红柿炒蛋"
+              value="{{recipeName}}"
+              bindinput="onRecipeNameInput"
+            />
+          </view>
+        </view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">备菜步骤（至少1项）</view>
-    <block wx:for="{{prepareSteps}}" wx:key="index">
-      <view class="stepRow">
-        <input class="input ft-input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onPrepareStepInput" />
-        <view class="stepBtns">
-          <button class="ft-btn ft-pill small" bindtap="movePrepareStepUp" data-index="{{index}}">上移</button>
-          <button class="ft-btn ft-pill small" bindtap="movePrepareStepDown" data-index="{{index}}">下移</button>
-          <button class="ft-btn ft-btn-danger ft-pill danger small" bindtap="removePrepareStep" data-index="{{index}}">删</button>
+        <view class="field">
+          <view class="field-head">
+            <view class="field-label">菜品展示图</view>
+          </view>
+
+          <view class="cover-upload {{!canImport ? 'disabled' : ''}}" wx:if="{{!recipeImg}}">
+            <view class="cover-left">
+              <view class="cover-title">上传展示图</view>
+              <view class="cover-sub">建议 1:1 或 16:10</view>
+            </view>
+            <view class="cover-btn {{!canImport ? 'disabled' : ''}}" bindtap="onChooseImage" aria-label="上传图片">
+              上传
+            </view>
+          </view>
+
+          <view class="cover-preview" wx:if="{{recipeImg}}">
+            <image class="cover-img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" aria-label="展示图预览" />
+            <view class="cover-grad" aria-hidden="true"></view>
+            <view class="cover-bottom">
+              <view class="cover-btm-left">
+                <view class="cover-state">已上传</view>
+                <view class="cover-tip">可重新上传替换图片</view>
+              </view>
+              <view class="reupload-btn" bindtap="onChooseImage" aria-label="重新上传图片">
+                <text class="reupload-ico" aria-hidden="true">⤒</text>
+                重新上传
+              </view>
+            </view>
+          </view>
         </view>
       </view>
-    </block>
-    <button class="ft-btn ft-pill btn" bindtap="addPrepareStep">添加备菜步骤</button>
-  </view>
 
-  <view class="section ft-card ft-card-low p-card">
-    <view class="label ft-title">做菜步骤（至少1项）</view>
-    <block wx:for="{{cookingSteps}}" wx:key="index">
-      <view class="stepRow">
-        <input class="input ft-input" placeholder="步骤描述" data-index="{{index}}" value="{{item}}" bindinput="onCookingStepInput" />
-        <view class="stepBtns">
-          <button class="ft-btn ft-pill small" bindtap="moveCookingStepUp" data-index="{{index}}">上移</button>
-          <button class="ft-btn ft-pill small" bindtap="moveCookingStepDown" data-index="{{index}}">下移</button>
-          <button class="ft-btn ft-btn-danger ft-pill danger small" bindtap="removeCookingStep" data-index="{{index}}">删</button>
+      <!-- 导入 -->
+      <view class="import-head">
+        <view class="import-title">导入</view>
+        <view class="import-status {{canImport ? 'import-status-ok' : ''}}">{{canImport ? "已解锁" : "未解锁"}}</view>
+      </view>
+
+      <view class="card import-card {{canImport ? '' : 'disabled'}}">
+        <view class="import-block">
+          <view class="import-row">
+            <view class="import-name">小红书链接导入</view>
+            <view class="pill pill-muted" aria-hidden="true">开发中</view>
+          </view>
+          <view class="import-dev">
+            <view class="import-dev-left">
+              <view class="import-dev-title">开发中，敬请期待</view>
+              <view class="import-dev-sub">后续支持粘贴链接一键解析回填</view>
+            </view>
+            <view class="import-dev-ico" aria-hidden="true">⌛</view>
+          </view>
+        </view>
+
+        <view class="divider" aria-hidden="true"></view>
+
+        <view class="import-block">
+          <view class="import-row">
+            <view class="import-name">本地多图导入（AI 识别）</view>
+          </view>
+          <view class="import-actions">
+            <view class="import-hint">最多 9 张 · 单张 ≤ 10MB</view>
+            <view class="pick-btn {{(!canImport || isImportingImage) ? 'disabled' : ''}}" bindtap="onImportFromLocalImage" aria-label="选择图片">
+              选择图片
+            </view>
+          </view>
+          <view class="import-hint import-hint-extra">可从小红书下载或截图菜谱图片</view>
+        </view>
+
+        <view class="divider" aria-hidden="true"></view>
+
+        <view class="import-block">
+          <view class="import-row">
+            <view class="import-name">一键生成常规菜谱</view>
+          </view>
+          <view class="import-actions">
+            <view class="import-hint">AI根据菜名自动生成常用菜谱</view>
+            <view class="pick-btn {{(!canImport || isGeneratingCommon) ? 'disabled' : ''}}" bindtap="onGenerateCommonRecipe" aria-label="一键生成">
+              生成
+            </view>
+          </view>
         </view>
       </view>
-    </block>
-    <button class="ft-btn ft-pill btn" bindtap="addCookingStep">添加做菜步骤</button>
-  </view>
 
-  <button class="ft-btn ft-btn-primary ft-pill submit" bindtap="onSubmit">提交保存</button>
-</scroll-view>
+      <!-- 折叠组：食材 -->
+      <view class="acc card">
+        <view class="acc-head" bindtap="toggleAccordion" data-key="ingredients" aria-label="展开/收起 食材">
+          <view class="acc-left">
+            <view class="acc-ico acc-ico-warn" aria-hidden="true">🧺</view>
+            <view class="acc-meta">
+              <view class="acc-title-row">
+                <view class="acc-title">食材</view>
+                <view class="pill pill-warn" aria-hidden="true">至少 1</view>
+              </view>
+              <view class="acc-sub">已填 {{ingredients.length}} 项</view>
+            </view>
+          </view>
+          <view class="acc-chev" aria-hidden="true">{{accordion.ingredients ? "˄" : "˅"}}</view>
+        </view>
+        <view class="acc-body" wx:if="{{accordion.ingredients}}">
+          <block wx:for="{{ingredients}}" wx:key="index">
+            <view class="pair-row">
+              <view class="pair-left">
+                <input class="pair-input" placeholder="食材名称" data-index="{{index}}" value="{{item.name}}" bindinput="onIngredientNameInput" />
+                <input class="pair-input pair-amt" placeholder="用量" data-index="{{index}}" value="{{item.amount}}" bindinput="onIngredientAmountInput" />
+              </view>
+              <view class="remove-btn" bindtap="removeIngredient" data-index="{{index}}" aria-label="删除">－</view>
+            </view>
+          </block>
+          <view class="add-row-btn" bindtap="addIngredient" aria-label="添加食材">＋ 添加食材</view>
+        </view>
+      </view>
+
+      <!-- 调料 -->
+      <view class="acc card">
+        <view class="acc-head" bindtap="toggleAccordion" data-key="seasonings" aria-label="展开/收起 调料">
+          <view class="acc-left">
+            <view class="acc-ico acc-ico-ok" aria-hidden="true">⚗️</view>
+            <view class="acc-meta">
+              <view class="acc-title-row">
+                <view class="acc-title">调料</view>
+                <view class="acc-optional">可选</view>
+              </view>
+              <view class="acc-sub">已填 {{seasonings.length}} 项</view>
+            </view>
+          </view>
+          <view class="acc-chev" aria-hidden="true">{{accordion.seasonings ? "˄" : "˅"}}</view>
+        </view>
+        <view class="acc-body" wx:if="{{accordion.seasonings}}">
+          <block wx:for="{{seasonings}}" wx:key="index">
+            <view class="pair-row">
+              <view class="pair-left">
+                <input class="pair-input" placeholder="调料名称" data-index="{{index}}" value="{{item.name}}" bindinput="onSeasoningNameInput" />
+                <input class="pair-input pair-amt" placeholder="用量" data-index="{{index}}" value="{{item.amount}}" bindinput="onSeasoningAmountInput" />
+              </view>
+              <view class="remove-btn" bindtap="removeSeasoning" data-index="{{index}}" aria-label="删除">－</view>
+            </view>
+          </block>
+          <view class="add-row-btn" bindtap="addSeasoning" aria-label="添加调料">＋ 添加调料</view>
+        </view>
+      </view>
+
+      <!-- 备菜步骤 -->
+      <view class="acc card">
+        <view class="acc-head" bindtap="toggleAccordion" data-key="prep" aria-label="展开/收起 备菜步骤">
+          <view class="acc-left">
+            <view class="acc-ico acc-ico-neutral" aria-hidden="true">①</view>
+            <view class="acc-meta">
+              <view class="acc-title-row">
+                <view class="acc-title">备菜步骤</view>
+                <view class="pill pill-warn" aria-hidden="true">至少 1</view>
+              </view>
+              <view class="acc-sub">已填 {{prepareSteps.length}} 步</view>
+            </view>
+          </view>
+          <view class="acc-chev" aria-hidden="true">{{accordion.prep ? "˄" : "˅"}}</view>
+        </view>
+        <view class="acc-body" wx:if="{{accordion.prep}}">
+          <block wx:for="{{prepareSteps}}" wx:key="index">
+            <view class="step-row">
+              <input class="step-input" placeholder="输入备菜步骤" data-index="{{index}}" value="{{item}}" bindinput="onPrepareStepInput" />
+              <view class="remove-btn" bindtap="removePrepareStep" data-index="{{index}}" aria-label="删除">－</view>
+            </view>
+          </block>
+          <view class="add-row-btn" bindtap="addPrepareStep" aria-label="添加步骤">＋ 添加步骤</view>
+        </view>
+      </view>
+
+      <!-- 做菜步骤 -->
+      <view class="acc card">
+        <view class="acc-head" bindtap="toggleAccordion" data-key="cook" aria-label="展开/收起 做菜步骤">
+          <view class="acc-left">
+            <view class="acc-ico acc-ico-neutral" aria-hidden="true">🍳</view>
+            <view class="acc-meta">
+              <view class="acc-title-row">
+                <view class="acc-title">做菜步骤</view>
+                <view class="pill pill-warn" aria-hidden="true">至少 1</view>
+              </view>
+              <view class="acc-sub">已填 {{cookingSteps.length}} 步</view>
+            </view>
+          </view>
+          <view class="acc-chev" aria-hidden="true">{{accordion.cook ? "˄" : "˅"}}</view>
+        </view>
+        <view class="acc-body" wx:if="{{accordion.cook}}">
+          <block wx:for="{{cookingSteps}}" wx:key="index">
+            <view class="step-row">
+              <input class="step-input" placeholder="输入做菜步骤" data-index="{{index}}" value="{{item}}" bindinput="onCookingStepInput" />
+              <view class="remove-btn" bindtap="removeCookingStep" data-index="{{index}}" aria-label="删除">－</view>
+            </view>
+          </block>
+          <view class="add-row-btn" bindtap="addCookingStep" aria-label="添加步骤">＋ 添加步骤</view>
+        </view>
+      </view>
+
+      <view class="bottom-spacer" aria-hidden="true"></view>
+    </view>
+  </scroll-view>
+
+  <!-- Sticky submit bar -->
+  <view class="submit-bar">
+    <view class="submit-btn" bindtap="onSubmit" aria-label="提交保存">💾 提交保存</view>
+  </view>
+</view>
 

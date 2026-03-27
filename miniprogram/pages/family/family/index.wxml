@@ -3,104 +3,223 @@
   <text class="boot-text">加载家庭数据…</text>
 </view>
 
-<scroll-view scroll-y="true" class="page ft-page" wx:else>
-  <view class="content">
-    <!-- 1) 家庭列表 -->
-    <view wx:if="{{viewMode==='list'}}">
-      <view class="title ft-title">家庭管理</view>
+<view class="ft-page family-page" wx:else>
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
 
-      <view class="family-list" wx:if="{{familiesDisplay && familiesDisplay.length}}">
-        <block wx:for="{{familiesDisplay}}" wx:key="_id">
-          <view class="family-card ft-card ft-card-low" bindtap="onOpenFamily" data-familyid="{{item._id}}">
-            <view class="family-top">
-              <view class="family-name ft-title">{{item.familyName}}</view>
-              <view class="family-current ft-badge ft-badge-success" wx:if="{{item.isCurrent}}">当前</view>
-            </view>
-            <view class="family-sub ft-subtle">{{item.subtitle}}</view>
-          </view>
-        </block>
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="onBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
       </view>
-
-      <view class="empty" wx:if="{{!familiesDisplay || familiesDisplay.length===0}}">暂无家庭，请创建或加入</view>
-
-      <view class="bottom-actions">
-        <button class="ft-btn ft-pill actionBtn" bindtap="openJoinDialog" disabled="{{actionBusy}}">加入家庭</button>
-        <button class="ft-btn ft-btn-primary ft-pill actionBtn" bindtap="openCreateDialog" disabled="{{actionBusy}}">创建家庭</button>
-      </view>
-
-      <view class="dialog-mask" wx:if="{{dialogVisible}}" catchtap="closeDialog">
-        <view class="dialog ft-card ft-card-lowest" catchtap="noop">
-          <view class="dialog-title ft-title">{{dialogMode==='create' ? "创建家庭" : "加入家庭"}}</view>
-          <input
-            class="dialog-input"
-            placeholder="{{dialogMode==='create' ? '请输入家庭名称' : '请输入家庭邀请码'}}"
-            value="{{dialogValue}}"
-            bindinput="onDialogValueInput"
-          />
-          <view class="dialog-actions">
-            <button class="ft-btn ft-pill dialogBtn" bindtap="closeDialog">取消</button>
-            <button class="ft-btn ft-btn-primary ft-pill dialogBtn" bindtap="onDialogConfirm" disabled="{{actionBusy}}">确定</button>
-          </view>
-        </view>
-      </view>
+      <view class="top-title">家庭管理</view>
     </view>
+    <view class="top-spacer" aria-hidden="true"></view>
+  </view>
 
-    <!-- 2) 家庭详情 -->
-    <view wx:if="{{viewMode==='detail'}}">
-      <view class="detail-title-only ft-title">{{currentFamily.familyName || ""}}</view>
-
-      <view class="card ft-card ft-card-low p-card">
-        <view class="section-title ft-title">家人</view>
-        <view class="members-loading" wx:if="{{membersLoading}}">
-          <view class="members-loading-dot" />
-          <text>正在加载成员…</text>
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view wx:if="{{viewMode==='list'}}" class="list-mode">
+        <view class="intro-card">
+          <view class="intro-row">
+            <view>
+              <view class="intro-kicker">你的家庭</view>
+              <view class="intro-title">选择一个家庭继续</view>
+              <view class="intro-sub">创建 / 加入 / 切换当前家庭</view>
+            </view>
+            <view class="intro-icon"><text class="intro-icon-glyph">⌂</text></view>
+          </view>
         </view>
-        <view class="members" wx:if="{{!membersLoading && members && members.length}}">
-          <block wx:for="{{members}}" wx:key="_id">
-            <view class="member-row">
-              <image class="avatar" mode="aspectFill" src="{{item.avatarUrlDisplay || item.avatarUrl}}" />
-              <view class="member-info">
-                <view class="member-name ft-title">
-                  {{item.nickName}}
+
+        <view class="family-list" wx:if="{{familiesDisplay && familiesDisplay.length}}">
+          <block wx:for="{{familiesDisplay}}" wx:key="_id">
+            <view class="family-card" bindtap="onOpenFamily" data-familyid="{{item._id}}">
+              <view class="family-row">
+                <view class="family-left">
+                  <view class="family-line1">
+                    <view class="family-name">{{item.familyName}}</view>
+                    <view class="family-current" wx:if="{{item.isCurrent}}">当前</view>
+                  </view>
+                  <view class="family-sub">{{item.subtitle}}</view>
                 </view>
-                <view class="member-role ft-subtle">
-                  {{currentFamily && currentFamily.adminId===item._id ? "管理员" : "成员"}}
-                </view>
+                <view class="family-right {{item.isCurrent ? 'current' : ''}}">{{item.isCurrent ? "●" : "›"}}</view>
               </view>
             </view>
           </block>
         </view>
-        <view class="members-empty" wx:if="{{!membersLoading && (!members || members.length===0)}}">暂无成员</view>
-      </view>
 
-      <view class="card ft-card ft-card-low p-card">
-        <view class="recipes-head">
-          <view class="section-title ft-title">家庭菜谱</view>
-          <view class="ft-subtle">{{recipes ? recipes.length : 0}} 个</view>
+        <view class="empty-card" wx:if="{{!familiesDisplay || familiesDisplay.length===0}}">
+          <view class="empty-ico">◉</view>
+          <view class="empty-title">暂无家庭，请创建或加入</view>
+          <view class="empty-sub">加入现有家庭需要邀请码</view>
         </view>
-        <view class="recipes-loading ft-subtle" wx:if="{{recipesLoading}}">加载菜谱中…</view>
-        <view class="recipe-grid" wx:if="{{!recipesLoading && recipes && recipes.length}}">
-          <block wx:for="{{recipes}}" wx:key="id">
-            <view class="recipe-card ft-card-lowest">
-              <image class="recipe-img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
-              <view class="recipe-name ft-title">{{item.recipeName}}</view>
+
+        <view class="bottom-actions">
+          <view class="action-btn join" bindtap="openJoinDialog">加入家庭</view>
+          <view class="action-btn create" bindtap="openCreateDialog">创建家庭</view>
+        </view>
+      </view>
+      <view wx:if="{{viewMode==='detail'}}" class="detail-mode">
+        <view class="detail-head-card">
+          <view class="intro-row">
+            <view>
+              <view class="intro-kicker">当前家庭</view>
+              <view class="intro-title">{{currentFamily.familyName || ""}}</view>
+              <view class="intro-sub">管理成员 · 查看菜谱预览 · 邀请加入</view>
             </view>
-          </block>
+            <view class="intro-icon"><text class="intro-icon-glyph">⌂</text></view>
+          </view>
         </view>
-        <view class="empty" wx:if="{{!recipesLoading && (!recipes || recipes.length===0)}}">暂无菜谱</view>
-      </view>
 
-      <view id="manageAnchor"></view>
-      <view class="manage ft-card ft-card-low p-card">
-        <view class="section-title ft-title">家庭管理</view>
-        <view class="row">
-          <view class="label ft-subtle">家庭邀请码</view>
-          <view class="invite ft-title">{{currentFamily.inviteCode}}</view>
-          <button class="ft-btn ft-pill copy-btn" bindtap="onCopyInviteCode">复制</button>
+        <view class="panel">
+          <view class="panel-head">
+            <view class="panel-title">家人</view>
+            <view class="panel-badge">{{members ? members.length : 0}} 人</view>
+          </view>
+          <view class="member-scroll" wx:if="{{!membersLoading && members && members.length}}">
+            <block wx:for="{{members}}" wx:key="_id">
+              <view class="member-chip">
+                <image wx:if="{{item.avatarUrlDisplay}}" class="member-avatar" mode="aspectFill" src="{{item.avatarUrlDisplay}}" />
+                <view wx:else class="member-avatar member-avatar-placeholder" aria-hidden="true" />
+                <view class="member-name">{{item.nickName}}</view>
+                <view class="member-role">{{currentFamily && currentFamily.adminId===item._id ? "管理员" : "成员"}}</view>
+              </view>
+            </block>
+          </view>
+          <view class="members-loading" wx:if="{{membersLoading}}">
+            <view class="members-loading-dot" />
+            <text>正在加载成员…</text>
+          </view>
+          <view class="members-empty" wx:if="{{!membersLoading && (!members || members.length===0)}}">暂无成员</view>
         </view>
-        <button class="ft-btn ft-btn-danger ft-pill exit-btn" bindtap="onExitFamily" disabled="{{actionBusy}}">退出家庭</button>
+
+        <view class="panel">
+          <view class="panel-head">
+            <view class="panel-title">家庭菜谱 TOP7</view>
+            <view class="panel-badge">{{recipeTotalCount}} 个</view>
+          </view>
+          <view class="recipe-grid" wx:if="{{!recipesLoading && recipes && recipes.length}}">
+            <block wx:for="{{recipes}}" wx:key="id">
+              <view class="recipe-thumb">
+                <image class="recipe-img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
+              </view>
+            </block>
+            <view class="recipe-thumb more" wx:if="{{recipeTotalCount > 7}}"><text>…</text></view>
+          </view>
+          <view class="recipes-loading" wx:if="{{recipesLoading}}">加载菜谱中…</view>
+          <view class="members-empty" wx:if="{{!recipesLoading && (!recipes || recipes.length===0)}}">暂无菜谱</view>
+        </view>
+
+        <view class="panel meal-cal-panel">
+          <view class="panel-head meal-cal-head">
+            <view class="panel-title">干饭日历</view>
+            <view class="meal-cal-nav">
+              <view class="meal-cal-nav-btn" bindtap="onPrevMealMonth" aria-label="上一月">‹</view>
+              <text class="meal-cal-month">{{mealCalYear}}年{{mealCalMonth}}月</text>
+              <view class="meal-cal-nav-btn" bindtap="onNextMealMonth" aria-label="下一月">›</view>
+            </view>
+          </view>
+          <view class="meal-cal-weekdays">
+            <text wx:for="{{mealWeekdayLabels}}" wx:key="*this">{{item}}</text>
+          </view>
+          <view class="meal-cal-loading" wx:if="{{calendarLoading}}">加载日历中…</view>
+          <view class="meal-cal-frame" wx:if="{{!calendarLoading}}">
+            <view class="meal-cal-grid">
+              <view
+                wx:for="{{calendarCells}}"
+                wx:key="cellKey"
+                class="meal-cal-cell {{item.type === 'day' ? 'is-day' : 'is-pad'}}"
+              >
+                <block wx:if="{{item.type === 'day'}}">
+                  <view
+                    class="meal-cal-day-inner {{item.orderCount ? 'has-orders' : 'is-empty'}}"
+                    bindtap="onMealCalDayTap"
+                    data-daykey="{{item.cellKey}}"
+                    data-hasorders="{{item.orderCount}}"
+                  >
+                    <text class="meal-cal-daynum">{{item.day}}</text>
+                    <view class="meal-cal-day-spacer"></view>
+                    <view wx:if="{{item.orderCount > 0}}" class="meal-cal-count-pill">{{item.orderCount}}</view>
+                  </view>
+                </block>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="panel">
+          <view class="panel-title">家庭管理</view>
+          <view class="invite-row">
+            <view>
+              <view class="invite-kicker">家庭邀请码</view>
+              <view class="invite-code">{{currentFamily.inviteCode || ""}}</view>
+            </view>
+            <view class="copy-btn" bindtap="onCopyInviteCode">复制</view>
+          </view>
+          <view class="exit-btn" bindtap="onExitFamily">退出家庭</view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="meal-cal-modal-mask" wx:if="{{mealCalModalVisible}}" catchtap="closeMealCalModal">
+    <view class="meal-cal-modal-sheet" catchtap="noop">
+      <view class="meal-cal-modal-hero">
+        <view class="meal-cal-modal-kicker">当天点菜单</view>
+        <view class="meal-cal-modal-title">{{mealCalModalTitle}}</view>
+      </view>
+      <scroll-view scroll-y class="meal-cal-modal-scroll" show-scrollbar="{{false}}" enhanced="{{true}}">
+        <block wx:for="{{mealCalModalOrders}}" wx:for-index="idx" wx:key="_id">
+          <view class="meal-cal-modal-card {{idx % 2 === 0 ? 'meal-cal-modal-card--0' : 'meal-cal-modal-card--1'}}">
+            <view class="meal-cal-modal-card-head">
+              <view class="meal-cal-modal-accent"></view>
+              <text class="meal-cal-modal-order-name">{{item.orderName}}</text>
+            </view>
+            <view class="meal-cal-modal-section">
+              <view class="meal-cal-tags" wx:if="{{item.recipeNames.length}}">
+                <text wx:for="{{item.recipeNames}}" wx:for-item="dish" wx:for-index="ri" wx:key="ri" class="meal-cal-tag">{{dish}}</text>
+              </view>
+              <text wx:else class="meal-cal-modal-muted">暂无菜谱记录</text>
+            </view>
+            <view class="meal-cal-modal-stats">
+              <view class="meal-cal-stat meal-cal-stat--time">
+                <text class="meal-cal-stat-k">制作时长</text>
+                <text class="meal-cal-stat-v">{{item.durationText}}</text>
+              </view>
+              <view class="meal-cal-stat meal-cal-stat--range">
+                <text class="meal-cal-stat-k">时段</text>
+                <text class="meal-cal-stat-v">{{item.timeRangeText}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+      </scroll-view>
+      <view class="meal-cal-modal-footer">
+        <view class="meal-cal-modal-btn" bindtap="closeMealCalModal">知道了</view>
       </view>
     </view>
   </view>
-</scroll-view>
+
+  <view class="dialog-mask" wx:if="{{dialogVisible}}" catchtap="closeDialog">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-head">
+        <view>
+          <view class="sheet-kicker">{{dialogMode==='create' ? "创建家庭" : "加入家庭"}}</view>
+          <view class="sheet-title">{{dialogMode==='create' ? "请输入家庭名称" : "请输入邀请码"}}</view>
+        </view>
+        <view class="sheet-close" bindtap="closeDialog">×</view>
+      </view>
+      <input
+        class="sheet-input"
+        placeholder="{{dialogMode==='create' ? '例如：李家厨房' : '例如：FTB-8K2X'}}"
+        value="{{dialogValue}}"
+        bindinput="onDialogValueInput"
+      />
+      <view class="sheet-actions">
+        <view class="sheet-btn cancel" bindtap="closeDialog">取消</view>
+        <view class="sheet-btn ok" bindtap="onDialogConfirm">确定</view>
+      </view>
+    </view>
+  </view>
+</view>
 

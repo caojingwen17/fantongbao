@@ -33,7 +33,20 @@ function normalizeName(name) {
   return String(name || "")
     .trim()
     .replace(/\s+/g, "")
+    .replace(/[，,。\.、;；:：!！\?？\(\)（）【】\[\]'"“”‘’]/g, "")
     .toLowerCase();
+}
+
+function normalizeUnit(unit) {
+  const u = String(unit || "").trim().toLowerCase();
+  if (!u) return "";
+  if (["g", "克"].includes(u)) return "g";
+  if (["kg", "千克", "公斤"].includes(u)) return "kg";
+  if (["ml", "毫升"].includes(u)) return "ml";
+  if (["l", "升"].includes(u)) return "l";
+  if (["个", "只", "颗"].includes(u)) return "个";
+  if (["勺", "汤匙", "茶匙"].includes(u)) return "勺";
+  return u;
 }
 
 function parseAmountToQtyUnit(amount) {
@@ -43,7 +56,7 @@ function parseAmountToQtyUnit(amount) {
   const m = raw.match(/^(\d+(?:\.\d+)?)\s*([^\d\s].*)$/);
   if (!m) return null;
   const qty = Number(m[1]);
-  const unit = String(m[2] || "").trim();
+  const unit = normalizeUnit(String(m[2] || "").trim());
   if (!Number.isFinite(qty) || qty <= 0 || !unit) return null;
   return { qty, unit };
 }
@@ -56,17 +69,14 @@ function buildMergedItems({ items, recipeNameMap }) {
     if (!name) continue;
 
     const parsed = parseAmountToQtyUnit(it.amount);
-    const unit = parsed ? parsed.unit : "";
-    const amountKey = parsed ? "" : String(it.amount || "").trim(); // 无法解析时要求amount完全一致才合并
-    const key = `${normalizeName(name)}|${unit}|${amountKey}`;
+    const key = normalizeName(name);
 
     if (!map[key]) {
       map[key] = {
         key,
         name,
-        unit,
-        amountKey,
-        totalQty: 0,
+        qtyByUnit: {},
+        rawAmountsSet: {},
         totalAmountText: "",
         itemIds: [],
         manualItemIds: [],
@@ -81,7 +91,10 @@ function buildMergedItems({ items, recipeNameMap }) {
     g.allDone = g.allDone && !!it.done;
 
     if (parsed) {
-      g.totalQty += parsed.qty;
+      g.qtyByUnit[parsed.unit] = (g.qtyByUnit[parsed.unit] || 0) + parsed.qty;
+    } else {
+      const rawAmount = String(it.amount || "").trim();
+      if (rawAmount) g.rawAmountsSet[rawAmount] = true;
     }
 
     if (it.itemSource === "manual" || !it.recipeId) {
@@ -94,12 +107,18 @@ function buildMergedItems({ items, recipeNameMap }) {
 
   const merged = Object.values(map);
   for (const g of merged) {
-    if (g.unit) {
-      const qty = Number.isFinite(g.totalQty) ? g.totalQty : 0;
-      g.totalAmountText = `${qty}${g.unit}`;
-    } else {
-      g.totalAmountText = g.amountKey || "";
-    }
+    const amountParts = [];
+    const units = Object.keys(g.qtyByUnit || {});
+    units.forEach((u) => {
+      const qty = Number(g.qtyByUnit[u] || 0);
+      if (!Number.isFinite(qty) || qty <= 0) return;
+      amountParts.push(`${qty}${u}`);
+    });
+    const rawAmounts = Object.keys(g.rawAmountsSet || {});
+    rawAmounts.forEach((a) => {
+      if (a) amountParts.push(a);
+    });
+    g.totalAmountText = amountParts.join(" + ");
     const sources = Object.values(g.sourcesSet).filter(Boolean);
     g.sourcesText = sources.length ? `来自：${sources.join("、")}` : "";
   }
@@ -107,6 +126,14 @@ function buildMergedItems({ items, recipeNameMap }) {
   // 让展示更稳定：按 name 排序
   merged.sort((a, b) => (a.name || "").localeCompare(b.name || "", "zh-Hans-CN"));
   return merged;
+}
+
+function normalizeStepText(text) {
+  return String(text || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[，,。\.、;；:：!！\?？\(\)（）【】\[\]'"“”‘’]/g, "")
+    .toLowerCase();
 }
 
 exports.main = async (event) => {
@@ -208,6 +235,32 @@ exports.main = async (event) => {
       return { success: true };
     }
 
+    case "markMergedItemsUndone": {
+      const { orderId, itemIds } = event;
+      if (!orderId) throw new Error("缺少 orderId");
+      const ids = Array.isArray(itemIds) ? itemIds.filter(Boolean) : [];
+      if (!ids.length) return { success: true };
+
+      const order = await getOrder({ orderId });
+      if (!order) throw new Error("点菜单不存在");
+      await assertFamilyMember({ openid, familyId: order.familyId });
+      if (order.status !== "pending_shopping") {
+        return { success: true, newOrderStatus: order.status };
+      }
+
+      await db
+        .collection("order_shopping_items")
+        .where({ _id: db.command.in(ids), orderId, familyId: order.familyId })
+        .update({
+          data: {
+            done: false,
+            doneTime: null,
+          },
+        });
+
+      return { success: true };
+    }
+
     case "removeManualShoppingItems": {
       const { orderId, itemIds } = event;
       if (!orderId) throw new Error("缺少 orderId");
@@ -276,16 +329,7 @@ exports.main = async (event) => {
         return { success: true, newOrderStatus: order.status };
       }
 
-      const allRes = await db
-        .collection("order_shopping_items")
-        .where({ orderId: order._id, familyId: order.familyId })
-        .get();
-      const allItems = allRes.data || [];
-      const allDone = allItems.length > 0 && allItems.every((x) => !!x.done);
-      if (!allDone) {
-        throw new Error("仍有未完成采购项，无法完成买菜");
-      }
-
+      // 允许强制完成买菜：即使仍有未勾选采购项，也可直接进入待制作阶段。
       const newOrderStatus = "pending_cooking";
       await db.collection("orders").where({ _id: order._id }).update({
         data: { status: newOrderStatus },
@@ -377,9 +421,15 @@ exports.main = async (event) => {
             note: recipeToNote[rid] || "",
             prepareSteps: [],
             cookingSteps: [],
+            _prepareSeen: {},
+            _cookingSeen: {},
           };
         }
+        const key = normalizeStepText(s.stepText);
+        if (!key) continue;
         if (s.phase === "prepare") {
+          if (groupsMap[rid]._prepareSeen[key]) continue;
+          groupsMap[rid]._prepareSeen[key] = true;
           groupsMap[rid].prepareSteps.push({
             _id: s._id,
             stepText: s.stepText,
@@ -387,6 +437,8 @@ exports.main = async (event) => {
             stepIndex: s.stepIndex || 0,
           });
         } else {
+          if (groupsMap[rid]._cookingSeen[key]) continue;
+          groupsMap[rid]._cookingSeen[key] = true;
           groupsMap[rid].cookingSteps.push({
             _id: s._id,
             stepText: s.stepText,
@@ -399,6 +451,8 @@ exports.main = async (event) => {
       const groups = Object.values(groupsMap).map((g) => {
         g.prepareSteps.sort((a, b) => a.stepIndex - b.stepIndex);
         g.cookingSteps.sort((a, b) => a.stepIndex - b.stepIndex);
+        delete g._prepareSeen;
+        delete g._cookingSeen;
         return g;
       });
 
@@ -451,9 +505,63 @@ exports.main = async (event) => {
       if (allDone) {
         newOrderStatus = "completed";
         await db.collection("orders").where({ _id: order._id }).update({
-          data: { status: newOrderStatus },
+          data: {
+            status: newOrderStatus,
+            completedAt: now(),
+            updateTime: now(),
+          },
         });
       }
+
+      return { success: true, newOrderStatus };
+    }
+
+    case "markCookingStepUndone": {
+      const { stepId } = event;
+      if (!stepId) throw new Error("缺少 stepId");
+
+      const stepRes = await db.collection("order_cooking_steps").where({ _id: stepId }).get();
+      const step = stepRes && stepRes.data && stepRes.data[0] ? stepRes.data[0] : null;
+      if (!step) throw new Error("步骤不存在");
+
+      const order = await getOrder({ orderId: step.orderId });
+      if (!order) throw new Error("点菜单不存在");
+      await assertFamilyMember({ openid, familyId: order.familyId });
+
+      if (order.status !== "pending_cooking") {
+        return { success: true, newOrderStatus: order.status };
+      }
+
+      await db.collection("order_cooking_steps").where({ _id: stepId }).update({
+        data: {
+          done: false,
+          doneTime: null,
+        },
+      });
+
+      return { success: true, newOrderStatus: order.status };
+    }
+
+    case "completeCookingOrder": {
+      const { orderId } = event;
+      if (!orderId) throw new Error("缺少 orderId");
+
+      const order = await getOrder({ orderId });
+      if (!order) throw new Error("点菜单不存在");
+      await assertFamilyMember({ openid, familyId: order.familyId });
+
+      if (order.status !== "pending_cooking") {
+        return { success: true, newOrderStatus: order.status };
+      }
+
+      const newOrderStatus = "completed";
+      await db.collection("orders").where({ _id: order._id }).update({
+        data: {
+          status: newOrderStatus,
+          completedAt: now(),
+          updateTime: now(),
+        },
+      });
 
       return { success: true, newOrderStatus };
     }

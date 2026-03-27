@@ -1,29 +1,105 @@
-<view class="page ft-page">
-  <view class="ft-loading-mask" wx:if="{{listLoading}}">
-    <view class="ft-loading-spinner" />
-    <text class="ft-loading-text">加载菜谱…</text>
-  </view>
-  <view class="search">
-    <input placeholder="搜索菜名" class="search-input" value="{{keyword}}" bindinput="onKeywordInput" />
-  </view>
-  <button class="add-btn" bindtap="goAdd">添加菜谱</button>
+<view class="ft-page recipe-list-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
 
-  <view class="list {{listLoading ? 'ft-list-dim' : ''}}">
-    <block wx:for="{{recipes}}" wx:key="id">
-      <view
-        class="card"
-        bindtap="goDetail"
-        bindlongpress="onLongPressRecipe"
-        data-recipeid="{{item.id}}"
-      >
-        <image class="img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
-        <view class="meta">
-          <view class="name">{{item.recipeName}}</view>
-          <view class="time">添加时间：{{item.createTime || ''}}</view>
-        </view>
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="onBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
       </view>
-    </block>
-    <view wx:if="{{!recipes || recipes.length === 0}}" class="empty">暂无菜谱</view>
+      <view class="top-title">家庭菜谱</view>
+    </view>
+    <view class="top-spacer"></view>
+  </view>
+
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="search-wrap">
+        <text class="search-icon">⌕</text>
+        <input class="search-input" placeholder="搜索菜名" value="{{keyword}}" bindinput="onKeywordInput" />
+        <view class="clear-btn" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+
+      <view class="add-btn" bindtap="goAdd">添加菜谱</view>
+
+      <view class="count-row">
+        <view class="count-text">共 {{viewRecipes.length}} 个菜谱</view>
+        <view class="hint-text" wx:if="{{keyword}}">已按关键词筛选</view>
+      </view>
+      <view class="list-hint-delete" wx:if="{{viewRecipes.length}}">点击右侧「删」或长按条目可删除</view>
+
+      <view class="recipe-list" wx:if="{{viewRecipes.length}}">
+        <block wx:for="{{viewRecipes}}" wx:key="id">
+          <view class="recipe-item" bindtap="goDetail" bindlongpress="onLongPressRecipe" data-recipeid="{{item.id}}">
+            <view class="recipe-row">
+              <view class="recipe-media">
+                <image class="recipe-img" wx:if="{{item.recipeImgDisplay || item.recipeImg}}" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
+                <view class="recipe-img-placeholder" wx:else>待上传</view>
+              </view>
+              <view class="recipe-body">
+                <view class="recipe-name">{{item.recipeName}}</view>
+                <view class="recipe-date">添加于 {{item.createDateText}}</view>
+                <view class="recipe-foot">
+                  <view class="recipe-tag">{{item.tagText}}</view>
+                  <view class="recipe-foot-right">
+                    <view class="recipe-row-del" catchtap="onTapDeleteRecipe" data-recipeid="{{item.id}}">删</view>
+                    <view class="recipe-arrow">›</view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <view class="empty-card" wx:if="{{!viewRecipes.length}}">
+        <view class="empty-ico">◉</view>
+        <view class="empty-title">暂无菜谱</view>
+        <view class="empty-sub">先添加一份家庭常用菜谱吧</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="loading-mask" wx:if="{{listLoading}}">
+    <view class="loading-card">
+      <view class="loading-title">加载菜谱…</view>
+      <view class="skeleton" />
+      <view class="skeleton" />
+      <view class="skeleton" />
+    </view>
+  </view>
+
+  <view class="sheet-overlay" wx:if="{{sheetVisible}}" catchtap="closeSheet"></view>
+  <view class="action-sheet" wx:if="{{sheetVisible}}">
+    <view class="sheet-head">
+      <view>
+        <view class="sheet-kicker">操作</view>
+        <view class="sheet-title">{{selectedRecipeName}}</view>
+      </view>
+      <view class="sheet-close" bindtap="closeSheet">×</view>
+    </view>
+    <view class="sheet-list">
+      <view class="sheet-item" bindtap="onEditSelected">
+        <text>编辑</text>
+        <text>›</text>
+      </view>
+      <view class="sheet-item danger" bindtap="onAskDeleteSelected">
+        <text>删除</text>
+        <text>›</text>
+      </view>
+      <view class="sheet-cancel" bindtap="closeSheet">取消</view>
+    </view>
+  </view>
+
+  <view class="confirm-overlay" wx:if="{{confirmVisible}}" catchtap="closeConfirm"></view>
+  <view class="confirm-modal" wx:if="{{confirmVisible}}">
+    <view class="confirm-kicker">确认删除</view>
+    <view class="confirm-title">删除后不可恢复</view>
+    <view class="confirm-desc">你确定要删除 {{selectedRecipeName}} 吗？</view>
+    <view class="confirm-actions">
+      <view class="confirm-btn" bindtap="closeConfirm">取消</view>
+      <view class="confirm-btn danger" bindtap="onConfirmDelete">删除</view>
+    </view>
   </view>
 </view>
 

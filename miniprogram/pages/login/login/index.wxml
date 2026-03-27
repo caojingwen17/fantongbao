@@ -1,31 +1,66 @@
-<view class="page">
-  <view class="title">饭桶宝</view>
-  <view class="desc">请设置头像、填写昵称后登录，用于家庭内展示</view>
+<view class="ft-page login-page">
+  <!-- Decorative blobs -->
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+  <view class="blob blob-c"></view>
 
-  <view wx:if="{{checkingSession}}" class="checking">正在恢复登录…</view>
+  <view class="login-main">
+    <!-- Brand -->
+    <view class="brand">
+      <view class="brand-logo">
+        <image class="brand-logo-img" mode="aspectFill" src="/images/icons/fantongbao.png" />
+      </view>
+      <view class="brand-title">饭桶宝</view>
+      <view class="brand-sub">请设置头像、填写昵称后登录，用于家庭内展示</view>
+    </view>
 
-  <block wx:else>
-    <view class="form">
-      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-        <image wx:if="{{avatarPreview}}" class="avatar-img" mode="aspectFill" src="{{avatarPreview}}" />
-        <view wx:else class="avatar-placeholder">点击选择头像</view>
-      </button>
+    <!-- 静默恢复提示 -->
+    <view class="restore-card ft-card-lowest" wx:if="{{checkingSession}}">
+      <view class="restore-row">
+        <view class="restore-spinner"></view>
+        <view class="restore-text">正在恢复登录…</view>
+      </view>
+    </view>
 
-      <view class="nick-wrap">
-        <view class="nick-label">昵称</view>
-        <input
-          class="nick-input"
-          type="nickname"
-          placeholder="请输入昵称"
-          value="{{nickName}}"
-          bindinput="onNickInput"
-        />
+    <!-- Form Card -->
+    <view class="form-card ft-card" wx:else>
+      <!-- Avatar -->
+      <view class="row">
+        <view class="row-left">
+          <view class="row-title">头像</view>
+          <view class="row-sub">{{avatarPreview ? "已选择" : "点击选择头像"}}</view>
+        </view>
+        <button class="avatar-pick" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" aria-label="选择头像">
+          <image wx:if="{{avatarPreview}}" class="avatar-img" mode="aspectFill" src="{{avatarPreview}}" />
+          <text wx:else class="avatar-icon">📷</text>
+        </button>
       </view>
 
-      <button class="login-btn" type="primary" bindtap="onSubmitLogin" disabled="{{isLoading}}">
+      <!-- Nickname -->
+      <view class="field">
+        <view class="field-label">昵称</view>
+        <view class="field-input-wrap">
+          <text class="field-icon">🏷️</text>
+          <input
+            class="field-input"
+            type="nickname"
+            placeholder="请输入昵称"
+            value="{{nickName}}"
+            bindinput="onNickInput"
+          />
+        </view>
+      </view>
+
+      <!-- Submit -->
+      <button class="ft-btn ft-btn-primary submit-btn" bindtap="onSubmitLogin" disabled="{{isLoading}}">
+        <text class="submit-icon">{{isLoading ? "⏳" : "🔐"}}</text>
         {{isLoading ? "登录中…" : "完成登录"}}
       </button>
-      <view class="tip">体验版/正式版需使用微信提供的头像昵称能力，不再支持旧版静默授权获取真实资料</view>
     </view>
-  </block>
+
+    <!-- Footer Note -->
+    <view class="footer-note">
+      体验版/正式版需使用微信提供的头像昵称能力，不再支持旧版静默授权获取真实资料
+    </view>
+  </view>
 </view>

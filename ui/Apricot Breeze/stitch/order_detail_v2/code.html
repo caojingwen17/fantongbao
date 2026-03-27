@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Fantongbao - 点菜单详情</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#b92902",
+              "outline-variant": "#d0a66d",
+              "surface-container-low": "#ffeedc",
+              primary: "#874e00",
+              "on-primary": "#fff0e5",
+              "on-error-container": "#520c00",
+              "primary-dim": "#764400",
+              tertiary: "#006b1b",
+              "on-secondary-container": "#5b5300",
+              "primary-container": "#ff9800",
+              "on-surface-variant": "#765524",
+              "on-surface": "#432900",
+              "secondary-fixed": "#f9e534",
+              "on-tertiary-container": "#005e17",
+              "inverse-on-surface": "#bf965e",
+              "inverse-surface": "#170c00",
+              "surface-container-highest": "#ffd6a2",
+              "tertiary-fixed": "#91f78e",
+              "on-secondary-fixed-variant": "#665c00",
+              "tertiary-dim": "#005d16",
+              "primary-fixed-dim": "#ec8c00",
+              "on-tertiary-fixed": "#00480f",
+              "on-background": "#432900",
+              "on-primary-container": "#4a2800",
+              "on-tertiary": "#d1ffc8",
+              "tertiary-fixed-dim": "#83e881",
+              "inverse-primary": "#ff9800",
+              "secondary-fixed-dim": "#ead723",
+              "on-secondary": "#fff4b0",
+              "surface-tint": "#874e00",
+              outline: "#95703c",
+              "error-container": "#f95630",
+              "secondary-dim": "#595000",
+              "on-primary-fixed-variant": "#563000",
+              surface: "#fff5ec",
+              "primary-fixed": "#ff9800",
+              "on-tertiary-fixed-variant": "#00691a",
+              "surface-container": "#ffe4c4",
+              "surface-bright": "#fff5ec",
+              error: "#b02500",
+              "on-primary-fixed": "#271300",
+              "secondary-container": "#f9e534",
+              "surface-container-high": "#ffddb3",
+              secondary: "#665c00",
+              "on-error": "#ffefec",
+              "on-secondary-fixed": "#474000",
+              "tertiary-container": "#91f78e",
+              "surface-variant": "#ffd6a2",
+              "surface-dim": "#ffcc86",
+              background: "#fff5ec",
+              "surface-container-lowest": "#ffffff",
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans"],
+              body: ["Plus Jakarta Sans"],
+              label: ["Plus Jakarta Sans"],
+            },
+            borderRadius: {
+              DEFAULT: "1rem",
+              lg: "2rem",
+              xl: "3rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+      .bubbly-gradient {
+        background: linear-gradient(135deg, #874e00 0%, #ff9800 100%);
+      }
+      .sticky-blur {
+        background: rgba(255, 245, 236, 0.88);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+    </style>
+  </head>
+  <body class="bg-surface text-on-surface min-h-screen">
+    <div class="mx-auto w-full max-w-[375px] min-h-[812px] bg-surface relative overflow-hidden">
+      <!-- Decorative blobs -->
+      <div class="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-secondary-fixed opacity-18 blur-3xl"></div>
+      <div class="pointer-events-none absolute top-52 -left-24 w-64 h-64 rounded-full bg-tertiary-fixed opacity-12 blur-3xl"></div>
+
+      <!-- Top App Bar -->
+      <header class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-50 flex items-center justify-between px-5 py-4 bg-orange-50/80 dark:bg-stone-900/80 backdrop-blur-md">
+        <button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant active:scale-90 transition-transform" aria-label="返回">
+          <span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <div class="text-lg font-black tracking-tight">点菜单详情</div>
+        <div class="w-10 h-10" aria-hidden="true"></div>
+      </header>
+
+      <main class="relative z-10 pt-24 px-5 pb-28 space-y-5">
+        <!-- Header card -->
+        <section class="bg-surface-container-lowest rounded-lg p-5 space-y-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-black uppercase tracking-widest text-on-surface-variant">点菜单名</div>
+              <div id="orderName" class="mt-1 text-2xl font-extrabold tracking-tight truncate">周末家常（3 道菜）</div>
+              <div class="mt-1 text-sm font-semibold text-on-surface-variant">状态：<span id="statusText" class="font-extrabold text-primary">待买菜</span></div>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-on-secondary-container" data-icon="receipt_long">receipt_long</span>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Dishes -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <div class="text-sm font-extrabold">已点菜品</div>
+            <span id="dishCount" class="text-xs font-extrabold text-primary px-3 py-1 bg-surface-container-high rounded-full">2 道</span>
+          </div>
+
+          <div id="dishList" class="space-y-3">
+            <div class="dish-item bg-surface-container-lowest rounded-lg p-4" data-id="d1" data-name="西红柿炒蛋">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-lg font-extrabold text-on-surface truncate">西红柿炒蛋</div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant">点菜人：小雨</div>
+                  <div class="mt-2 text-xs font-semibold text-on-surface-variant">
+                    备注：少放盐，鸡蛋偏嫩一点
+                  </div>
+                </div>
+                <button class="remove-dish w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-error active:scale-90 transition-transform" aria-label="删除">
+                  <span class="material-symbols-outlined" data-icon="delete">delete</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="dish-item bg-surface-container-lowest rounded-lg p-4" data-id="d2" data-name="麻婆豆腐">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-lg font-extrabold text-on-surface truncate">麻婆豆腐</div>
+                  <div class="mt-1 text-xs font-semibold text-on-surface-variant">点菜人：李伟</div>
+                  <div class="mt-2 text-xs font-semibold text-on-surface-variant">备注：微辣即可</div>
+                </div>
+                <button class="remove-dish w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-error active:scale-90 transition-transform" aria-label="删除">
+                  <span class="material-symbols-outlined" data-icon="delete">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="dishEmpty" class="hidden bg-surface-container-lowest rounded-lg p-8 text-center">
+            <div class="mx-auto w-14 h-14 rounded-full bg-surface-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-outline" data-icon="playlist_add">playlist_add</span>
+            </div>
+            <div class="mt-4 text-lg font-extrabold text-on-surface">暂无菜品</div>
+            <div class="mt-1 text-sm font-semibold text-on-surface-variant">去继续加菜吧</div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Bottom actions -->
+      <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] z-[55] px-5 pb-5 pt-3 sticky-blur border-t border-surface-container">
+        <div id="actionsPendingShopping" class="grid grid-cols-2 gap-3">
+          <button class="py-4 rounded-full bg-secondary-container text-on-secondary-container font-extrabold active:scale-95 transition-transform" aria-label="继续加菜">
+            继续加菜
+          </button>
+          <button class="py-4 rounded-full bubbly-gradient text-on-primary font-extrabold shadow-[0_12px_24px_rgba(135,78,0,0.16)] active:scale-95 transition-transform" aria-label="去买菜">
+            去买菜
+          </button>
+        </div>
+        <div id="actionsPendingCooking" class="hidden grid grid-cols-2 gap-3">
+          <button class="py-4 rounded-full bg-secondary-container text-on-secondary-container font-extrabold active:scale-95 transition-transform" aria-label="继续加菜">
+            继续加菜
+          </button>
+          <button class="py-4 rounded-full bg-tertiary-container text-on-tertiary-container font-extrabold active:scale-95 transition-transform" aria-label="去做菜">
+            去做菜
+          </button>
+        </div>
+        <div id="actionsCompleted" class="hidden">
+          <button class="w-full py-4 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform" aria-label="已完成（返回）">
+            已完成（返回）
+          </button>
+        </div>
+      </div>
+
+      <!-- 删除确认 -->
+      <div id="confirmOverlay" class="hidden fixed inset-0 z-[70] bg-black/35 backdrop-blur-[2px]"></div>
+      <div id="confirmModal" class="hidden fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-[80] w-[335px] max-w-[90%] bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-lg shadow-[0_12px_24px_rgba(67,41,0,0.12)] p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs font-black uppercase tracking-widest text-on-surface-variant">确认删除</div>
+            <div class="mt-1 text-xl font-extrabold tracking-tight">删除后将同步更新买菜清单</div>
+          </div>
+          <button data-action="close-confirm" class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center active:scale-90 transition-transform" aria-label="关闭">
+            <span class="material-symbols-outlined text-on-surface-variant" data-icon="close">close</span>
+          </button>
+        </div>
+        <div class="mt-3 text-sm font-semibold text-on-surface-variant leading-relaxed">
+          你确定要删除 <span id="deleteName" class="font-extrabold text-on-surface">西红柿炒蛋</span> 吗？
+        </div>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button data-action="close-confirm" class="py-4 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform" aria-label="取消">取消</button>
+          <button id="confirmDeleteBtn" class="py-4 rounded-full bg-error-container text-on-error-container font-extrabold active:scale-95 transition-transform" aria-label="确认删除">删除</button>
+        </div>
+      </div>
+
+      <!-- 空单提示（删除点菜单） -->
+      <div id="emptyOrderOverlay" class="hidden fixed inset-0 z-[85] bg-black/35 backdrop-blur-[2px]"></div>
+      <div id="emptyOrderModal" class="hidden fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-[90] w-[335px] max-w-[90%] bg-white/90 dark:bg-stone-950/90 backdrop-blur-xl rounded-lg shadow-[0_12px_24px_rgba(67,41,0,0.12)] p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs font-black uppercase tracking-widest text-on-surface-variant">点菜单为空</div>
+            <div class="mt-1 text-xl font-extrabold tracking-tight">是否删除点菜单？</div>
+          </div>
+          <button data-action="close-empty" class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center active:scale-90 transition-transform" aria-label="关闭">
+            <span class="material-symbols-outlined text-on-surface-variant" data-icon="close">close</span>
+          </button>
+        </div>
+        <div class="mt-3 text-sm font-semibold text-on-surface-variant leading-relaxed">
+          当前点菜单已没有菜品，你可以选择删除该点菜单。
+        </div>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button data-action="close-empty" class="py-4 rounded-full bg-surface-container text-on-surface font-extrabold active:scale-95 transition-transform" aria-label="保留">保留</button>
+          <button id="deleteOrderBtn" class="py-4 rounded-full bg-error-container text-on-error-container font-extrabold active:scale-95 transition-transform" aria-label="删除点菜单">删除点菜单</button>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-10 z-[120] bg-inverse-surface/90 text-inverse-on-surface px-4 py-2 rounded-full text-sm font-extrabold shadow-[0_12px_24px_rgba(0,0,0,0.25)]">
+        提示
+      </div>
+
+      <script>
+        (function () {
+          const el = (id) => document.getElementById(id);
+          const statusText = el("statusText");
+          const dishList = el("dishList");
+          const dishEmpty = el("dishEmpty");
+          const dishCount = el("dishCount");
+
+          const actionsPendingShopping = el("actionsPendingShopping");
+          const actionsPendingCooking = el("actionsPendingCooking");
+          const actionsCompleted = el("actionsCompleted");
+
+          const confirmOverlay = el("confirmOverlay");
+          const confirmModal = el("confirmModal");
+          const deleteName = el("deleteName");
+          const confirmDeleteBtn = el("confirmDeleteBtn");
+
+          const emptyOrderOverlay = el("emptyOrderOverlay");
+          const emptyOrderModal = el("emptyOrderModal");
+          const deleteOrderBtn = el("deleteOrderBtn");
+
+          const toast = el("toast");
+
+          const show = (node) => node && node.classList.remove("hidden");
+          const hide = (node) => node && node.classList.add("hidden");
+          const setText = (node, text) => node && (node.textContent = text);
+
+          const toastMsg = (msg) => {
+            setText(toast, msg);
+            show(toast);
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => hide(toast), 1400);
+          };
+
+          let currentStatus = "pending_shopping";
+          let selectedDishId = null;
+          let selectedDishName = null;
+
+          const updateDishUI = () => {
+            const count = dishList.querySelectorAll(".dish-item").length;
+            setText(dishCount, `${count} 道`);
+            if (count === 0) {
+              hide(dishList);
+              show(dishEmpty);
+            } else {
+              show(dishList);
+              hide(dishEmpty);
+            }
+          };
+          updateDishUI();
+
+          const openConfirmDelete = (id, name) => {
+            selectedDishId = id;
+            selectedDishName = name;
+            setText(deleteName, name || "");
+            show(confirmOverlay);
+            show(confirmModal);
+          };
+          const closeConfirmDelete = () => {
+            hide(confirmModal);
+            hide(confirmOverlay);
+          };
+
+          const openEmptyOrder = () => {
+            show(emptyOrderOverlay);
+            show(emptyOrderModal);
+          };
+          const closeEmptyOrder = () => {
+            hide(emptyOrderModal);
+            hide(emptyOrderOverlay);
+          };
+
+          const setStatus = (status) => {
+            currentStatus = status;
+            if (status === "pending_shopping") {
+              statusText.className = "font-extrabold text-primary";
+              setText(statusText, "待买菜");
+              show(actionsPendingShopping);
+              hide(actionsPendingCooking);
+              hide(actionsCompleted);
+              // allow delete buttons
+              dishList.querySelectorAll(".remove-dish").forEach((b) => b.classList.remove("hidden"));
+            } else if (status === "pending_cooking") {
+              statusText.className = "font-extrabold text-on-tertiary-container";
+              setText(statusText, "待制作");
+              hide(actionsPendingShopping);
+              show(actionsPendingCooking);
+              hide(actionsCompleted);
+              // still show delete icon but disabled (prototype)
+              dishList.querySelectorAll(".remove-dish").forEach((b) => b.classList.add("hidden"));
+            } else {
+              statusText.className = "font-extrabold text-on-surface-variant";
+              setText(statusText, "已完成");
+              hide(actionsPendingShopping);
+              hide(actionsPendingCooking);
+              show(actionsCompleted);
+              dishList.querySelectorAll(".remove-dish").forEach((b) => b.classList.add("hidden"));
+            }
+
+          };
+          setStatus(currentStatus);
+
+          dishList.addEventListener("click", (e) => {
+            const btn = e.target.closest?.(".remove-dish");
+            if (!btn) return;
+            if (currentStatus !== "pending_shopping") return;
+            const row = btn.closest?.(".dish-item");
+            if (!row) return;
+            openConfirmDelete(row.getAttribute("data-id"), row.getAttribute("data-name"));
+          });
+
+          confirmOverlay.addEventListener("click", closeConfirmDelete);
+          emptyOrderOverlay.addEventListener("click", closeEmptyOrder);
+
+          document.addEventListener("click", (e) => {
+            const action = e.target?.closest?.("[data-action]")?.getAttribute?.("data-action");
+            if (action === "close-confirm") closeConfirmDelete();
+            if (action === "close-empty") closeEmptyOrder();
+
+          });
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+              closeEmptyOrder();
+              closeConfirmDelete();
+            }
+          });
+
+          confirmDeleteBtn.addEventListener("click", () => {
+            const row = dishList.querySelector(`.dish-item[data-id="${CSS.escape(selectedDishId)}"]`);
+            if (row) row.remove();
+            closeConfirmDelete();
+            updateDishUI();
+            toastMsg("已删除菜品（示例）");
+            if (dishList.querySelectorAll(".dish-item").length === 0) openEmptyOrder();
+          });
+
+          deleteOrderBtn.addEventListener("click", () => {
+            closeEmptyOrder();
+            toastMsg("已删除点菜单（示例）");
+          });
+        })();
+      </script>
+    </div>
+  </body>
+</html>

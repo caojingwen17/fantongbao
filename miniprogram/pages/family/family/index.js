@@ -1,8 +1,22 @@
 const cloud = require("../../../utils/cloud");
 const { resolveBatch, attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
+/** cloud:// 不能直接作 image src（开发者工具会拼成页面相对路径）；仅使用解析后的 https 或原 http(s) */
+function avatarUrlForDisplay(raw, fileIdToHttps) {
+  const u = raw || "";
+  if (!u) return "";
+  if (String(u).indexOf("cloud://") === 0) {
+    const resolved = fileIdToHttps && fileIdToHttps[u];
+    if (resolved && /^https?:\/\//i.test(String(resolved))) return resolved;
+    return "";
+  }
+  return u;
+}
+
 Page({
   data: {
+    userNickName: "",
+    userAvatarUrl: "",
     familyName: "",
     inviteCode: "",
     families: [],
@@ -11,6 +25,7 @@ Page({
     currentFamily: null,
     members: [],
     recipes: [],
+    recipeTotalCount: 0,
     /** 首屏拉取家庭/成员 */
     pageBooting: true,
     /** 切换家庭/加载详情时 */
@@ -23,6 +38,17 @@ Page({
     switchingFamilyId: "",
     /** 页面模式：先列表，再详情 */
     viewMode: "list",
+    /** 干饭日历：当前展示的年月与格子 */
+    mealCalYear: 0,
+    mealCalMonth: 0,
+    mealWeekdayLabels: ["日", "一", "二", "三", "四", "五", "六"],
+    calendarCells: [],
+    calendarLoading: false,
+    /** 干饭日历：按日聚合的订单详情（弹窗用） */
+    mealCalDayMap: {},
+    mealCalModalVisible: false,
+    mealCalModalTitle: "",
+    mealCalModalOrders: [],
     /** 弹窗：创建/加入家庭 */
     dialogVisible: false,
     dialogMode: "",
@@ -30,11 +56,31 @@ Page({
   },
 
   async onLoad() {
+    const app = getApp();
+    const ui = app && app.globalData && app.globalData.userInfo ? app.globalData.userInfo : null;
+    this.setData({
+      userNickName: (ui && (ui.nickName || ui.nickname)) || "",
+      userAvatarUrl: (ui && (ui.avatarUrl || ui.avatar)) || "",
+    });
     try {
       await this.refreshFamiliesList();
     } finally {
       this.setData({ pageBooting: false });
     }
+  },
+
+  onShow() {
+    if (this.data.viewMode === "detail" && this.data.currentFamily && this.data.currentFamily._id) {
+      this.fetchMealCalendar();
+    }
+  },
+
+  onBack() {
+    if (this.data.viewMode === "detail") {
+      this.onBackToList();
+      return;
+    }
+    wx.navigateBack();
   },
 
   onFamilyNameInput(e) {
@@ -111,18 +157,52 @@ Page({
         familyIds: ids,
       })
       .catch(() => ({}));
-    const recipeCounts = (countsResp && countsResp.counts) || {};
+    const recipeCountsFromBatch = (countsResp && countsResp.counts) || {};
+    const recipeCounts = { ...recipeCountsFromBatch };
+
+    // 某些环境下批量统计可能返回不准确的 0，这里按家庭逐个兜底一次，保证展示数量正确
+    await Promise.all(
+      ids.map(async (familyId) => {
+        const batchCount =
+          recipeCountsFromBatch && typeof recipeCountsFromBatch[familyId] === "number"
+            ? recipeCountsFromBatch[familyId]
+            : null;
+        if (typeof batchCount === "number" && batchCount > 0) return;
+        const listResp = await cloud
+          .callFunction("recipeFunctions", { type: "listRecipes", familyId, keyword: "" })
+          .catch(() => ({}));
+        const list = (listResp && listResp.recipes) || [];
+        if (Array.isArray(list)) {
+          recipeCounts[familyId] = list.length;
+        }
+      })
+    );
     this.setData({ recipeCounts });
 
     const openid = app.globalData.openid;
     const familiesDisplay = families.map((f) => {
       const isAdmin = !!(openid && f && f.adminId === openid);
       const roleText = isAdmin ? "管理员" : "成员";
-      const recipeCount = recipeCounts && typeof recipeCounts[f._id] === "number" ? recipeCounts[f._id] : 0;
+      const recipeCountFromCloud = recipeCounts && typeof recipeCounts[f._id] === "number" ? recipeCounts[f._id] : null;
+      const recipeCountFromFamily =
+        typeof f.recipeCount === "number"
+          ? f.recipeCount
+          : typeof f.recipesCount === "number"
+            ? f.recipesCount
+            : Array.isArray(f.recipeIds)
+              ? f.recipeIds.length
+              : null;
+      const recipeCount =
+        typeof recipeCountFromCloud === "number"
+          ? recipeCountFromCloud
+          : typeof recipeCountFromFamily === "number"
+            ? recipeCountFromFamily
+            : 0;
+      const memberCount = Array.isArray(f && f.memberIds) ? f.memberIds.length : 0;
       return {
         ...f,
         isCurrent: !!(current && current._id === f._id),
-        subtitle: `${roleText} | ${recipeCount}个菜谱`,
+        subtitle: `${roleText} · ${memberCount} 人 · ${recipeCount} 个菜谱`,
       };
     });
     this.setData({ familiesDisplay });
@@ -134,6 +214,7 @@ Page({
     const family = families.find((f) => f && f._id === familyId) || null;
     if (!family) return;
 
+    const calNow = new Date();
     this.setData({
       currentFamily: family,
       detailLoading: true,
@@ -141,15 +222,23 @@ Page({
       recipesLoading: true,
       members: [],
       recipes: [],
+      recipeTotalCount: 0,
+      mealCalYear: calNow.getFullYear(),
+      mealCalMonth: calNow.getMonth() + 1,
+      calendarCells: [],
+      mealCalDayMap: {},
     });
 
     try {
-      const [membersResp, recipesResp] = await Promise.all([
+      const [membersResp, recipesResp, orderCountResp] = await Promise.all([
         cloud
           .callFunction("familyFunctions", { type: "getFamilyMembers", familyId })
           .catch(() => ({})),
         cloud
           .callFunction("recipeFunctions", { type: "listRecipes", familyId, keyword: "" })
+          .catch(() => ({})),
+        cloud
+          .callFunction("orderFunctions", { type: "countRecipeOrdersInFamily", familyId })
           .catch(() => ({})),
       ]);
 
@@ -164,7 +253,7 @@ Page({
 
       const quickMembers = sortedRawMembers.map((m) => {
         if (!m) return m;
-        return { ...m, avatarUrlDisplay: m.avatarUrl };
+        return { ...m, avatarUrlDisplay: avatarUrlForDisplay(m.avatarUrl, {}) };
       });
       this.setData({ members: quickMembers, membersLoading: false });
 
@@ -172,19 +261,146 @@ Page({
       const map = await resolveBatch(urls, { familyId });
       const members = sortedRawMembers.map((m) => {
         if (!m) return m;
-        const u = m.avatarUrl;
-        const display = u && map[u] ? map[u] : u;
-        return { ...m, avatarUrlDisplay: display || u };
+        return { ...m, avatarUrlDisplay: avatarUrlForDisplay(m.avatarUrl, map) };
       });
 
       const rawRecipes = (recipesResp && recipesResp.recipes) || [];
-      const recipes = await attachRecipeImgDisplay(rawRecipes.slice(0, 60));
+      const recipeTotalCount = rawRecipes.length;
+      const orderCounts = (orderCountResp && orderCountResp.counts) || {};
+      const sorted = [...rawRecipes].sort((a, b) => {
+        const ida = a && a.id ? a.id : "";
+        const idb = b && b.id ? b.id : "";
+        const ca = typeof orderCounts[ida] === "number" ? orderCounts[ida] : 0;
+        const cb = typeof orderCounts[idb] === "number" ? orderCounts[idb] : 0;
+        if (cb !== ca) return cb - ca;
+        const ta = a && a.createTime ? new Date(a.createTime).getTime() : 0;
+        const tb = b && b.createTime ? new Date(b.createTime).getTime() : 0;
+        return tb - ta;
+      });
+      const top7 = sorted.slice(0, 7);
+      const recipes = await attachRecipeImgDisplay(top7);
 
-      this.setData({ members, recipes, recipesLoading: false });
+      this.setData({ members, recipes, recipeTotalCount, recipesLoading: false });
+      await this.fetchMealCalendar();
     } finally {
       this.setData({ detailLoading: false, membersLoading: false, recipesLoading: false });
     }
   },
+
+  buildCalendarCells(year, month, byDay) {
+    const first = new Date(year, month - 1, 1);
+    const firstWeekday = first.getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < firstWeekday; i++) {
+      cells.push({ type: "pad", cellKey: `p-${i}` });
+    }
+    const ym = `${year}-${String(month).padStart(2, "0")}`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = `${ym}-${String(d).padStart(2, "0")}`;
+      const orders = byDay[key] || [];
+      const orderCount = orders.length;
+      cells.push({
+        type: "day",
+        day: d,
+        orders,
+        cellKey: key,
+        orderCount,
+      });
+    }
+    const remainder = cells.length % 7;
+    if (remainder !== 0) {
+      for (let i = 0; i < 7 - remainder; i++) {
+        cells.push({ type: "pad", cellKey: `e-${i}` });
+      }
+    }
+    return cells;
+  },
+
+  async fetchMealCalendar() {
+    const familyId = this.data.currentFamily && this.data.currentFamily._id;
+    if (!familyId || this.data.viewMode !== "detail") return;
+    const { mealCalYear, mealCalMonth } = this.data;
+    if (!mealCalYear || !mealCalMonth) return;
+    this.setData({ calendarLoading: true });
+    try {
+      const res = await cloud.callFunction("orderFunctions", {
+        type: "listCompletedOrdersInMonth",
+        familyId,
+        year: mealCalYear,
+        month: mealCalMonth,
+      });
+      const list = (res && res.orders) || [];
+      const byDay = {};
+      list.forEach((o) => {
+        const t = o.completedAt;
+        if (!t) return;
+        const d = new Date(t);
+        if (Number.isNaN(d.getTime())) return;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push({
+          _id: o._id,
+          orderName: o.orderName || "点菜单",
+          recipeNames: Array.isArray(o.recipeNames) ? o.recipeNames : [],
+          durationText: o.durationText || "—",
+          timeRangeText: o.timeRangeText || "—",
+        });
+      });
+      const calendarCells = this.buildCalendarCells(mealCalYear, mealCalMonth, byDay);
+      this.setData({ calendarCells, mealCalDayMap: byDay });
+    } catch (e) {
+      this.setData({ calendarCells: [], mealCalDayMap: {} });
+    } finally {
+      this.setData({ calendarLoading: false });
+    }
+  },
+
+  onPrevMealMonth() {
+    let { mealCalYear, mealCalMonth } = this.data;
+    mealCalMonth -= 1;
+    if (mealCalMonth < 1) {
+      mealCalMonth = 12;
+      mealCalYear -= 1;
+    }
+    this.setData({ mealCalYear, mealCalMonth });
+    this.fetchMealCalendar();
+  },
+
+  onNextMealMonth() {
+    let { mealCalYear, mealCalMonth } = this.data;
+    mealCalMonth += 1;
+    if (mealCalMonth > 12) {
+      mealCalMonth = 1;
+      mealCalYear += 1;
+    }
+    this.setData({ mealCalYear, mealCalMonth });
+    this.fetchMealCalendar();
+  },
+
+  onMealCalDayTap(e) {
+    const has = Number(e.currentTarget.dataset.hasorders || 0);
+    const key = e.currentTarget.dataset.daykey;
+    if (!has || !key) return;
+    const map = this.data.mealCalDayMap || {};
+    const raw = map[key] || [];
+    const mealCalModalOrders = raw.map((o) => ({
+      ...o,
+      recipeNames: Array.isArray(o.recipeNames) ? o.recipeNames : [],
+    }));
+    const parts = String(key).split("-");
+    const y = parts[0];
+    const mo = parts[1];
+    const day = parts[2];
+    const mealCalModalTitle = `${y}年${Number(mo)}月${Number(day)}日`;
+    this.setData({ mealCalModalVisible: true, mealCalModalTitle, mealCalModalOrders });
+  },
+
+  closeMealCalModal() {
+    this.setData({ mealCalModalVisible: false });
+  },
+
+  noop() {},
 
   async onCreateFamily() {
     if (!this.data.familyName) {

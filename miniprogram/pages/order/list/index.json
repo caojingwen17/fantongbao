@@ -1,4 +1,5 @@
 {
-  "navigationBarTitleText": "点菜单"
+  "navigationBarTitleText": "点菜单",
+  "navigationStyle": "custom"
 }
 

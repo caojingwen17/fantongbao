@@ -132,13 +132,91 @@ function normalizeRecipeOut(obj, fallbackName) {
   const cleanedPrepareSteps = prepareSteps.map((s) => safeStr(s).trim()).filter((s) => s);
   const cleanedCookingSteps = cookingSteps.map((s) => safeStr(s).trim()).filter((s) => s);
 
+  const seasoningRe = /(盐|糖|酱油|生抽|老抽|蚝油|料酒|醋|胡椒|花椒|孜然|豆瓣|豆豉|辣椒粉|淀粉|鸡精|味精|芝麻油|香油|番茄酱|沙拉酱|咖喱)/i;
+  const norm = (s) =>
+    safeStr(s)
+      .trim()
+      .replace(/\s+/g, "")
+      .replace(/[，,。\.、;；:：!！\?？\(\)（）【】\[\]'"“”‘’]/g, "")
+      .toLowerCase();
+  const seenIng = {};
+  const seenSea = {};
+  const finalIngredients = [];
+  const finalSeasonings = [];
+
+  // 先放模型的调料
+  cleanedSeasonings.forEach((x) => {
+    const key = norm(x.name);
+    if (!key || seenSea[key]) return;
+    seenSea[key] = true;
+    finalSeasonings.push(x);
+  });
+
+  // 对模型的食材做纠偏：像调料的项移到调料列表
+  cleanedIngredients.forEach((x) => {
+    const key = norm(x.name);
+    if (!key) return;
+    if (seasoningRe.test(x.name)) {
+      if (!seenSea[key]) {
+        seenSea[key] = true;
+        finalSeasonings.push(x);
+      }
+      return;
+    }
+    if (seenIng[key]) return;
+    seenIng[key] = true;
+    finalIngredients.push(x);
+  });
+
   return {
     recipeName,
-    ingredients: cleanedIngredients.length ? cleanedIngredients : base.ingredients,
-    seasonings: cleanedSeasonings.length ? cleanedSeasonings : base.seasonings,
+    ingredients: finalIngredients.length ? finalIngredients : base.ingredients,
+    seasonings: finalSeasonings.length ? finalSeasonings : base.seasonings,
     prepareSteps: cleanedPrepareSteps.length ? cleanedPrepareSteps : base.prepareSteps,
     cookingSteps: cleanedCookingSteps.length ? cleanedCookingSteps : base.cookingSteps,
   };
+}
+
+function extractTextFromResponseData(data, rawText) {
+  const out = (data && data.output) || [];
+  if (Array.isArray(out)) {
+    let all = "";
+    for (const item of out) {
+      const cList = item && item.content;
+      if (Array.isArray(cList)) {
+        for (const c of cList) {
+          const t = safeStr(c && (c.text || c.content || c.value)).trim();
+          if (t) all += (all ? "\n" : "") + t;
+        }
+      }
+      const msg = item && item.message;
+      const msgText = msg ? safeStr(msg.content).trim() : "";
+      if (msgText) all += (all ? "\n" : "") + msgText;
+    }
+    if (all.trim()) return all.trim();
+  }
+  return pickFirst(
+    data && data.output_text,
+    data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content,
+    rawText
+  );
+}
+
+function looksLikePlaceholderRecipe(recipe) {
+  if (!recipe || typeof recipe !== "object") return true;
+  const badWords = ["请补充", "待补充", "自行补充", "示例", "模板"];
+  const hasBad = (s) => {
+    const t = safeStr(s);
+    return badWords.some((w) => t.includes(w));
+  };
+  const ing = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const prep = Array.isArray(recipe.prepareSteps) ? recipe.prepareSteps : [];
+  const cook = Array.isArray(recipe.cookingSteps) ? recipe.cookingSteps : [];
+  if (!ing.length || !prep.length || !cook.length) return true;
+  const ingBad = ing.some((x) => hasBad(x && x.name));
+  const prepBad = prep.some((x) => hasBad(x));
+  const cookBad = cook.some((x) => hasBad(x));
+  return ingBad || prepBad || cookBad;
 }
 
 /**
@@ -160,10 +238,16 @@ async function qwenExtractRecipeFromImages(recipeName, images) {
     "你是一个“菜谱结构化提取器”。",
     `我会给你：菜名 + ${n} 张菜谱/做法截图（可能来自小红书保存的图片，按选择顺序排列）。`,
     "请综合所有图片中的文字与画面信息，识别并提取：食材、调料及用量、备菜步骤、做菜步骤；若多张图信息有重复，去重合并；若某张图只有部分信息，与其他图互补。",
+    "【关键分类规则】必须严格区分 ingredients（食材）和 seasonings（调料）：",
+    "1) ingredients 仅放“主料/配菜/可见实物食材”，如：猪肉、牛肉、鸡蛋、番茄、土豆、豆芽、青菜、葱姜蒜（作为配菜时）。",
+    "2) seasonings 仅放“调味/腌制/上色/增香配料”，如：盐、糖、生抽、老抽、酱油、蚝油、料酒、醋、胡椒粉、花椒、辣椒粉、豆瓣酱、淀粉、鸡精、味精、芝麻油、白芝麻。",
+    "3) 若同一项可能有歧义，优先按“是否主要用于调味”判断：用于调味则放 seasonings，否则放 ingredients。",
+    "4) 禁止把明显调料放进 ingredients（例如盐/生抽/料酒/醋/淀粉等）。",
+    "5) 结果中同名项只能出现一次，不要在 ingredients 和 seasonings 两边重复出现。",
     "若整体信息仍不足，也请基于菜名生成常见、可操作的通用菜谱补全。",
     "只输出 JSON，不要输出任何多余文字。JSON 格式如下：",
     '{ "recipeName": string, "ingredients":[{"name":string,"amount":string}], "seasonings":[{"name":string,"amount":string}], "prepareSteps":[string], "cookingSteps":[string] }',
-    "要求：ingredients/prepareSteps/cookingSteps 至少各 1 条；amount 可为空字符串。",
+    "要求：ingredients/prepareSteps/cookingSteps 至少各 1 条；amount 可为空字符串；每个字段内容必须具体，不要输出“请补充”。",
   ].join("\n");
 
   const content = [
@@ -204,33 +288,7 @@ async function qwenExtractRecipeFromImages(recipeName, images) {
 
   const data = resp && resp.data ? resp.data : null;
 
-  function extractTextFromResponses(d) {
-    const out = (d && d.output) || [];
-    if (Array.isArray(out)) {
-      let all = "";
-      for (const item of out) {
-        const cList = item && item.content;
-        if (Array.isArray(cList)) {
-          for (const c of cList) {
-            const t = safeStr(c && (c.text || c.content || c.value)).trim();
-            if (t) all += (all ? "\n" : "") + t;
-          }
-        }
-        const msg = item && item.message;
-        const msgText = msg ? safeStr(msg.content).trim() : "";
-        if (msgText) all += (all ? "\n" : "") + msgText;
-      }
-      if (all.trim()) return all.trim();
-    }
-    return "";
-  }
-
-  const text =
-    pickFirst(
-      extractTextFromResponses(data),
-      data && data.output_text,
-      data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content
-    ) || "";
+  const text = extractTextFromResponseData(data, safeStr(resp && resp.raw)) || "";
 
   try {
     console.log("[bailian] images:", n, "textLen:", safeStr(text).length);
@@ -246,10 +304,112 @@ async function qwenExtractRecipeFromImages(recipeName, images) {
   return parsed;
 }
 
+/**
+ * 仅基于菜名生成常见家常菜谱（结构化 JSON）
+ * @param {string} recipeName
+ */
+async function qwenGenerateCommonRecipeByName(recipeName, opts = {}) {
+  const { apiKey, baseUrl, model } = getBailianConfig();
+  if (!apiKey) {
+    const e = new Error("未配置百炼 API Key（请在云函数环境变量设置 DASHSCOPE_API_KEY）");
+    e.code = "NO_API_KEY";
+    throw e;
+  }
+
+  const name = safeStr(recipeName).trim();
+  if (!name) throw new Error("缺少 recipeName");
+
+  const url = `${baseUrl.replace(/\/+$/, "")}/responses`;
+  const hard = !!opts.hard;
+  const prompt = [
+    "你是一个“菜谱结构化提取器”。",
+    `我会给你菜名：${name}。`,
+    "请生成中国家庭可执行、常见且稳定的做法，输出：食材、调料及用量、备菜步骤、做菜步骤。",
+    "只输出 JSON，不要输出任何多余文字。JSON 格式如下：",
+    '{ "recipeName": string, "ingredients":[{"name":string,"amount":string}], "seasonings":[{"name":string,"amount":string}], "prepareSteps":[string], "cookingSteps":[string] }',
+    "要求：ingredients/prepareSteps/cookingSteps 至少各 1 条；amount 可为空字符串。",
+    "若信息不足，也请基于菜名生成常见、可操作的通用菜谱补全。",
+    hard
+      ? "强约束：ingredients 至少 3 条、prepareSteps 至少 3 条、cookingSteps 至少 4 条；禁止出现“请补充/待补充/模板”等占位词，必须给出具体可执行内容。"
+      : "输出应尽量具体可执行，避免空泛描述。",
+  ].join("\n");
+
+  const body = {
+    model,
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: prompt,
+          },
+        ],
+      },
+    ],
+  };
+
+  const resp = await httpsJson({
+    url,
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body,
+    timeoutMs: 60000,
+  });
+
+  const data = resp && resp.data ? resp.data : null;
+  const text = extractTextFromResponseData(data, safeStr(resp && resp.raw)) || "";
+
+  const parsed = jsonParseLoose(text);
+  if (!parsed) {
+    const e = new Error("大模型返回内容无法解析为 JSON");
+    e.code = "BAD_MODEL_OUTPUT";
+    e.raw = text || safeStr(resp && resp.raw);
+    throw e;
+  }
+  return parsed;
+}
+
 exports.main = async (event) => {
   if (!event || !event.type) throw new Error("缺少 type");
 
   switch (event.type) {
+    case "generateCommonRecipe": {
+      const { recipeName } = event;
+      if (!recipeName) throw new Error("缺少 recipeName");
+      try {
+        let modelOut = await qwenGenerateCommonRecipeByName(recipeName, { hard: false });
+        let normalized = normalizeRecipeOut(modelOut, recipeName);
+        // 若模型首轮给出占位内容，自动再试一轮
+        if (looksLikePlaceholderRecipe(normalized)) {
+          modelOut = await qwenGenerateCommonRecipeByName(recipeName, { hard: true });
+          normalized = normalizeRecipeOut(modelOut, recipeName);
+        }
+        if (looksLikePlaceholderRecipe(normalized)) {
+          throw new Error("模型返回占位内容");
+        }
+        return {
+          mock: false,
+          source: "name->qwen",
+          tip: "已根据菜名生成常用菜谱，可继续编辑",
+          ...normalized,
+        };
+      } catch (e) {
+        const parsed = genGenericRecipeByName(recipeName);
+        return {
+          mock: true,
+          source: "name->common-template-fallback",
+          tip: "模型生成失败，已回退到常用模板，可继续编辑",
+          error: safeStr(e && (e.message || e.errMsg)),
+          debugRaw: safeStr(e && e.raw).slice(0, 1200),
+          ...parsed,
+        };
+      }
+    }
+
     case "extractRecipe": {
       const { xiaohongshuUrl, recipeName } = event;
       if (!recipeName) throw new Error("缺少 recipeName");
