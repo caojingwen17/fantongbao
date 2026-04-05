@@ -7,7 +7,12 @@ function showLoading(title = "加载中…", mask = true) {
 }
 
 function hideLoading() {
-  wx.hideLoading();
+  if (typeof wx.hideLoading !== "function") return;
+  try {
+    wx.hideLoading({ noConflict: true });
+  } catch (e) {
+    wx.hideLoading();
+  }
 }
 
 /**

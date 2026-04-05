@@ -77,25 +77,27 @@
       </view>
 
       <view class="card import-card {{canImport ? '' : 'disabled'}}">
+        <!--
+        粘贴文案 · AI 提炼（正式版暂隐藏；云函数 extractRecipeFromText 仍可用，恢复下面整块即可）
+        <view class="import-block">...</view>
+        <view class="divider"></view>
+        -->
+
+        <!--
+        正式版暂不提供「小红书链接导入」，后续接入合规解析再开放。云函数仍保留 type: extractRecipe。
         <view class="import-block">
           <view class="import-row">
             <view class="import-name">小红书链接导入</view>
-            <view class="pill pill-muted" aria-hidden="true">开发中</view>
+            <view class="pill pill-muted">开发中</view>
           </view>
-          <view class="import-dev">
-            <view class="import-dev-left">
-              <view class="import-dev-title">开发中，敬请期待</view>
-              <view class="import-dev-sub">后续支持粘贴链接一键解析回填</view>
-            </view>
-            <view class="import-dev-ico" aria-hidden="true">⌛</view>
-          </view>
+          <view class="import-dev">...</view>
         </view>
-
-        <view class="divider" aria-hidden="true"></view>
+        <view class="divider"></view>
+        -->
 
         <view class="import-block">
           <view class="import-row">
-            <view class="import-name">本地多图导入（AI 识别）</view>
+            <view class="import-name">多图导入 · AI 识别</view>
           </view>
           <view class="import-actions">
             <view class="import-hint">最多 9 张 · 单张 ≤ 10MB</view>
@@ -110,7 +112,7 @@
 
         <view class="import-block">
           <view class="import-row">
-            <view class="import-name">一键生成常规菜谱</view>
+            <view class="import-name">AI 一键生成</view>
           </view>
           <view class="import-actions">
             <view class="import-hint">AI根据菜名自动生成常用菜谱</view>

@@ -160,7 +160,8 @@ Page({
     const recipeCountsFromBatch = (countsResp && countsResp.counts) || {};
     const recipeCounts = { ...recipeCountsFromBatch };
 
-    // 某些环境下批量统计可能返回不准确的 0，这里按家庭逐个兜底一次，保证展示数量正确
+    // 批量统计为 0 时，仅对「当前家庭」拉一次列表兜底，避免多家庭并发全表 listRecipes 拖慢首屏
+    const currentId = current && current._id ? current._id : "";
     await Promise.all(
       ids.map(async (familyId) => {
         const batchCount =
@@ -168,13 +169,18 @@ Page({
             ? recipeCountsFromBatch[familyId]
             : null;
         if (typeof batchCount === "number" && batchCount > 0) return;
-        const listResp = await cloud
-          .callFunction("recipeFunctions", { type: "listRecipes", familyId, keyword: "" })
-          .catch(() => ({}));
-        const list = (listResp && listResp.recipes) || [];
-        if (Array.isArray(list)) {
-          recipeCounts[familyId] = list.length;
+        if (!currentId || familyId !== currentId) {
+          if (typeof batchCount === "number") recipeCounts[familyId] = batchCount;
+          return;
         }
+        const listResp = await cloud
+          .callFunction("recipeFunctions", { type: "listRecipesForHome", familyId, limit: 1 })
+          .catch(() => ({}));
+        const total =
+          listResp && typeof listResp.totalCount === "number"
+            ? listResp.totalCount
+            : ((listResp && listResp.recipes) || []).length;
+        recipeCounts[familyId] = total;
       })
     );
     this.setData({ recipeCounts });
@@ -411,12 +417,20 @@ Page({
     this.setData({ actionBusy: true });
     wx.showLoading({ title: "创建中…", mask: true });
     try {
-      await cloud.callFunctionWithErrorToast("familyFunctions", {
+      const resp = await cloud.callFunctionWithErrorToast("familyFunctions", {
         type: "createFamily",
         familyName: this.data.familyName,
       });
+      const app = getApp();
+      if (resp && resp.familyId) {
+        app.globalData.currentFamilyId = resp.familyId;
+      }
       this.setData({ familyName: "" });
       await this.refreshFamiliesList();
+      wx.showToast({ title: "已创建家庭", icon: "success" });
+      setTimeout(() => {
+        wx.reLaunch({ url: "/pages/index/index?onboard=1" });
+      }, 500);
     } finally {
       wx.hideLoading();
       this.setData({ actionBusy: false });
@@ -432,12 +446,20 @@ Page({
     this.setData({ actionBusy: true });
     wx.showLoading({ title: "加入中…", mask: true });
     try {
-      await cloud.callFunctionWithErrorToast("familyFunctions", {
+      const resp = await cloud.callFunctionWithErrorToast("familyFunctions", {
         type: "joinFamily",
         inviteCode: this.data.inviteCode,
       });
+      const app = getApp();
+      if (resp && resp.familyId) {
+        app.globalData.currentFamilyId = resp.familyId;
+      }
       this.setData({ inviteCode: "" });
       await this.refreshFamiliesList();
+      wx.showToast({ title: "已加入家庭", icon: "success" });
+      setTimeout(() => {
+        wx.reLaunch({ url: "/pages/index/index?onboard=1" });
+      }, 500);
     } finally {
       wx.hideLoading();
       this.setData({ actionBusy: false });

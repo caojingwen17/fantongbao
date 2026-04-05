@@ -30,11 +30,17 @@ Page({
     /** 家庭菜谱总数（列表接口全量；首页只展示前 6 个卡片） */
     recipeTotalCount: 0,
     homeRefreshing: false,
+    /** 首屏静默登录 + 首拉数据完成前全屏 loading */
+    homeBootstrapping: true,
     showFamilyPicker: false,
     switchingFamilyId: "",
     showCreateOrderModal: false,
     newOrderName: "",
     createOrderBusy: false,
+    /** 无点菜单且无菜谱时展示引导大卡片 */
+    homeEmptyHero: false,
+    /** 从家庭页创建/加入后带 ?onboard=1 打开的三步说明 */
+    onboardSheetVisible: false,
   },
 
   async ensureEntryContext() {
@@ -63,9 +69,13 @@ Page({
     return true;
   },
 
-  async onLoad() {
+  async onLoad(options) {
+    const openOnboard = options && String(options.onboard) === "1";
     const ok = await this.ensureEntryContext();
-    if (!ok) return;
+    if (!ok) {
+      this.setData({ homeBootstrapping: false });
+      return;
+    }
 
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
@@ -74,11 +84,17 @@ Page({
     this.setData({ currentFamily, families });
 
     await this.refreshHome();
+    if (openOnboard) {
+      this.setData({ onboardSheetVisible: true });
+    }
   },
 
   async onShow() {
     const ok = await this.ensureEntryContext();
-    if (!ok) return;
+    if (!ok) {
+      this.setData({ homeBootstrapping: false });
+      return;
+    }
 
     // 返回主页时，确保家庭下拉浮层已关闭
     if (this.data.showFamilyPicker) {
@@ -129,9 +145,9 @@ Page({
           .catch(() => ({})),
         cloud
           .callFunction("recipeFunctions", {
-            type: "listRecipes",
+            type: "listRecipesForHome",
             familyId,
-            keyword: "",
+            limit: 6,
           })
           .catch(() => ({})),
       ]);
@@ -169,9 +185,12 @@ Page({
       this.setData({ pendingShopping, pendingCooking, pendingOrders });
 
       const list = (recipeResp && recipeResp.recipes) || [];
-      const recipeTotalCount = list.length;
-      const withImg = await attachRecipeImgDisplay(list.slice(0, 6));
-      this.setData({ recipes: withImg, recipeTotalCount });
+      const recipeTotalCount =
+        typeof recipeResp.totalCount === "number" ? recipeResp.totalCount : list.length;
+      const withImg = await attachRecipeImgDisplay(list);
+      const homeEmptyHero =
+        (!pendingOrders || pendingOrders.length === 0) && recipeTotalCount === 0;
+      this.setData({ recipes: withImg, recipeTotalCount, homeEmptyHero });
     } catch (e) {
       this.setData({
         membersCount: 0,
@@ -181,10 +200,11 @@ Page({
         pendingOrders: [],
         recipes: [],
         recipeTotalCount: 0,
+        homeEmptyHero: true,
       });
     } finally {
       wx.hideNavigationBarLoading();
-      this.setData({ homeRefreshing: false });
+      this.setData({ homeRefreshing: false, homeBootstrapping: false });
     }
   },
 
@@ -192,6 +212,10 @@ Page({
     // 跳转前收起浮层，避免返回后残留
     if (this.data.showFamilyPicker) this.setData({ showFamilyPicker: false });
     wx.navigateTo({ url: "/pages/family/family/index" });
+  },
+
+  goFeedback() {
+    wx.navigateTo({ url: "/pages/feedback/index" });
   },
 
   onHide() {
@@ -241,6 +265,10 @@ Page({
   },
 
   noop() {},
+
+  closeOnboardSheet() {
+    this.setData({ onboardSheetVisible: false });
+  },
 
   onCopyInvite() {
     const code = this.data.currentFamily && this.data.currentFamily.inviteCode;

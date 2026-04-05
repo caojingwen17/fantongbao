@@ -10,6 +10,8 @@ App({
       userInfo: null,
       currentFamilyId: null,
       families: [],
+      /** 扫码/分享落地：登录完成后回到分享页用 */
+      pendingShareToken: null,
     };
     if (!wx.cloud) {
       console.error("请使用 2.2.3 或以上的基础库以使用云能力");

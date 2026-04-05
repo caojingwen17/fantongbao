@@ -4,7 +4,9 @@ const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
-    xiaohongshuUrl: "",
+    pastedRecipeText: "",
+    pastedLen: 0,
+    isExtractingFromText: false,
     recipeName: "",
     recipeImg: "",
     recipeImgDisplay: "",
@@ -13,7 +15,6 @@ Page({
     seasonings: [],
     prepareSteps: [],
     cookingSteps: [],
-    isExtracting: false,
     isImportingImage: false,
     isGeneratingCommon: false,
     canImport: false,
@@ -50,8 +51,9 @@ Page({
     this.setData({ accordion: next });
   },
 
-  onUrlInput(e) {
-    this.setData({ xiaohongshuUrl: e.detail.value || "" });
+  onPastedRecipeTextInput(e) {
+    const v = e.detail.value || "";
+    this.setData({ pastedRecipeText: v, pastedLen: v.length });
   },
 
   onRecipeNameInput(e) {
@@ -88,28 +90,28 @@ Page({
     });
   },
 
-  async onExtract() {
+  async onExtractFromPastedText() {
     if (!this.data.familyId) {
       wx.showToast({ title: "请先选择家庭", icon: "none" });
       return;
     }
     if (!String(this.data.recipeName || "").trim()) {
-      wx.showToast({ title: "请先输入菜谱名称，再进行解析", icon: "none" });
+      wx.showToast({ title: "请先输入菜名", icon: "none" });
       return;
     }
-    if (!this.data.xiaohongshuUrl) {
-      wx.showToast({ title: "请输入小红书链接", icon: "none" });
+    const raw = String(this.data.pastedRecipeText || "").trim();
+    if (raw.length < 8) {
+      wx.showToast({ title: "请先粘贴足够长的做法文案", icon: "none" });
       return;
     }
-
-    if (this.data.isExtracting) return;
-    this.setData({ isExtracting: true });
-    ui.showLoading("解析链接中…");
+    if (this.data.isExtractingFromText) return;
+    this.setData({ isExtractingFromText: true });
+    ui.showLoading("AI 提炼中…");
     try {
       const result = await cloud.callFunction("aiFunctions", {
-        type: "extractRecipe",
-        xiaohongshuUrl: this.data.xiaohongshuUrl,
+        type: "extractRecipeFromText",
         recipeName: this.data.recipeName,
+        pastedText: raw,
       });
 
       if (result && result.recipeName) {
@@ -120,17 +122,25 @@ Page({
           cookingSteps: result.cookingSteps || [],
         });
         wx.showToast({
-          title: result.tip || (result.mock ? "已填充通用菜谱，可继续编辑" : "解析完成"),
+          title: result.tip || "已填充，可继续编辑",
           icon: "none",
         });
       } else {
         wx.showToast({ title: "提炼失败，请手动添加", icon: "none" });
       }
+    } catch (e) {
+      const msg =
+        (e && e.message) ||
+        (e && e.errMsg) ||
+        "提炼失败，请稍后重试";
+      wx.showToast({ title: String(msg).slice(0, 32), icon: "none" });
     } finally {
       ui.hideLoading();
-      this.setData({ isExtracting: false });
+      this.setData({ isExtractingFromText: false });
     }
   },
+
+  /* 小红书链接 onExtract 已移除；需要时从 git 恢复并对接 aiFunctions.extractRecipe */
 
   async onImportFromLocalImage() {
     if (!this.data.familyId) {
@@ -394,7 +404,6 @@ Page({
       seasonings,
       prepareSteps,
       cookingSteps,
-      xiaohongshuUrl,
     } = this.data;
 
     if (!familyId) {
@@ -425,7 +434,7 @@ Page({
         familyId,
         recipeName,
         recipeImg,
-        xiaohongshuUrl: xiaohongshuUrl || "",
+        xiaohongshuUrl: "",
         ingredients: cleanedIngredients,
         seasonings: cleanedSeasonings,
         prepareSteps: cleanedPrepareSteps,

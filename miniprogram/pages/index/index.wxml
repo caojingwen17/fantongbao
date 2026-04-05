@@ -1,4 +1,8 @@
 <view class="ft-page home-page">
+  <view class="ft-loading-mask" wx:if="{{homeBootstrapping}}">
+    <view class="ft-loading-spinner"></view>
+    <text class="ft-loading-text">加载中…</text>
+  </view>
   <!-- Decorative blobs -->
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
@@ -66,8 +70,22 @@
       </view>
     </view>
 
+    <!-- 新家庭空态：合并点菜单 + 菜谱引导 -->
+    <view class="home-empty-hero ft-card-lowest" wx:if="{{homeEmptyHero && !homeBootstrapping}}">
+      <view class="home-empty-kicker">开始使用</view>
+      <view class="home-empty-title">先建点菜单，再买菜做菜</view>
+      <view class="home-empty-sub">菜谱可提前录入，也可边用边加。下面两步任选其一即可开始。</view>
+      <view class="home-empty-actions">
+        <button class="home-empty-btn home-empty-btn-primary" bindtap="openCreateOrderModal">创建点菜单</button>
+        <button class="home-empty-btn home-empty-btn-secondary" bindtap="goRecipeAdd">添加菜谱</button>
+      </view>
+      <view class="home-empty-foot">
+        <view class="home-empty-link" bindtap="goRecipeList" role="button">浏览全部菜谱</view>
+      </view>
+    </view>
+
     <!-- 点菜单 -->
-    <view class="section">
+    <view class="section" wx:if="{{!homeEmptyHero}}">
       <view class="section-head">
         <view class="section-title">点菜单</view>
         <view class="section-head-right">
@@ -97,7 +115,7 @@
     </view>
 
     <!-- 常用菜谱 -->
-    <view class="section">
+    <view class="section" wx:if="{{!homeEmptyHero}}">
       <view class="section-head">
         <view class="section-title">常用菜谱</view>
         <view class="count-pill">{{recipeTotalCount}}</view>
@@ -138,6 +156,12 @@
         </button>
       </view>
     </view>
+
+      <view class="home-feedback-row">
+        <view class="home-feedback-link" bindtap="goFeedback" role="button" aria-label="吐槽与建议">
+          💬 吐槽与建议
+        </view>
+      </view>
     </view>
   </scroll-view>
 
@@ -180,6 +204,37 @@
       <text class="sheet-manage-ico" aria-hidden="true">⚙️</text>
       家庭管理
     </button>
+  </view>
+
+  <!-- 新手三步（创建/加入家庭后进首页） -->
+  <view class="onboard-mask" wx:if="{{onboardSheetVisible}}" catchtap="closeOnboardSheet"></view>
+  <view class="onboard-sheet" wx:if="{{onboardSheetVisible}}" catchtap="noop">
+    <view class="onboard-kicker">欢迎</view>
+    <view class="onboard-title">接下来可以这样做</view>
+    <view class="onboard-steps">
+      <view class="onboard-step">
+        <text class="onboard-step-num">1</text>
+        <view class="onboard-step-body">
+          <view class="onboard-step-t">新建点菜单</view>
+          <view class="onboard-step-d">给这一餐起个名字，再往里点菜</view>
+        </view>
+      </view>
+      <view class="onboard-step">
+        <text class="onboard-step-num">2</text>
+        <view class="onboard-step-body">
+          <view class="onboard-step-t">买菜清单</view>
+          <view class="onboard-step-d">按清单采购，勾选已买</view>
+        </view>
+      </view>
+      <view class="onboard-step">
+        <text class="onboard-step-num">3</text>
+        <view class="onboard-step-body">
+          <view class="onboard-step-t">制作清单</view>
+          <view class="onboard-step-d">跟着步骤做完这一餐</view>
+        </view>
+      </view>
+    </view>
+    <button class="onboard-ok" bindtap="closeOnboardSheet">知道了</button>
   </view>
 
   <!-- 新建点菜单 -->

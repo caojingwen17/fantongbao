@@ -81,6 +81,16 @@
   gap: 20rpx; /* space-y-5 */
 }
 
+/* 与 recipeSharePoster 白卡宽一致：375 - 32 = 343 */
+.share-poster-hidden {
+  position: fixed;
+  left: -2000px;
+  top: 0;
+  width: 343px;
+  height: 2400px;
+  overflow: hidden;
+}
+
 .recipe-detail-footer {
   position: fixed;
   left: 0;
@@ -94,7 +104,29 @@
   backdrop-filter: blur(14rpx);
   border-top: 2rpx solid var(--ft-surface-container);
 }
+.footer-row {
+  display: flex;
+  align-items: stretch;
+  gap: 20rpx;
+}
+.recipe-share-btn {
+  flex: 1.2;
+  height: 88rpx;
+  border-radius: 9999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 900;
+  background: linear-gradient(135deg, #f9e534, #fbbf24);
+  color: #422006;
+}
+.recipe-share-btn:active {
+  opacity: 0.92;
+  transform: scale(0.98);
+}
 .recipe-del-btn {
+  flex: 0.85;
   height: 88rpx;
   border-radius: 9999rpx;
   display: flex;

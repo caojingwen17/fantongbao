@@ -29,6 +29,8 @@ exports.main = async (event) => {
     "orders",
     "order_shopping_items",
     "order_cooking_steps",
+    "recipe_share_tokens",
+    "feedback",
   ];
 
   for (const name of collections) {
@@ -42,6 +44,9 @@ exports.main = async (event) => {
   await safeCreateIndex("orders", { familyId: 1, status: 1 });
   await safeCreateIndex("order_shopping_items", { familyId: 1, orderId: 1 });
   await safeCreateIndex("order_cooking_steps", { familyId: 1, orderId: 1 });
+  await safeCreateIndex("recipe_share_tokens", { token: 1 }, { unique: true });
+  await safeCreateIndex("recipe_share_tokens", { recipeId: 1 }, { unique: true });
+  await safeCreateIndex("feedback", { createTime: -1 });
 
   return {
     success: true,

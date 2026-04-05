@@ -24,6 +24,117 @@ async function assertFamilyMember({ openid, familyId }) {
   return fam;
 }
 
+function randomShareToken(len) {
+  const n = typeof len === "number" ? len : 10;
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < n; i++) {
+    s += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return s;
+}
+
+async function getOrCreateShareTokenForRecipe(recipeId) {
+  const exist = await db.collection("recipe_share_tokens").where({ recipeId }).limit(1).get();
+  if (exist && exist.data && exist.data[0]) return exist.data[0];
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const token = randomShareToken(10);
+    try {
+      await db.collection("recipe_share_tokens").add({
+        data: {
+          token,
+          recipeId,
+          createTime: now(),
+        },
+      });
+      const again = await db.collection("recipe_share_tokens").where({ recipeId }).limit(1).get();
+      if (again && again.data && again.data[0]) return again.data[0];
+    } catch (e) {
+      const retry = await db.collection("recipe_share_tokens").where({ recipeId }).limit(1).get();
+      if (retry && retry.data && retry.data[0]) return retry.data[0];
+    }
+  }
+  throw new Error("生成分享码失败，请重试");
+}
+
+async function ensureShareQrFileId(token, envVersion) {
+  const tr = await db.collection("recipe_share_tokens").where({ token }).limit(1).get();
+  const row = tr && tr.data && tr.data[0] ? tr.data[0] : null;
+  if (!row) throw new Error("分享已失效");
+  if (row.qrFileId) {
+    if (row.qrEnv === envVersion) return row.qrFileId;
+    if (!row.qrEnv && envVersion === "release") return row.qrFileId;
+  }
+
+  const scene = `t=${token}`;
+  if (scene.length > 32) throw new Error("scene 过长");
+
+  const openapi = cloud.openapi && cloud.openapi.wxacode;
+  if (!openapi || typeof openapi.getUnlimited !== "function") {
+    throw new Error("未配置 wxacode.getUnlimited 云调用");
+  }
+
+  const ev =
+    envVersion === "develop" || envVersion === "trial" || envVersion === "release"
+      ? envVersion
+      : "release";
+  const qrParams = {
+    scene,
+    page: "pages/recipe/share/index",
+    width: 280,
+    autoColor: true,
+    envVersion: ev,
+  };
+  if (ev === "develop" || ev === "trial") {
+    qrParams.checkPath = false;
+  }
+
+  const qrRes = await openapi.getUnlimited(qrParams);
+
+  const code =
+    qrRes &&
+    (qrRes.errcode !== undefined && qrRes.errcode !== null
+      ? qrRes.errcode
+      : qrRes.errCode);
+  if (code !== undefined && code !== null && Number(code) !== 0) {
+    throw new Error(
+      (qrRes.errmsg || qrRes.errMsg || "生成小程序码失败") + ` (${code})`
+    );
+  }
+
+  let buffer =
+    (qrRes && qrRes.buffer) ||
+    (qrRes && qrRes.data && qrRes.data.buffer) ||
+    (qrRes && typeof qrRes.data === "object" && qrRes.data instanceof ArrayBuffer
+      ? Buffer.from(qrRes.data)
+      : null);
+  if (!buffer && qrRes && qrRes.data && qrRes.data instanceof Uint8Array) {
+    buffer = Buffer.from(qrRes.data);
+  }
+  if (!buffer) {
+    const errMsg =
+      (qrRes && (qrRes.errmsg || qrRes.errMsg || qrRes.message)) ||
+      "生成小程序码失败：未返回图片数据";
+    throw new Error(errMsg);
+  }
+
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  const cloudPath = `share/qr/${token}-${Date.now()}.jpg`;
+  const up = await cloud.uploadFile({
+    cloudPath,
+    fileContent: buf,
+  });
+  const fileID = up && up.fileID ? up.fileID : "";
+  if (!fileID) throw new Error("上传小程序码失败");
+
+  await db.collection("recipe_share_tokens").where({ token }).update({
+    data: { qrFileId: fileID, qrUpdateTime: now(), qrEnv: ev },
+  });
+
+  return fileID;
+}
+
 exports.main = async (event) => {
   const ctx = getWXContext();
   const openid = ctx.OPENID;
@@ -89,6 +200,26 @@ exports.main = async (event) => {
         .get();
       const recipes = (res.data || []).map((r) => ({ ...r, id: r._id }));
       return { success: true, recipes };
+    }
+
+    /** 首页：总数 + 最新若干条，避免拉全表菜谱 */
+    case "listRecipesForHome": {
+      const { familyId, limit } = event;
+      if (!familyId) throw new Error("缺少 familyId");
+      await assertFamilyMember({ openid, familyId });
+      const lim = Math.min(Math.max(parseInt(limit, 10) || 6, 1), 50);
+      const [countRes, listRes] = await Promise.all([
+        db.collection("recipes").where({ familyId }).count(),
+        db
+          .collection("recipes")
+          .where({ familyId })
+          .orderBy("createTime", "desc")
+          .limit(lim)
+          .get(),
+      ]);
+      const totalCount = (countRes && typeof countRes.total === "number" ? countRes.total : 0) || 0;
+      const recipes = (listRes.data || []).map((r) => ({ ...r, id: r._id }));
+      return { success: true, recipes, totalCount };
     }
 
     case "getRecipe": {
@@ -218,6 +349,128 @@ exports.main = async (event) => {
         }
       });
       return { success: true, map };
+    }
+
+    /** 分享海报：校验成员后为菜谱生成/复用 token，并生成右下角小程序码临时链 */
+    case "prepareRecipeShare": {
+      const { recipeId, envVersion: envFromClient } = event;
+      if (!recipeId) throw new Error("缺少 recipeId");
+      const res = await db.collection("recipes").where({ _id: recipeId }).get();
+      const recipe = res.data && res.data[0];
+      if (!recipe) throw new Error("菜谱不存在");
+      await assertFamilyMember({ openid, familyId: recipe.familyId });
+
+      const envVersion =
+        envFromClient === "develop" ||
+        envFromClient === "trial" ||
+        envFromClient === "release"
+          ? envFromClient
+          : "release";
+
+      const row = await getOrCreateShareTokenForRecipe(recipeId);
+      const token = row.token;
+      let qrTempUrl = "";
+      let qrFileId = "";
+      let qrError = "";
+      try {
+        qrFileId = await ensureShareQrFileId(token, envVersion);
+      } catch (e) {
+        qrError = (e && e.message) || String(e);
+      }
+      if (qrFileId) {
+        try {
+          const tmp = await cloud.getTempFileURL({ fileList: [qrFileId] });
+          const item = tmp && tmp.fileList && tmp.fileList[0];
+          if (item && item.tempFileURL) {
+            qrTempUrl = item.tempFileURL;
+          }
+        } catch (e) {
+          /* 换链失败不写入 qrError：客户端可用 wx.cloud.downloadFile(fileID)，避免误提示「网络异常」 */
+        }
+      }
+      return { success: true, token, qrTempUrl, qrFileId, qrError };
+    }
+
+    /** 扫码落地页：凭 token 读菜谱快照（不要求在原家庭） */
+    case "getRecipeSharePreview": {
+      const { token } = event;
+      const t = String(token || "").trim();
+      if (!t) return { success: false, errMsg: "缺少 token" };
+      const tr = await db.collection("recipe_share_tokens").where({ token: t }).limit(1).get();
+      const row = tr.data && tr.data[0];
+      if (!row) return { success: false, errMsg: "分享已失效或不存在" };
+      const rr = await db.collection("recipes").where({ _id: row.recipeId }).get();
+      const recipe = rr.data && rr.data[0];
+      if (!recipe) return { success: false, errMsg: "原菜谱已删除" };
+
+      let recipeImgDisplay = "";
+      const img = recipe.recipeImg || "";
+      if (img && String(img).indexOf("cloud://") === 0) {
+        try {
+          const tmp = await cloud.getTempFileURL({ fileList: [img] });
+          const item = tmp && tmp.fileList && tmp.fileList[0];
+          recipeImgDisplay = (item && item.tempFileURL) || "";
+        } catch (e) {}
+      } else if (img && /^https?:\/\//i.test(String(img))) {
+        recipeImgDisplay = img;
+      }
+
+      return {
+        success: true,
+        preview: {
+          recipeName: recipe.recipeName || "",
+          recipeImg: img,
+          recipeImgDisplay: recipeImgDisplay || img,
+          ingredients: recipe.ingredients || [],
+          seasonings: recipe.seasonings || [],
+          prepareSteps: recipe.prepareSteps || [],
+          cookingSteps: recipe.cookingSteps || [],
+        },
+      };
+    }
+
+    /** 将分享菜谱复制到当前用户所在家庭 */
+    case "importSharedRecipe": {
+      const { token, familyId } = event;
+      const t = String(token || "").trim();
+      if (!t) throw new Error("缺少 token");
+      if (!familyId) throw new Error("缺少 familyId");
+      await assertFamilyMember({ openid, familyId });
+
+      const tr = await db.collection("recipe_share_tokens").where({ token: t }).limit(1).get();
+      const row = tr.data && tr.data[0];
+      if (!row) throw new Error("分享已失效");
+      const rr = await db.collection("recipes").where({ _id: row.recipeId }).get();
+      const recipe = rr.data && rr.data[0];
+      if (!recipe) throw new Error("原菜谱不存在");
+
+      const ings = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+      const prep = Array.isArray(recipe.prepareSteps) ? recipe.prepareSteps : [];
+      if (!ings.length) throw new Error("原菜谱无食材，无法导入");
+      if (!prep.length) throw new Error("原菜谱无备菜步骤，无法导入");
+
+      const baseName = recipe.recipeName || "菜谱";
+      const name = `${baseName}（分享）`;
+
+      const created = await db.collection("recipes").add({
+        data: {
+          familyId,
+          recipeName: name,
+          recipeImg: recipe.recipeImg || "",
+          xiaohongshuUrl: recipe.xiaohongshuUrl || "",
+          ingredients: ings,
+          seasonings: Array.isArray(recipe.seasonings) ? recipe.seasonings : [],
+          prepareSteps: prep,
+          cookingSteps: Array.isArray(recipe.cookingSteps) ? recipe.cookingSteps : [],
+          creatorId: openid,
+          createTime: now(),
+          updateTime: now(),
+          importedFromShareToken: t,
+          shareSourceRecipeId: recipe._id,
+        },
+      });
+
+      return { success: true, recipeId: created._id };
     }
 
     default:

@@ -1,0 +1,125 @@
+<view class="share-page">
+  <view class="share-loading" wx:if="{{loading}}">
+    <text>加载分享内容…</text>
+  </view>
+
+  <view class="share-error" wx:elif="{{errMsg}}">
+    <text class="share-error-text">{{errMsg}}</text>
+    <button class="share-btn secondary" bindtap="goHome">回首页</button>
+  </view>
+
+  <block wx:else>
+    <view class="card preview-card">
+      <image
+        class="preview-img"
+        mode="aspectFill"
+        src="{{preview.recipeImgDisplay || preview.recipeImg}}"
+        wx:if="{{preview.recipeImgDisplay || preview.recipeImg}}"
+      />
+      <view class="preview-img ph" wx:else>暂无配图</view>
+      <view class="preview-name">{{preview.recipeName}}</view>
+      <view class="preview-hint">以下为分享内容，点击区块标题可展开</view>
+    </view>
+
+    <view class="card fold-card">
+      <view
+        class="fold-head {{expandIngredients ? 'open' : ''}}"
+        bindtap="toggleShareSection"
+        data-key="ing"
+        hover-class="fold-head-hover"
+      >
+        <view class="fold-head-main">
+          <text class="fold-title">食材</text>
+          <text class="fold-meta">{{ingredientCount}} 项</text>
+        </view>
+        <text class="fold-chev" aria-hidden="true">›</text>
+      </view>
+      <view class="fold-body" wx:if="{{expandIngredients}}">
+        <block wx:if="{{ingredientRows.length}}">
+          <view class="fold-row" wx:for="{{ingredientRows}}" wx:key="index">
+            <text class="fold-row-name">{{item.name}}</text>
+            <text class="fold-row-amt" wx:if="{{item.amount}}">{{item.amount}}</text>
+          </view>
+        </block>
+        <view class="fold-empty" wx:elif="{{!ingredientRows.length}}">暂无食材</view>
+        <view class="fold-subtitle" wx:if="{{seasoningRows.length}}">调料</view>
+        <block wx:if="{{seasoningRows.length}}">
+          <view class="fold-row" wx:for="{{seasoningRows}}" wx:key="index">
+            <text class="fold-row-name">{{item.name}}</text>
+            <text class="fold-row-amt" wx:if="{{item.amount}}">{{item.amount}}</text>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <view class="card fold-card" wx:if="{{prepareCount > 0}}">
+      <view
+        class="fold-head {{expandPrepare ? 'open' : ''}}"
+        bindtap="toggleShareSection"
+        data-key="prep"
+        hover-class="fold-head-hover"
+      >
+        <view class="fold-head-main">
+          <text class="fold-title">备菜</text>
+          <text class="fold-meta">{{prepareCount}} 步</text>
+        </view>
+        <text class="fold-chev" aria-hidden="true">›</text>
+      </view>
+      <view class="fold-body" wx:if="{{expandPrepare}}">
+        <block wx:if="{{prepareStepList.length}}">
+          <view class="fold-step" wx:for="{{prepareStepList}}" wx:key="index">
+            <text class="fold-step-num">{{index + 1}}</text>
+            <text class="fold-step-txt">{{item}}</text>
+          </view>
+        </block>
+        <view class="fold-empty" wx:else>暂无备菜步骤</view>
+      </view>
+    </view>
+
+    <view class="card fold-card" wx:if="{{cookingCount > 0}}">
+      <view
+        class="fold-head {{expandCooking ? 'open' : ''}}"
+        bindtap="toggleShareSection"
+        data-key="cook"
+        hover-class="fold-head-hover"
+      >
+        <view class="fold-head-main">
+          <text class="fold-title">做菜</text>
+          <text class="fold-meta">{{cookingCount}} 步</text>
+        </view>
+        <text class="fold-chev" aria-hidden="true">›</text>
+      </view>
+      <view class="fold-body" wx:if="{{expandCooking}}">
+        <block wx:if="{{cookingStepList.length}}">
+          <view class="fold-step" wx:for="{{cookingStepList}}" wx:key="index">
+            <text class="fold-step-num">{{index + 1}}</text>
+            <text class="fold-step-txt">{{item}}</text>
+          </view>
+        </block>
+        <view class="fold-empty" wx:else>暂无做菜步骤</view>
+      </view>
+    </view>
+
+    <view class="card family-card" wx:if="{{families.length}}">
+      <view class="family-title">加入到哪个家庭菜谱？</view>
+      <picker mode="selector" range="{{families}}" range-key="familyName" value="{{familyIndex}}" bindchange="onFamilyPick">
+        <view class="family-picker">
+          <text>{{selectedFamilyName}}</text>
+          <text class="chev">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="card family-card" wx:else>
+      <view class="family-title">你还没有家庭</view>
+      <text class="hint">请先创建或加入家庭，再导入分享菜谱。</text>
+      <button class="share-btn primary" bindtap="goFamily">去家庭页</button>
+    </view>
+
+    <view class="actions" wx:if="{{families.length}}">
+      <button class="share-btn primary" bindtap="onImport" disabled="{{importing}}">
+        {{importing ? '导入中…' : '加入我的家庭菜谱'}}
+      </button>
+    </view>
+  </block>
+</view>

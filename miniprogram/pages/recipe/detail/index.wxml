@@ -104,8 +104,13 @@
     </view>
   </scroll-view>
 
+  <canvas type="2d" id="sharePosterCanvas" class="share-poster-hidden" aria-hidden="true"></canvas>
+
   <view class="recipe-detail-footer" wx:if="{{recipeId}}">
-    <view class="recipe-del-btn" bindtap="onAskDeleteRecipe">删除菜谱</view>
+    <view class="footer-row">
+      <view class="recipe-share-btn" bindtap="onShareAsImage">分享图片</view>
+      <view class="recipe-del-btn" bindtap="onAskDeleteRecipe">删除</view>
+    </view>
   </view>
 </view>
 

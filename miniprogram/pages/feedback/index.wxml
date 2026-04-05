@@ -1,0 +1,62 @@
+<view class="ft-page feedback-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+
+  <view class="topbar">
+    <view class="top-left">
+      <view class="icon-btn" bindtap="onBack" aria-label="返回">
+        <text class="ico" aria-hidden="true">‹</text>
+      </view>
+      <view class="top-title">吐槽与建议</view>
+    </view>
+    <view class="top-spacer"></view>
+  </view>
+
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="card intro-card">
+        <view class="intro-text">欢迎拍砖、许愿功能。你的每一条反馈我都会看 ^ ^</view>
+      </view>
+
+      <view class="card">
+        <view class="seg-row">
+          <view
+            class="seg-item {{category === 'rant' ? 'seg-on' : ''}}"
+            bindtap="onPickCategory"
+            data-cat="rant"
+            role="button"
+          >
+            吐槽箱
+          </view>
+          <view
+            class="seg-item {{category === 'suggestion' ? 'seg-on' : ''}}"
+            bindtap="onPickCategory"
+            data-cat="suggestion"
+            role="button"
+          >
+            建议板
+          </view>
+        </view>
+
+        <textarea
+          class="fb-textarea"
+          placeholder="{{category === 'rant' ? '哪里不爽、哪里想骂，尽管说…' : '希望加什么功能、怎么更好用…'}}"
+          value="{{content}}"
+          maxlength="2000"
+          bindinput="onContentInput"
+          show-confirm-bar="{{false}}"
+          auto-height="{{true}}"
+        />
+        <view class="counter">{{contentLen}} / 2000</view>
+
+        <view
+          class="submit-btn {{submitting ? 'disabled' : ''}}"
+          bindtap="onSubmit"
+          aria-label="提交"
+        >
+          {{submitting ? "提交中…" : "提交"}}
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

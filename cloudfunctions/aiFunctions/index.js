@@ -373,6 +373,81 @@ async function qwenGenerateCommonRecipeByName(recipeName, opts = {}) {
   return parsed;
 }
 
+/**
+ * 根据用户粘贴的做法/笔记正文提炼结构化菜谱（纯文本，非链接抓取）
+ * @param {string} recipeName
+ * @param {string} pastedText
+ */
+async function qwenExtractRecipeFromPastedText(recipeName, pastedText) {
+  const { apiKey, baseUrl, model } = getBailianConfig();
+  if (!apiKey) {
+    const e = new Error("未配置百炼 API Key（请在云函数环境变量设置 DASHSCOPE_API_KEY）");
+    e.code = "NO_API_KEY";
+    throw e;
+  }
+
+  const name = safeStr(recipeName).trim();
+  const raw = safeStr(pastedText).trim();
+  if (!name) throw new Error("缺少 recipeName");
+  if (!raw) throw new Error("缺少粘贴文案");
+  if (raw.length > 12000) throw new Error("文案过长，请删减后再试");
+
+  const url = `${baseUrl.replace(/\/+$/, "")}/responses`;
+  const prompt = [
+    "你是一个“菜谱结构化提取器”。",
+    `用户已填写菜名：${name}`,
+    "用户从外部复制了以下文字（可能来自笔记、网页、聊天等，仅作内容参考，不涉及链接抓取）：",
+    "----",
+    raw,
+    "----",
+    "请从上述文字中提取或归纳：食材、调料及用量、备菜步骤、做菜步骤。若文字杂乱、信息不足，可结合菜名补全为可执行的家常做法。",
+    "【关键分类规则】必须严格区分 ingredients（食材）和 seasonings（调料）：",
+    "1) ingredients 仅放主料/配菜等实物食材；2) seasonings 放盐糖酱油等调味品；",
+    "3) 禁止把明显调料放进 ingredients；4) 同名项不要重复出现在两边。",
+    "只输出 JSON，不要输出任何多余文字。JSON 格式如下：",
+    '{ "recipeName": string, "ingredients":[{"name":string,"amount":string}], "seasonings":[{"name":string,"amount":string}], "prepareSteps":[string], "cookingSteps":[string] }',
+    "要求：ingredients/prepareSteps/cookingSteps 至少各 1 条；amount 可为空字符串；不要输出“请补充/待补充”等占位词。",
+  ].join("\n");
+
+  const body = {
+    model,
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: prompt,
+          },
+        ],
+      },
+    ],
+  };
+
+  const resp = await httpsJson({
+    url,
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body,
+    timeoutMs: 60000,
+  });
+
+  const data = resp && resp.data ? resp.data : null;
+  const text = extractTextFromResponseData(data, safeStr(resp && resp.raw)) || "";
+
+  const parsed = jsonParseLoose(text);
+  if (!parsed) {
+    const e = new Error("大模型返回内容无法解析为 JSON");
+    e.code = "BAD_MODEL_OUTPUT";
+    e.raw = text || safeStr(resp && resp.raw);
+    throw e;
+  }
+  return parsed;
+}
+
 exports.main = async (event) => {
   if (!event || !event.type) throw new Error("缺少 type");
 
@@ -410,6 +485,10 @@ exports.main = async (event) => {
       }
     }
 
+    /**
+     * 小红书链接提炼：正式版前端已下线，保留分支便于后续接入合规解析。
+     * 仍返回通用骨架，避免旧客户端报错。
+     */
     case "extractRecipe": {
       const { xiaohongshuUrl, recipeName } = event;
       if (!recipeName) throw new Error("缺少 recipeName");
@@ -425,6 +504,48 @@ exports.main = async (event) => {
         tip: "当前未接入合规解析接口，已为你生成通用菜谱，可自行修改",
         ...parsed,
       };
+    }
+
+    /** 粘贴文案 + AI 提炼（推荐，替代小红书链接模式） */
+    case "extractRecipeFromText": {
+      const { recipeName, pastedText } = event;
+      if (!recipeName) throw new Error("缺少 recipeName");
+      const t = safeStr(pastedText).trim();
+      if (t.length < 8) throw new Error("请先粘贴足够长度的做法文案");
+      try {
+        const modelOut = await qwenExtractRecipeFromPastedText(recipeName, t);
+        const normalized = normalizeRecipeOut(modelOut, recipeName);
+        if (looksLikePlaceholderRecipe(normalized)) {
+          throw new Error("模型返回占位内容");
+        }
+        return {
+          mock: false,
+          source: "text->qwen",
+          tip: "已根据粘贴内容提炼，可继续编辑",
+          ...normalized,
+        };
+      } catch (e) {
+        const code = e && e.code;
+        if (code === "NO_API_KEY") {
+          const parsed = genGenericRecipeByName(recipeName);
+          return {
+            mock: true,
+            source: "text->no-api-key-fallback",
+            tip: "未配置 AI 密钥，已生成通用菜谱模板，可继续编辑",
+            error: safeStr(e && e.message),
+            ...parsed,
+          };
+        }
+        const parsed = genGenericRecipeByName(recipeName);
+        return {
+          mock: true,
+          source: "text->fallback",
+          tip: "提炼未完全成功，已为你生成通用菜谱，可自行修改",
+          error: safeStr(e && (e.message || e.errMsg)),
+          debugRaw: safeStr(e && e.raw).slice(0, 1200),
+          ...parsed,
+        };
+      }
     }
 
     case "extractRecipeFromImage": {

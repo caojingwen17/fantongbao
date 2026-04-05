@@ -94,6 +94,12 @@ Page({
   async afterLoginNavigate(ctx) {
     wx.showToast({ title: "登录成功", icon: "none" });
 
+    const app = getApp();
+    if (app.globalData && app.globalData.pendingShareToken) {
+      wx.reLaunch({ url: "/pages/recipe/share/index" });
+      return;
+    }
+
     if (ctx && ctx.currentFamilyId) {
       wx.reLaunch({ url: "/pages/index/index" });
     } else {

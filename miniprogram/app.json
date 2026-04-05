@@ -1,12 +1,14 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/feedback/index",
     "pages/login/login/index",
     "pages/family/family/index",
     "pages/recipe/list/index",
     "pages/recipe/add/index",
     "pages/recipe/edit/index",
     "pages/recipe/detail/index",
+    "pages/recipe/share/index",
     "pages/recipe/note/index",
     "pages/order/list/index",
     "pages/order/choose/index",

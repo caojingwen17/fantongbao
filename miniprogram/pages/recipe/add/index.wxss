@@ -254,6 +254,25 @@
 .import-actions { margin-top: 18rpx; display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
 .import-hint { font-size: 22rpx; font-weight: 700; color: var(--ft-on-surface-variant); }
 .import-hint-extra { margin-top: 10rpx; }
+.import-hint-below-title {
+  margin-top: 10rpx;
+  line-height: 1.45;
+}
+.paste-textarea {
+  margin-top: 18rpx;
+  min-height: 220rpx;
+  padding: 24rpx 28rpx;
+  border-radius: 24rpx;
+  background: var(--ft-surface-container);
+  font-size: 28rpx;
+  line-height: 1.5;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--ft-on-surface);
+}
+.import-actions-paste {
+  margin-top: 14rpx;
+}
 .pick-btn {
   height: 96rpx;
   padding: 0 28rpx;
