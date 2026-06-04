@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const auth = require("../../../utils/auth");
 
 /**
  * 兼容旧入口：无 orderId 时尝试使用当前家庭下待买菜点菜单，否则提示返回。
@@ -6,6 +7,8 @@ const cloud = require("../../../utils/cloud");
  */
 Page({
   async onLoad(options) {
+    const logged = await auth.requireLoggedInOrBack({ content: "点菜需要先登录。" });
+    if (!logged) return;
     let orderId = (options && options.orderId) || "";
     const app = getApp();
     const familyId = app.globalData.currentFamilyId || "";

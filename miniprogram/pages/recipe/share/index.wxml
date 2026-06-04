@@ -100,26 +100,34 @@
       </view>
     </view>
 
-    <view class="card family-card" wx:if="{{families.length}}">
-      <view class="family-title">加入到哪个家庭菜谱？</view>
-      <picker mode="selector" range="{{families}}" range-key="familyName" value="{{familyIndex}}" bindchange="onFamilyPick">
-        <view class="family-picker">
-          <text>{{selectedFamilyName}}</text>
-          <text class="chev">›</text>
-        </view>
-      </picker>
+    <view class="card family-card" wx:if="{{shareGuest}}">
+      <view class="family-title">导入到家庭菜谱</view>
+      <text class="hint">登录并创建或加入家庭后，可将本菜谱加入你的家庭。</text>
+      <button class="share-btn primary" bindtap="goLogin">去登录</button>
     </view>
 
-    <view class="card family-card" wx:else>
-      <view class="family-title">你还没有家庭</view>
-      <text class="hint">请先创建或加入家庭，再导入分享菜谱。</text>
-      <button class="share-btn primary" bindtap="goFamily">去家庭页</button>
-    </view>
+    <block wx:else>
+      <view class="card family-card" wx:if="{{families.length}}">
+        <view class="family-title">加入到哪个家庭菜谱？</view>
+        <picker mode="selector" range="{{families}}" range-key="familyName" value="{{familyIndex}}" bindchange="onFamilyPick">
+          <view class="family-picker">
+            <text>{{selectedFamilyName}}</text>
+            <text class="chev">›</text>
+          </view>
+        </picker>
+      </view>
 
-    <view class="actions" wx:if="{{families.length}}">
-      <button class="share-btn primary" bindtap="onImport" disabled="{{importing}}">
-        {{importing ? '导入中…' : '加入我的家庭菜谱'}}
-      </button>
-    </view>
+      <view class="card family-card" wx:else>
+        <view class="family-title">你还没有家庭</view>
+        <text class="hint">请先创建或加入家庭，再导入分享菜谱。</text>
+        <button class="share-btn primary" bindtap="goFamily">去家庭页</button>
+      </view>
+
+      <view class="actions" wx:if="{{families.length}}">
+        <button class="share-btn primary" bindtap="onImport" disabled="{{importing}}">
+          {{importing ? '导入中…' : '加入我的家庭菜谱'}}
+        </button>
+      </view>
+    </block>
   </block>
 </view>

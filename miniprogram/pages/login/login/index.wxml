@@ -57,10 +57,5 @@
         {{isLoading ? "登录中…" : "完成登录"}}
       </button>
     </view>
-
-    <!-- Footer Note -->
-    <view class="footer-note">
-      体验版/正式版需使用微信提供的头像昵称能力，不再支持旧版静默授权获取真实资料
-    </view>
   </view>
 </view>

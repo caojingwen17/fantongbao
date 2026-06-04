@@ -41,39 +41,65 @@ Page({
     homeEmptyHero: false,
     /** 从家庭页创建/加入后带 ?onboard=1 打开的三步说明 */
     onboardSheetVisible: false,
+    /** 未登录且静默登录失败：展示首页介绍，不强制跳转登录（符合平台审核「先体验后授权」） */
+    homeGuest: false,
+    /** 已登录但尚未加入任何家庭：可浏览本页提示，不强制跳转家庭页 */
+    homeNeedFamily: false,
   },
 
+  /**
+   * @returns {"ok"|"guest"|"needFamily"}
+   */
   async ensureEntryContext() {
     const app = getApp();
 
-    // 尚未建立登录态/家庭上下文：尝试静默登录；失败则去登录页
     if (!app.globalData.userInfo) {
       try {
         const r = await auth.trySilentLogin();
         if (!r.ok) {
-          wx.reLaunch({ url: "/pages/login/login/index" });
-          return false;
+          return "guest";
         }
       } catch (e) {
-        wx.reLaunch({ url: "/pages/login/login/index" });
-        return false;
+        return "guest";
       }
     }
 
-    // 已登录但未加入/未创建家庭：去家庭页引导
     if (!app.globalData.currentFamilyId) {
-      wx.redirectTo({ url: "/pages/family/family/index" });
-      return false;
+      return "needFamily";
     }
 
-    return true;
+    return "ok";
+  },
+
+  /** 访客：与正式首页同一套布局，数据为空，仅顶部展示轻提示 */
+  applyGuestBrowseState() {
+    this.setData({
+      homeBootstrapping: false,
+      homeGuest: true,
+      homeNeedFamily: false,
+      currentFamily: null,
+      families: [],
+      membersCount: 0,
+      memberAvatarDisplays: [],
+      pendingShopping: null,
+      pendingCooking: null,
+      pendingOrders: [],
+      recipes: [],
+      recipeTotalCount: 0,
+      homeEmptyHero: true,
+      homeRefreshing: false,
+    });
   },
 
   async onLoad(options) {
     const openOnboard = options && String(options.onboard) === "1";
-    const ok = await this.ensureEntryContext();
-    if (!ok) {
-      this.setData({ homeBootstrapping: false });
+    const ctx = await this.ensureEntryContext();
+    if (ctx === "guest") {
+      this.applyGuestBrowseState();
+      return;
+    }
+    if (ctx === "needFamily") {
+      this.setData({ homeBootstrapping: false, homeGuest: false, homeNeedFamily: true });
       return;
     }
 
@@ -83,6 +109,7 @@ Page({
     const currentFamily = families.find((f) => f._id === familyId) || null;
     this.setData({ currentFamily, families });
 
+    this.setData({ homeGuest: false, homeNeedFamily: false });
     await this.refreshHome();
     if (openOnboard) {
       this.setData({ onboardSheetVisible: true });
@@ -90,9 +117,13 @@ Page({
   },
 
   async onShow() {
-    const ok = await this.ensureEntryContext();
-    if (!ok) {
-      this.setData({ homeBootstrapping: false });
+    const ctx = await this.ensureEntryContext();
+    if (ctx === "guest") {
+      this.applyGuestBrowseState();
+      return;
+    }
+    if (ctx === "needFamily") {
+      this.setData({ homeBootstrapping: false, homeGuest: false, homeNeedFamily: true });
       return;
     }
 
@@ -101,12 +132,22 @@ Page({
       this.setData({ showFamilyPicker: false });
     }
 
+    this.setData({ homeGuest: false, homeNeedFamily: false });
+
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
     const families = app.globalData.families || [];
     const currentFamily = families.find((f) => f._id === familyId) || null;
     this.setData({ currentFamily, families });
     await this.refreshHome();
+  },
+
+  async guardGuestAction(content) {
+    if (!this.data.homeGuest) return true;
+    const r = await auth.requireLoggedIn({
+      content: content || "使用此功能需要先登录。",
+    });
+    return r.ok;
   },
 
   async refreshFamiliesIfNeeded() {
@@ -218,6 +259,10 @@ Page({
     wx.navigateTo({ url: "/pages/feedback/index" });
   },
 
+  goLogin() {
+    wx.navigateTo({ url: "/pages/login/login/index" });
+  },
+
   onHide() {
     // 保险：页面隐藏时强制关闭浮层
     if (this.data.showFamilyPicker) {
@@ -230,6 +275,7 @@ Page({
       this.setData({ showFamilyPicker: false });
       return;
     }
+    if (!(await this.guardGuestAction("切换家庭需要先登录。"))) return;
     await this.refreshFamiliesIfNeeded();
     this.setData({ showFamilyPicker: true });
   },
@@ -242,6 +288,7 @@ Page({
   async onSwitchFamily(e) {
     const familyId = e.currentTarget.dataset.familyid;
     if (!familyId || this.data.switchingFamilyId) return;
+    if (!(await this.guardGuestAction("切换家庭需要先登录。"))) return;
     const app = getApp();
     app.globalData.currentFamilyId = familyId;
     const families = this.data.families || app.globalData.families || [];
@@ -270,19 +317,22 @@ Page({
     this.setData({ onboardSheetVisible: false });
   },
 
-  onCopyInvite() {
+  async onCopyInvite() {
+    if (!(await this.guardGuestAction("复制邀请码需要先登录。"))) return;
     const code = this.data.currentFamily && this.data.currentFamily.inviteCode;
     if (!code) return;
     wx.setClipboardData({ data: code });
   },
 
-  goPendingOrder(e) {
+  async goPendingOrder(e) {
     const orderId = e.currentTarget.dataset.orderid;
     if (!orderId) return;
+    if (!(await this.guardGuestAction("查看点菜单需要先登录。"))) return;
     wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
   },
 
-  openCreateOrderModal() {
+  async openCreateOrderModal() {
+    if (!(await this.guardGuestAction("创建点菜单需要先登录。"))) return;
     if (this.data.showFamilyPicker) this.setData({ showFamilyPicker: false });
     this.setData({
       showCreateOrderModal: true,
@@ -300,6 +350,7 @@ Page({
   },
 
   async confirmCreateOrder() {
+    if (!(await this.guardGuestAction("创建点菜单需要先登录。"))) return;
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
     if (!familyId || this.data.createOrderBusy) return;
@@ -322,17 +373,20 @@ Page({
     }
   },
 
-  goRecipeList() {
+  async goRecipeList() {
+    if (!(await this.guardGuestAction("查看菜谱需要先登录。"))) return;
     wx.navigateTo({ url: "/pages/recipe/list/index" });
   },
 
-  goRecipeAdd() {
+  async goRecipeAdd() {
+    if (!(await this.guardGuestAction("添加菜谱需要先登录。"))) return;
     wx.navigateTo({ url: "/pages/recipe/add/index" });
   },
 
-  goRecipeDetail(e) {
+  async goRecipeDetail(e) {
     const recipeId = e.currentTarget.dataset.recipeid;
     if (!recipeId) return;
+    if (!(await this.guardGuestAction("查看菜谱需要先登录。"))) return;
     wx.navigateTo({ url: `/pages/recipe/detail/index?recipeId=${recipeId}` });
   },
 });

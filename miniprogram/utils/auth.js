@@ -90,11 +90,67 @@ async function trySilentLogin() {
   return { ok: true, currentFamilyId: currentFamilyId || null };
 }
 
+function isLoggedIn() {
+  const app = getApp();
+  return !!(app && app.globalData && app.globalData.userInfo);
+}
+
+/**
+ * 已登录或静默登录成功返回 { ok: true }；否则弹窗。
+ * @returns {Promise<{ ok: true } | { ok: false, reason: 'cancel' | 'login' }>}
+ */
+async function requireLoggedIn(options) {
+  const opt = options || {};
+  const app = getApp();
+  if (app.globalData.userInfo) return { ok: true };
+  try {
+    const r = await trySilentLogin();
+    if (r.ok) return { ok: true };
+  } catch (e) {
+    /* ignore */
+  }
+  return new Promise((resolve) => {
+    wx.showModal({
+      title: opt.title || "需要登录",
+      content: opt.content || "使用此功能需要先登录。",
+      confirmText: "去登录",
+      cancelText: "取消",
+      success: (res) => {
+        if (res.confirm) {
+          wx.navigateTo({ url: "/pages/login/login/index" });
+          resolve({ ok: false, reason: "login" });
+        } else {
+          resolve({ ok: false, reason: "cancel" });
+        }
+      },
+      fail: () => resolve({ ok: false, reason: "cancel" }),
+    });
+  });
+}
+
+/**
+ * 用于子页面 onLoad：未登录则弹窗；用户点「取消」时返回上一页或首页。
+ * @returns {Promise<boolean>}
+ */
+async function requireLoggedInOrBack(options) {
+  const r = await requireLoggedIn(options);
+  if (r.ok) return true;
+  if (r.reason === "cancel") {
+    wx.navigateBack({
+      fail: () => wx.reLaunch({ url: "/pages/index/index" }),
+    });
+  }
+  return false;
+}
+
 module.exports = {
   SESSION_KEY,
   getValidSessionOrNull,
   isPlaceholderNickName,
   completeLoginFlow,
   trySilentLogin,
+  isLoggedIn,
+  requireLoggedIn,
+  requireLoggedInOrBack,
 };
 

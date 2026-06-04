@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const auth = require("../../../utils/auth");
 const { resolveBatch, attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 /** cloud:// 不能直接作 image src（开发者工具会拼成页面相对路径）；仅使用解析后的 https 或原 http(s) */
@@ -91,13 +92,17 @@ Page({
     this.setData({ inviteCode: e.detail.value || "" });
   },
 
-  openJoinDialog() {
+  async openJoinDialog() {
     if (this.data.actionBusy) return;
+    const r = await auth.requireLoggedIn({ content: "加入家庭需要先登录。" });
+    if (!r.ok) return;
     this.setData({ dialogVisible: true, dialogMode: "join", dialogValue: "" });
   },
 
-  openCreateDialog() {
+  async openCreateDialog() {
     if (this.data.actionBusy) return;
+    const r = await auth.requireLoggedIn({ content: "创建家庭需要先登录。" });
+    if (!r.ok) return;
     this.setData({ dialogVisible: true, dialogMode: "create", dialogValue: "" });
   },
 
@@ -469,6 +474,8 @@ Page({
   async onOpenFamily(e) {
     const familyId = e.currentTarget.dataset.familyid;
     if (!familyId || this.data.actionBusy) return;
+    const r = await auth.requireLoggedIn({ content: "查看与管理家庭详情需要先登录。" });
+    if (!r.ok) return;
     const app = getApp();
     app.globalData.currentFamilyId = familyId;
     this.setData({
@@ -509,6 +516,8 @@ Page({
   },
 
   async onCopyInviteCode() {
+    const r = await auth.requireLoggedIn({ content: "复制邀请码需要先登录。" });
+    if (!r.ok) return;
     const { currentFamily } = this.data;
     if (!currentFamily) return;
     wx.setClipboardData({
@@ -518,6 +527,8 @@ Page({
   },
 
   async onKickMember(e) {
+    const r = await auth.requireLoggedIn({ content: "管理成员需要先登录。" });
+    if (!r.ok) return;
     const { currentFamily } = this.data;
     if (!currentFamily) return;
     if (this.data.actionBusy) return;
@@ -538,6 +549,8 @@ Page({
   },
 
   async onExitFamily() {
+    const r = await auth.requireLoggedIn({ content: "退出家庭需要先登录。" });
+    if (!r.ok) return;
     const { currentFamily } = this.data;
     if (!currentFamily) return;
     if (this.data.actionBusy) return;

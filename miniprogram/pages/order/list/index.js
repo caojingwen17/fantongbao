@@ -1,4 +1,5 @@
 const cloud = require("../../../utils/cloud");
+const auth = require("../../../utils/auth");
 
 Page({
   data: {
@@ -9,7 +10,9 @@ Page({
     listLoading: false,
   },
 
-  onLoad() {
+  async onLoad() {
+    const ok = await auth.requireLoggedInOrBack({ content: "查看点菜单列表需要先登录。" });
+    if (!ok) return;
     const app = getApp();
     this.setData({
       familyId: app.globalData.currentFamilyId,
@@ -17,6 +20,7 @@ Page({
   },
 
   onShow() {
+    if (!auth.isLoggedIn()) return;
     this.fetchOrders();
   },
 

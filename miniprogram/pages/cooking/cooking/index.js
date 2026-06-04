@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
+const auth = require("../../../utils/auth");
 
 Page({
   data: {
@@ -19,6 +20,8 @@ Page({
   },
 
   async onLoad(options) {
+    const ok = await auth.requireLoggedInOrBack({ content: "使用制作清单需要先登录。" });
+    if (!ok) return;
     const orderId = options && options.orderId ? options.orderId : "";
     this.setData({ orderId });
     await this.fetchChecklist();

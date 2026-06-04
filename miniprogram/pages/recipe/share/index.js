@@ -43,6 +43,8 @@ Page({
     selectedFamilyName: "",
     selectedFamilyId: "",
     importing: false,
+    /** 未登录：可浏览分享快照，导入时再登录 */
+    shareGuest: false,
     expandIngredients: false,
     expandPrepare: false,
     expandCooking: false,
@@ -92,28 +94,6 @@ Page({
 
     this.setData({ token });
 
-    const session = auth.getValidSessionOrNull();
-    if (!session) {
-      wx.redirectTo({ url: "/pages/login/login/index" });
-      return;
-    }
-
-    try {
-      await auth.trySilentLogin();
-    } catch (e) {
-      wx.redirectTo({ url: "/pages/login/login/index" });
-      return;
-    }
-
-    const cid = app.globalData.currentFamilyId;
-    const fams = app.globalData.families || [];
-    let idx = 0;
-    if (cid && fams.length) {
-      const found = fams.findIndex((x) => x._id === cid);
-      if (found >= 0) idx = found;
-    }
-    this.syncFamilyPicker(idx);
-
     try {
       const result = await cloud.callFunction("recipeFunctions", {
         type: "getRecipeSharePreview",
@@ -135,8 +115,34 @@ Page({
       const seasoningRows = normalizeNameAmountRows(seas);
       const prepareStepList = prep.map((s) => String(s == null ? "" : s).trim()).filter(Boolean);
       const cookingStepList = cook.map((s) => String(s == null ? "" : s).trim()).filter(Boolean);
+      try {
+        await auth.trySilentLogin();
+      } catch (e) {
+        /* 未登录仍可浏览预览 */
+      }
+      const app2 = getApp();
+      let shareGuest = !app2.globalData.userInfo;
+      if (!shareGuest) {
+        const cid = app2.globalData.currentFamilyId;
+        const fams = app2.globalData.families || [];
+        let idx = 0;
+        if (cid && fams.length) {
+          const found = fams.findIndex((x) => x._id === cid);
+          if (found >= 0) idx = found;
+        }
+        this.syncFamilyPicker(idx);
+      } else {
+        this.setData({
+          families: [],
+          familyIndex: 0,
+          selectedFamilyId: "",
+          selectedFamilyName: "",
+        });
+      }
+
       this.setData({
         loading: false,
+        shareGuest,
         preview: p,
         ingredientCount: ings.length,
         prepareCount: prep.length,
@@ -159,8 +165,8 @@ Page({
 
   onShow() {
     if (this.data.loading || this.data.errMsg || !this.data.token) return;
-    const app = getApp();
-    const fams = app.globalData.families || [];
+    if (this.data.shareGuest) return;
+    const fams = getApp().globalData.families || [];
     if (fams.length !== (this.data.families || []).length) {
       this.syncFamilyPicker(this.data.familyIndex || 0);
     }
@@ -190,6 +196,10 @@ Page({
 
   goFamily() {
     wx.navigateTo({ url: "/pages/family/family/index" });
+  },
+
+  goLogin() {
+    wx.navigateTo({ url: "/pages/login/login/index" });
   },
 
   async onImport() {

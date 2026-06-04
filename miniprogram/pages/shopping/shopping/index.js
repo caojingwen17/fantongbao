@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
+const auth = require("../../../utils/auth");
 
 Page({
   data: {
@@ -65,12 +66,15 @@ Page({
   },
 
   async onLoad(options) {
+    const ok = await auth.requireLoggedInOrBack({ content: "使用买菜清单需要先登录。" });
+    if (!ok) return;
     const orderId = options && options.orderId ? options.orderId : "";
     this.setData({ orderId });
     await this.fetchChecklist();
   },
 
   async onShow() {
+    if (!auth.isLoggedIn()) return;
     // 从“继续加菜”返回时自动刷新归并清单
     await this.fetchChecklist();
   },

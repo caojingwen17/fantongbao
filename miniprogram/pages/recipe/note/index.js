@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
+const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
@@ -15,6 +16,8 @@ Page({
   },
 
   async onLoad(options) {
+    const ok = await auth.requireLoggedInOrBack({ content: "记录笔记需要先登录。" });
+    if (!ok) return;
     const app = getApp();
     this.setData({
       recipeId: options && options.recipeId ? options.recipeId : "",

@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
+const auth = require("../../../utils/auth");
 const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 const KEYWORD_DEBOUNCE_MS = 320;
@@ -18,7 +19,9 @@ Page({
     selectedRecipeName: "",
   },
 
-  onLoad() {
+  async onLoad() {
+    const ok = await auth.requireLoggedInOrBack({ content: "查看家庭菜谱需要先登录。" });
+    if (!ok) return;
     const app = getApp();
     this.setData({ familyId: app.globalData.currentFamilyId });
   },
@@ -28,6 +31,7 @@ Page({
   },
 
   onShow() {
+    if (!auth.isLoggedIn()) return;
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
     if (familyId !== this.data.familyId) {

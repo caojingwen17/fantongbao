@@ -1,4 +1,5 @@
 const cloud = require("../../utils/cloud");
+const auth = require("../../utils/auth");
 
 Page({
   data: {
@@ -26,6 +27,8 @@ Page({
 
   async onSubmit() {
     if (this.data.submitting) return;
+    const r = await auth.requireLoggedIn({ content: "提交反馈需要先登录。" });
+    if (!r.ok) return;
     const text = String(this.data.content || "").trim();
     if (!text.length) {
       wx.showToast({ title: "请填写内容", icon: "none" });

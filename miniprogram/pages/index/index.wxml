@@ -3,6 +3,32 @@
     <view class="ft-loading-spinner"></view>
     <text class="ft-loading-text">加载中…</text>
   </view>
+
+  <block wx:if="{{homeNeedFamily}}">
+    <view class="blob blob-a"></view>
+    <view class="blob blob-b"></view>
+    <view class="topbar">
+      <view class="brand">FANTONGBABY</view>
+      <view class="topbar-spacer" aria-hidden="true"></view>
+    </view>
+    <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+      <view class="main-inner">
+        <view class="need-family-hero ft-card-lowest">
+          <view class="need-family-kicker">还差一步</view>
+          <view class="need-family-title">尚未加入家庭</view>
+          <view class="need-family-sub">创建或加入家庭后，即可使用点菜单、菜谱、买菜与制作清单。</view>
+          <button class="ft-btn ft-btn-primary guest-login-btn" bindtap="goFamily">去家庭管理</button>
+        </view>
+        <view class="home-feedback-row">
+          <view class="home-feedback-link" bindtap="goFeedback" role="button" aria-label="吐槽与建议">
+            💬 吐槽与建议
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </block>
+
+  <block wx:else>
   <!-- Decorative blobs -->
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
@@ -15,6 +41,12 @@
 
   <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
     <view class="main-inner">
+    <view class="home-guest-banner ft-card-lowest" wx:if="{{homeGuest}}">
+      <view class="home-guest-banner-inner">
+        <text class="home-guest-banner-text">浏览体验中，登录后可同步家庭数据</text>
+        <text class="home-guest-banner-login" bindtap="goLogin" role="button">登录</text>
+      </view>
+    </view>
     <!-- 家庭卡片 -->
     <view class="card family-card ft-card-lowest">
       <view class="family-top">
@@ -22,7 +54,7 @@
           <view class="kicker">当前家庭</view>
           <view class="family-name-btn" bindtap="onToggleFamilyPicker" role="button" aria-label="切换家庭">
             <view class="family-name">
-              {{(currentFamily && currentFamily.familyName) ? currentFamily.familyName : "未选择家庭"}}
+              {{homeGuest ? "未登录" : ((currentFamily && currentFamily.familyName) ? currentFamily.familyName : "未选择家庭")}}
             </view>
             <view class="family-expand {{showFamilyPicker ? 'family-expand-up' : ''}}" aria-hidden="true">
               <view class="family-expand-l"></view>
@@ -254,4 +286,5 @@
       <view class="create-order-btn ok" bindtap="confirmCreateOrder">创建</view>
     </view>
   </view>
+  </block>
 </view>

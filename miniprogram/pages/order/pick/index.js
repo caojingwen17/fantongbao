@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
+const auth = require("../../../utils/auth");
 const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 const KEYWORD_DEBOUNCE_MS = 320;
@@ -20,7 +21,9 @@ Page({
     pickedSheetVisible: false,
   },
 
-  onLoad(options) {
+  async onLoad(options) {
+    const ok = await auth.requireLoggedInOrBack({ content: "点菜需要先登录。" });
+    if (!ok) return;
     const app = getApp();
     const orderId = (options && options.orderId) || "";
     this.setData({

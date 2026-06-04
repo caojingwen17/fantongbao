@@ -215,11 +215,3 @@
 .submit-icon {
   font-size: 34rpx;
 }
-
-.footer-note {
-  margin-top: 40rpx;
-  text-align: center;
-  font-size: 22rpx;
-  font-weight: 700;
-  color: var(--ft-on-surface-variant);
-}

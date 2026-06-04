@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
+const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 const { renderRecipeSharePoster } = require("../../../utils/recipeSharePoster");
 
@@ -45,6 +46,8 @@ Page({
   },
 
   async onLoad(options) {
+    const ok = await auth.requireLoggedInOrBack({ content: "查看菜谱详情需要先登录。" });
+    if (!ok) return;
     const app = getApp();
     const familyId = app && app.globalData ? app.globalData.currentFamilyId : "";
     const recipeId = options && options.recipeId ? options.recipeId : "";
@@ -64,6 +67,7 @@ Page({
   },
 
   async onShow() {
+    if (!auth.isLoggedIn()) return;
     if (this.data.pageLoading || !this.data.recipeId || this.data.posterWorking) return;
     try {
       await this.fetchRecipeDetail();

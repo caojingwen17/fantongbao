@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
+const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
@@ -26,7 +27,9 @@ Page({
     },
   },
 
-  onLoad() {
+  async onLoad() {
+    const ok = await auth.requireLoggedInOrBack({ content: "添加菜谱需要先登录。" });
+    if (!ok) return;
     const app = getApp();
     this.setData({ familyId: app.globalData.currentFamilyId });
 
