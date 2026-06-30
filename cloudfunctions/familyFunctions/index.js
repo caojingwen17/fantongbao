@@ -1,4 +1,5 @@
 const cloud = require("wx-server-sdk");
+const { getOpenidOrThrow, isNotMemberError } = require("./auth");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -110,7 +111,7 @@ async function assertFamilyAdmin({ openid, familyId }) {
   return fam;
 }
 
-exports.main = async (event) => {
+async function handleFamilyEvent(event) {
   await ensureBaseCollections();
 
   const ctx = getWXContext();
@@ -118,6 +119,10 @@ exports.main = async (event) => {
 
   if (!event || !event.type) {
     throw new Error("缺少 type");
+  }
+
+  if (event.type !== "login") {
+    getOpenidOrThrow(ctx);
   }
 
   switch (event.type) {
@@ -211,14 +216,18 @@ exports.main = async (event) => {
 
       const familyId = fam._id;
 
-      await assertFamilyMember({ openid, familyId }).catch(async (e) => {
-        // 未是成员：加入
+      const existingUser = await getUser(openid);
+      if (!existingUser) throw new Error("请先完成登录");
+
+      try {
+        await assertFamilyMember({ openid, familyId });
+      } catch (e) {
+        if (!isNotMemberError(e)) throw e;
         await db.collection("families").where({ _id: familyId }).update({
           data: {
             memberIds: db.command.addToSet(openid),
           },
         });
-
         await db.collection("users").doc(openid).update({
           data: {
             familyIds: db.command.addToSet(familyId),
@@ -226,7 +235,7 @@ exports.main = async (event) => {
             [`familyRoles.${familyId}`]: "member",
           },
         });
-      });
+      }
 
       return {
         success: true,
@@ -353,6 +362,16 @@ exports.main = async (event) => {
 
     default:
       throw new Error(`未知 type: ${event.type}`);
+  }
+}
+
+exports.main = async (event) => {
+  try {
+    return await handleFamilyEvent(event);
+  } catch (e) {
+    const msg = (e && e.message) || String(e);
+    console.error("[familyFunctions]", event && event.type, msg);
+    return { success: false, errMsg: msg };
   }
 };
 

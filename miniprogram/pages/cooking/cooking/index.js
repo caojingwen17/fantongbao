@@ -84,23 +84,44 @@ Page({
     if (!stepId) return;
     if (this.data.order.status !== "pending_cooking") return;
 
-    const prevGroups = JSON.parse(JSON.stringify(this.data.groups || []));
-    const prevProgress = { ...(this.data.progress || { doneCount: 0, totalCount: 0 }) };
-    const targetDone = !done;
+    const groups = this.data.groups || [];
+    let gi = -1;
+    let phase = "";
+    let si = -1;
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[i];
+      const pi = (g.prepareSteps || []).findIndex((s) => s._id === stepId);
+      if (pi >= 0) {
+        gi = i;
+        phase = "prepare";
+        si = pi;
+        break;
+      }
+      const ci = (g.cookingSteps || []).findIndex((s) => s._id === stepId);
+      if (ci >= 0) {
+        gi = i;
+        phase = "cooking";
+        si = ci;
+        break;
+      }
+    }
+    if (gi < 0) return;
 
-    const groups = (this.data.groups || []).map((g) => {
-      const nextPrepare = (g.prepareSteps || []).map((s) => (s._id === stepId ? { ...s, done: targetDone } : s));
-      const nextCooking = (g.cookingSteps || []).map((s) => (s._id === stepId ? { ...s, done: targetDone } : s));
-      const doneCount = nextPrepare.filter((s) => !!s.done).length + nextCooking.filter((s) => !!s.done).length;
-      return { ...g, prepareSteps: nextPrepare, cookingSteps: nextCooking, doneCount };
-    });
+    const prevProgress = { ...(this.data.progress || { doneCount: 0, totalCount: 0 }) };
+    const stepKey = phase === "prepare" ? "prepareSteps" : "cookingSteps";
+    const wasDone = !!groups[gi][stepKey][si].done;
+    const targetDone = !done;
+    const prevGroupDoneCount = groups[gi].doneCount || 0;
+    const nextGroupDoneCount = Math.max(0, prevGroupDoneCount + (targetDone ? 1 : 0) - (wasDone ? 1 : 0));
     const nextDoneCount = Math.max(
       0,
       Math.min(prevProgress.totalCount || 0, (prevProgress.doneCount || 0) + (targetDone ? 1 : -1))
     );
+
     this.setData({
-      groups,
-      progress: { totalCount: prevProgress.totalCount || 0, doneCount: nextDoneCount },
+      [`groups[${gi}].${stepKey}[${si}].done`]: targetDone,
+      [`groups[${gi}].doneCount`]: Math.max(0, nextGroupDoneCount),
+      "progress.doneCount": nextDoneCount,
       pendingToggleCount: (this.data.pendingToggleCount || 0) + 1,
     });
 
@@ -110,7 +131,11 @@ Page({
         stepId,
       });
     } catch (err) {
-      this.setData({ groups: prevGroups, progress: prevProgress });
+      this.setData({
+        [`groups[${gi}].${stepKey}[${si}].done`]: wasDone,
+        [`groups[${gi}].doneCount`]: prevGroupDoneCount,
+        "progress.doneCount": prevProgress.doneCount || 0,
+      });
       wx.showToast({ title: "更新失败，请重试", icon: "none" });
     } finally {
       const nextPending = Math.max(0, (this.data.pendingToggleCount || 1) - 1);
@@ -169,10 +194,11 @@ Page({
         type: "completeCookingOrder",
         orderId,
       });
-    } finally {
+      this.setData({ actionBusy: false, showCompleteModal: false });
+      wx.reLaunch({ url: "/pages/index/index" });
+    } catch (e) {
       this.setData({ actionBusy: false, showCompleteModal: false });
     }
-    wx.reLaunch({ url: "/pages/index/index" });
   },
 
   onCompleteCooking() {

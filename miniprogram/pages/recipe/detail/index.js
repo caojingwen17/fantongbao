@@ -1,6 +1,7 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
+const share = require("../../../utils/share");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 const { renderRecipeSharePoster } = require("../../../utils/recipeSharePoster");
 
@@ -17,6 +18,44 @@ Page({
     prepareSteps: [],
     cookingSteps: [],
     posterWorking: false,
+  },
+
+  async ensureShareToken() {
+    if (this._shareToken) return this._shareToken;
+    const { recipeId } = this.data;
+    if (!recipeId) throw new Error("缺少菜谱");
+    const prep = await share.prepareRecipeShareToken(cloud, recipeId);
+    this._shareToken = prep.token;
+    return prep.token;
+  },
+
+  onShareAppMessage() {
+    const { recipeName, recipeImgDisplay, recipeId } = this.data;
+    if (!recipeId) return share.defaultShareAppMessage();
+    const title = recipeName ? `分享菜谱：${recipeName}` : "饭桶宝菜谱";
+    const imageUrl = recipeImgDisplay || "";
+    return {
+      title,
+      path: "/pages/index/index",
+      imageUrl,
+      promise: this.ensureShareToken()
+        .then((token) => ({
+          title,
+          path: share.buildRecipeSharePath(token),
+          imageUrl,
+        }))
+        .catch(() => share.defaultShareAppMessage()),
+    };
+  },
+
+  onShareTimeline() {
+    const { recipeName, recipeId } = this.data;
+    if (!recipeId) return share.defaultShareTimeline();
+    const title = recipeName ? `分享菜谱：${recipeName}` : "饭桶宝菜谱";
+    return {
+      title,
+      query: `recipeId=${encodeURIComponent(recipeId)}`,
+    };
   },
 
   async fetchRecipeDetail() {
@@ -62,6 +101,7 @@ Page({
     } catch (e) {
       // ignore
     } finally {
+      this._skipShowFetchOnce = true;
       this.setData({ pageLoading: false });
     }
   },
@@ -69,6 +109,10 @@ Page({
   async onShow() {
     if (!auth.isLoggedIn()) return;
     if (this.data.pageLoading || !this.data.recipeId || this.data.posterWorking) return;
+    if (this._skipShowFetchOnce) {
+      this._skipShowFetchOnce = false;
+      return;
+    }
     try {
       await this.fetchRecipeDetail();
     } catch (e) {
@@ -129,26 +173,8 @@ Page({
     let tempPath = "";
     try {
       await ui.withLoading(async () => {
-        let envVersion = "release";
-        try {
-          const info = wx.getAccountInfoSync();
-          const v = info && info.miniProgram && info.miniProgram.envVersion;
-          if (v === "develop" || v === "trial" || v === "release") {
-            envVersion = v;
-          }
-        } catch (e) {
-          /* 默认 release */
-        }
-        prep = await cloud.callFunction("recipeFunctions", {
-          type: "prepareRecipeShare",
-          recipeId: this.data.recipeId,
-          envVersion,
-        });
-        if (!prep || prep.success === false) {
-          const msg =
-            (prep && (prep.errMsg || prep.message)) || "准备分享失败，请稍后重试";
-          throw new Error(msg);
-        }
+        prep = await share.prepareRecipeShareToken(cloud, this.data.recipeId);
+        this._shareToken = prep.token;
         const coverUrl = this.data.recipeImgDisplay || this.data.recipeImg;
         const [coverPath, qPath] = await Promise.all([
           this.downloadHttpsToTemp(coverUrl),
@@ -175,11 +201,28 @@ Page({
         });
       }
 
-      // 调起系统分享图菜单：保存相册、转发好友等由用户自选（基础库过低时回退为仅保存相册）
+      // 调起系统分享图菜单：需当前页支持转发，并指定 entrancePath 供好友点击卡片进入分享页
       if (tempPath && wx.showShareImageMenu) {
+        const entrancePath = prep && prep.token
+          ? share.buildRecipeSharePath(prep.token)
+          : "/pages/index/index";
         wx.showShareImageMenu({
           path: tempPath,
-          fail() {},
+          needShowEntrance: true,
+          entrancePath,
+          fail: (err) => {
+            const msg = String((err && err.errMsg) || "");
+            if (msg.indexOf("cancel") !== -1) return;
+            if (tempPath && wx.saveImageToPhotosAlbum) {
+              wx.saveImageToPhotosAlbum({
+                filePath: tempPath,
+                success: () => wx.showToast({ title: "已保存到相册", icon: "none" }),
+                fail: () => wx.showToast({ title: "分享失败，请重试", icon: "none" }),
+              });
+              return;
+            }
+            wx.showToast({ title: "分享失败，请重试", icon: "none" });
+          },
         });
       } else if (tempPath && wx.saveImageToPhotosAlbum) {
         await new Promise((resolve) => {

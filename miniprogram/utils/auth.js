@@ -5,12 +5,14 @@ const SESSION_KEY = "fantongbao_session";
 /** 微信静默/旧接口返回的占位昵称，不能当作真实资料 */
 const PLACEHOLDER_NICKNAMES = ["微信用户", "WeChat User"];
 
+let _loginInflight = null;
+let _loginInflightKey = "";
+
 function isPlaceholderNickName(name) {
   if (!name || typeof name !== "string") return true;
   return PLACEHOLDER_NICKNAMES.includes(name.trim());
 }
 
-/** 文档中的默认灰头像 URL 片段，旧授权常见 */
 function isWeChatDefaultAvatarUrl(url) {
   if (!url || typeof url !== "string") return false;
   return url.indexOf("mmbiz/icTdbqWNOwNRna42") !== -1;
@@ -36,17 +38,77 @@ function getValidSessionOrNull() {
   }
 }
 
-/**
- * 统一的登录流程：云端 login → 写入 session → 初始化 → 拉取家庭列表并选中 currentFamilyId
- * @param {{ nickName: string, avatarUrl: string }} userInfo avatarUrl 可为云 fileID 或 https
- * @returns {Promise<{ currentFamilyId: string|null, families: any[] }>}
- */
-async function completeLoginFlow(userInfo) {
-  const loginResp = await cloud.callFunctionWithErrorToast("familyFunctions", {
+function clearAuthState(options) {
+  const keepSession = !!(options && options.keepSession);
+  const app = getApp();
+  if (app && app.globalData) {
+    app.globalData.userInfo = null;
+    app.globalData.openid = null;
+    app.globalData.families = [];
+    app.globalData.currentFamilyId = null;
+  }
+  if (!keepSession) {
+    try {
+      wx.removeStorageSync(SESSION_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+}
+
+const LOGIN_ERROR_HINTS = {
+  "缺少 openid": "无法识别微信身份：请用正式 AppID 编译，并在真机或开发者工具中确认已登录微信",
+  未登录或无法识别用户: "无法识别微信身份，请关闭小程序后重新打开",
+  "云函数未部署": "云函数 familyFunctions 未部署，请在开发者工具中右键上传并部署",
+};
+
+function formatLoginError(err) {
+  if (!err) return "登录失败";
+  const raw = err.message || err.errMsg || String(err);
+  const m = raw.match(/Error:\s*(.+)$/);
+  const core = (m && m[1] ? m[1].trim() : raw).trim();
+  for (const key of Object.keys(LOGIN_ERROR_HINTS)) {
+    if (core.includes(key)) return LOGIN_ERROR_HINTS[key];
+  }
+  return core.slice(0, 120);
+}
+
+function ensureWxLogin() {
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success: (res) => {
+        if (res && res.code) resolve();
+        else reject(new Error("微信登录态获取失败，请重试"));
+      },
+      fail: (e) => {
+        reject(new Error((e && e.errMsg) || "微信登录态获取失败"));
+      },
+    });
+  });
+}
+
+async function runCompleteLoginFlow(userInfo, options) {
+  await ensureWxLogin();
+
+  const silent = !!(options && options.silent);
+  const payload = {
     type: "login",
     nickName: userInfo.nickName,
     avatarUrl: userInfo.avatarUrl,
-  });
+  };
+
+  let loginResp;
+  if (silent) {
+    loginResp = await cloud.callFunction("familyFunctions", payload);
+  } else {
+    loginResp = await cloud.callFunctionWithErrorToast("familyFunctions", payload);
+  }
+
+  if (!loginResp || loginResp.success === false) {
+    throw new Error(
+      (loginResp && (loginResp.errMsg || loginResp.message)) || "云端登录失败"
+    );
+  }
 
   wx.setStorageSync(SESSION_KEY, {
     nickName: userInfo.nickName,
@@ -54,19 +116,20 @@ async function completeLoginFlow(userInfo) {
   });
 
   const app = getApp();
-  app.globalData.userInfo = userInfo;
-  if (loginResp && loginResp.openid) app.globalData.openid = loginResp.openid;
+  app.globalData.userInfo = {
+    nickName: userInfo.nickName,
+    avatarUrl: userInfo.avatarUrl,
+  };
+  if (loginResp.openid) app.globalData.openid = loginResp.openid;
 
-  const [, familiesResp] = await Promise.all([
-    cloud.callFunction("initFunctions", { init: true }).catch(() => null),
-    cloud.callFunction("familyFunctions", { type: "getMyFamilies" }).catch(() => null),
-  ]);
+  const familiesResp = await cloud
+    .callFunction("familyFunctions", { type: "getMyFamilies" })
+    .catch(() => null);
 
   const families = (familiesResp && familiesResp.families) || [];
   app.globalData.families = families;
 
-  const serverCid =
-    loginResp && loginResp.currentFamilyId ? loginResp.currentFamilyId : null;
+  const serverCid = loginResp.currentFamilyId || null;
   if (serverCid && families.some((f) => f._id === serverCid)) {
     app.globalData.currentFamilyId = serverCid;
   } else {
@@ -79,15 +142,38 @@ async function completeLoginFlow(userInfo) {
   };
 }
 
-/**
- * 若本地存在可用 session，则静默走 completeLoginFlow。
- * @returns {Promise<{ ok: boolean, currentFamilyId: string|null }>}
- */
+async function completeLoginFlow(userInfo, options) {
+  const sessionKey = `${userInfo.nickName}|${userInfo.avatarUrl}`;
+  if (_loginInflight && _loginInflightKey === sessionKey) {
+    return _loginInflight;
+  }
+
+  _loginInflightKey = sessionKey;
+  _loginInflight = runCompleteLoginFlow(userInfo, options).finally(() => {
+    if (_loginInflightKey === sessionKey) {
+      _loginInflight = null;
+      _loginInflightKey = "";
+    }
+  });
+
+  return _loginInflight;
+}
+
 async function trySilentLogin() {
   const s = getValidSessionOrNull();
-  if (!s) return { ok: false, currentFamilyId: null };
-  const { currentFamilyId } = await completeLoginFlow(s);
-  return { ok: true, currentFamilyId: currentFamilyId || null };
+  if (!s) return { ok: false, currentFamilyId: null, error: null };
+
+  try {
+    const { currentFamilyId } = await completeLoginFlow(s, { silent: true });
+    return { ok: true, currentFamilyId: currentFamilyId || null, error: null };
+  } catch (e) {
+    clearAuthState({ keepSession: true });
+    return { ok: false, currentFamilyId: null, error: formatLoginError(e) };
+  }
+}
+
+async function bootstrapSilentLogin() {
+  return trySilentLogin();
 }
 
 function isLoggedIn() {
@@ -95,20 +181,13 @@ function isLoggedIn() {
   return !!(app && app.globalData && app.globalData.userInfo);
 }
 
-/**
- * 已登录或静默登录成功返回 { ok: true }；否则弹窗。
- * @returns {Promise<{ ok: true } | { ok: false, reason: 'cancel' | 'login' }>}
- */
 async function requireLoggedIn(options) {
   const opt = options || {};
-  const app = getApp();
-  if (app.globalData.userInfo) return { ok: true };
-  try {
-    const r = await trySilentLogin();
-    if (r.ok) return { ok: true };
-  } catch (e) {
-    /* ignore */
-  }
+  if (isLoggedIn()) return { ok: true };
+
+  const silent = await trySilentLogin();
+  if (silent.ok) return { ok: true };
+
   return new Promise((resolve) => {
     wx.showModal({
       title: opt.title || "需要登录",
@@ -128,10 +207,6 @@ async function requireLoggedIn(options) {
   });
 }
 
-/**
- * 用于子页面 onLoad：未登录则弹窗；用户点「取消」时返回上一页或首页。
- * @returns {Promise<boolean>}
- */
 async function requireLoggedInOrBack(options) {
   const r = await requireLoggedIn(options);
   if (r.ok) return true;
@@ -147,10 +222,13 @@ module.exports = {
   SESSION_KEY,
   getValidSessionOrNull,
   isPlaceholderNickName,
+  clearAuthState,
+  formatLoginError,
+  ensureWxLogin,
   completeLoginFlow,
   trySilentLogin,
+  bootstrapSilentLogin,
   isLoggedIn,
   requireLoggedIn,
   requireLoggedInOrBack,
 };
-

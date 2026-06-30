@@ -1,4 +1,12 @@
 // app.js
+const share = require("./utils/share.js");
+
+const _Page = Page;
+Page = function (pageConfig) {
+  share.enhancePageConfig(pageConfig);
+  return _Page(pageConfig);
+};
+
 App({
   onLaunch: function () {
     this.globalData = {
@@ -12,6 +20,8 @@ App({
       families: [],
       /** 扫码/分享落地：登录完成后回到分享页用 */
       pendingShareToken: null,
+      /** 子页变更数据后标记，首页 onShow 再刷新 */
+      homeDirty: false,
     };
     if (!wx.cloud) {
       console.error("请使用 2.2.3 或以上的基础库以使用云能力");
@@ -26,5 +36,8 @@ App({
       }
       wx.cloud.init(initOptions);
     }
+
+    const auth = require("./utils/auth.js");
+    auth.bootstrapSilentLogin().catch(() => {});
   },
 });

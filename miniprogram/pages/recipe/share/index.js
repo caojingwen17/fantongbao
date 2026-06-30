@@ -1,5 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const auth = require("../../../utils/auth");
+const share = require("../../../utils/share");
 
 function normalizeNameAmountRows(arr) {
   return (Array.isArray(arr) ? arr : []).map((x) => {
@@ -115,34 +116,10 @@ Page({
       const seasoningRows = normalizeNameAmountRows(seas);
       const prepareStepList = prep.map((s) => String(s == null ? "" : s).trim()).filter(Boolean);
       const cookingStepList = cook.map((s) => String(s == null ? "" : s).trim()).filter(Boolean);
-      try {
-        await auth.trySilentLogin();
-      } catch (e) {
-        /* 未登录仍可浏览预览 */
-      }
-      const app2 = getApp();
-      let shareGuest = !app2.globalData.userInfo;
-      if (!shareGuest) {
-        const cid = app2.globalData.currentFamilyId;
-        const fams = app2.globalData.families || [];
-        let idx = 0;
-        if (cid && fams.length) {
-          const found = fams.findIndex((x) => x._id === cid);
-          if (found >= 0) idx = found;
-        }
-        this.syncFamilyPicker(idx);
-      } else {
-        this.setData({
-          families: [],
-          familyIndex: 0,
-          selectedFamilyId: "",
-          selectedFamilyName: "",
-        });
-      }
 
       this.setData({
         loading: false,
-        shareGuest,
+        shareGuest: !getApp().globalData.userInfo,
         preview: p,
         ingredientCount: ings.length,
         prepareCount: prep.length,
@@ -154,7 +131,25 @@ Page({
         expandIngredients: false,
         expandPrepare: false,
         expandCooking: false,
+        families: [],
+        familyIndex: 0,
+        selectedFamilyId: "",
+        selectedFamilyName: "",
       });
+
+      auth.trySilentLogin().then(() => {
+        const app2 = getApp();
+        if (!app2.globalData.userInfo) return;
+        const cid = app2.globalData.currentFamilyId;
+        const fams = app2.globalData.families || [];
+        let idx = 0;
+        if (cid && fams.length) {
+          const found = fams.findIndex((x) => x._id === cid);
+          if (found >= 0) idx = found;
+        }
+        this.syncFamilyPicker(idx);
+        this.setData({ shareGuest: false });
+      }).catch(() => {});
     } catch (e) {
       this.setData({
         loading: false,
@@ -170,6 +165,27 @@ Page({
     if (fams.length !== (this.data.families || []).length) {
       this.syncFamilyPicker(this.data.familyIndex || 0);
     }
+  },
+
+  onShareAppMessage() {
+    const { token, preview } = this.data;
+    if (!token) return share.defaultShareAppMessage();
+    const name = preview && preview.recipeName ? preview.recipeName : "菜谱";
+    return {
+      title: `分享菜谱：${name}`,
+      path: share.buildRecipeSharePath(token),
+      imageUrl: (preview && preview.recipeImgDisplay) || "",
+    };
+  },
+
+  onShareTimeline() {
+    const { token, preview } = this.data;
+    if (!token) return share.defaultShareTimeline();
+    const name = preview && preview.recipeName ? preview.recipeName : "菜谱";
+    return {
+      title: `分享菜谱：${name}`,
+      query: `token=${encodeURIComponent(token)}`,
+    };
   },
 
   onFamilyPick(e) {

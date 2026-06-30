@@ -24,6 +24,7 @@
 
     <!-- Form Card -->
     <view class="form-card ft-card" wx:else>
+      <view class="login-error ft-card-lowest" wx:if="{{loginError}}">{{loginError}}</view>
       <!-- Avatar -->
       <view class="row">
         <view class="row-left">

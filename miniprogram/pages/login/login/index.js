@@ -1,6 +1,8 @@
 const auth = require("../../../utils/auth");
+const cloudDisplay = require("../../../utils/cloudDisplay");
 
-const { getValidSessionOrNull, completeLoginFlow, isPlaceholderNickName } = auth;
+const { getValidSessionOrNull, completeLoginFlow, isPlaceholderNickName, formatLoginError } =
+  auth;
 
 Page({
   data: {
@@ -9,33 +11,68 @@ Page({
     nickName: "",
     avatarTempPath: "",
     avatarPreview: "",
+    loginError: "",
   },
 
   onLoad() {
     this.trySilentLogin();
   },
 
+  async resolveAvatarPreview(avatarUrl) {
+    if (!avatarUrl) return "";
+    if (avatarUrl.indexOf("cloud://") !== 0) return avatarUrl;
+    try {
+      const map = await cloudDisplay.resolveBatch([avatarUrl]);
+      return (map && map[avatarUrl]) || avatarUrl;
+    } catch (e) {
+      return avatarUrl;
+    }
+  },
+
   async trySilentLogin() {
     const s = getValidSessionOrNull();
     if (!s) {
-      this.setData({ checkingSession: false });
+      let loginError = "";
+      try {
+        const raw = wx.getStorageSync(auth.SESSION_KEY);
+        if (raw && raw.nickName) {
+          loginError = "本地登录信息已失效，请重新选择头像并填写昵称";
+        }
+      } catch (e) {
+        /* ignore */
+      }
+      this.setData({ checkingSession: false, loginError });
       return;
     }
-    this.setData({ isLoading: true });
+
+    this.setData({ isLoading: true, loginError: "" });
     try {
-      await this.afterLoginNavigate(await completeLoginFlow(s));
+      const ctx = await completeLoginFlow(s, { silent: true });
+      await this.afterLoginNavigate(ctx);
     } catch (e) {
-      this.setData({ checkingSession: false, isLoading: false });
-      wx.removeStorageSync(auth.SESSION_KEY);
+      auth.clearAuthState({ keepSession: true });
+      const msg = formatLoginError(e);
+      console.error("[login] silent login failed:", e);
+      this._sessionAvatarUrl = s.avatarUrl;
+      const avatarPreview = await this.resolveAvatarPreview(s.avatarUrl);
+      this.setData({
+        checkingSession: false,
+        isLoading: false,
+        loginError: msg,
+        nickName: s.nickName,
+        avatarPreview,
+      });
     }
   },
 
   onChooseAvatar(e) {
     const path = e.detail && e.detail.avatarUrl ? e.detail.avatarUrl : "";
     if (!path) return;
+    this._sessionAvatarUrl = "";
     this.setData({
       avatarTempPath: path,
       avatarPreview: path,
+      loginError: "",
     });
   },
 
@@ -49,48 +86,64 @@ Page({
       wx.showToast({ title: "请输入昵称", icon: "none" });
       return;
     }
-    // 与静默登录保持一致的“占位昵称”判断
     if (isPlaceholderNickName(nickName)) {
       wx.showToast({ title: "请填写真实昵称，不能使用「微信用户」", icon: "none" });
       return;
     }
-    if (!this.data.avatarTempPath) {
+
+    let avatarUrl = "";
+    if (this.data.avatarTempPath) {
+      if (this.data.isLoading) return;
+      this.setData({ isLoading: true, loginError: "" });
+      try {
+        wx.showLoading({ title: "上传头像…", mask: true });
+        const cloudPath = `avatars/login/${Date.now()}-${Math.random().toString(16).slice(2)}.png`;
+        const up = await wx.cloud.uploadFile({
+          cloudPath,
+          filePath: this.data.avatarTempPath,
+        });
+        wx.hideLoading();
+        avatarUrl = up && up.fileID ? up.fileID : "";
+        if (!avatarUrl) {
+          wx.showToast({ title: "头像上传失败", icon: "none" });
+          return;
+        }
+      } catch (uploadErr) {
+        wx.hideLoading();
+        const msg = formatLoginError(uploadErr);
+        this.setData({ loginError: msg });
+        wx.showToast({ title: msg, icon: "none", duration: 3500 });
+        return;
+      } finally {
+        this.setData({ isLoading: false });
+      }
+    } else if (this._sessionAvatarUrl) {
+      avatarUrl = this._sessionAvatarUrl;
+    } else {
       wx.showToast({ title: "请选择头像", icon: "none" });
       return;
     }
+
     if (this.data.isLoading) return;
-    this.setData({ isLoading: true });
+    this.setData({ isLoading: true, loginError: "" });
     try {
-      wx.showLoading({ title: "上传头像…" });
-      const cloudPath = `avatars/login/${Date.now()}-${Math.random().toString(16).slice(2)}.png`;
-      const up = await wx.cloud.uploadFile({
-        cloudPath,
-        filePath: this.data.avatarTempPath,
+      const ctx = await completeLoginFlow({
+        nickName,
+        avatarUrl,
       });
-      const fileID = up && up.fileID ? up.fileID : "";
-      wx.hideLoading();
-      if (!fileID) {
-        wx.showToast({ title: "头像上传失败", icon: "none" });
-        return;
-      }
-      await this.afterLoginNavigate(
-        await completeLoginFlow({
-          nickName,
-          avatarUrl: fileID,
-        })
-      );
+      await this.afterLoginNavigate(ctx);
     } catch (err) {
-      wx.hideLoading();
-      wx.showToast({ title: "登录失败，请重试", icon: "none" });
+      const msg = formatLoginError(err);
+      console.error("[login] manual login failed:", err);
+      auth.clearAuthState({ keepSession: true });
+      this._sessionAvatarUrl = avatarUrl;
+      this.setData({ loginError: msg });
+      wx.showToast({ title: msg, icon: "none", duration: 3500 });
     } finally {
-      this.setData({ isLoading: false });
+      this.setData({ isLoading: false, checkingSession: false });
     }
   },
 
-  /**
-   * 登录完成后的跳转策略：以首页为“主页”，避免把登录页留在栈底
-   * @param {{ currentFamilyId: string|null }} ctx
-   */
   async afterLoginNavigate(ctx) {
     wx.showToast({ title: "登录成功", icon: "none" });
 

@@ -1,4 +1,5 @@
 const cloud = require("wx-server-sdk");
+const { getOpenidOrThrow } = require("./auth");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -138,7 +139,7 @@ function normalizeStepText(text) {
 
 exports.main = async (event) => {
   const ctx = getWXContext();
-  const openid = ctx.OPENID;
+  const openid = getOpenidOrThrow(ctx);
 
   if (!event || !event.type) throw new Error("缺少 type");
 

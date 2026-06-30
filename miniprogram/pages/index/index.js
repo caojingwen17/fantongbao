@@ -52,22 +52,22 @@ Page({
    */
   async ensureEntryContext() {
     const app = getApp();
+    const session = auth.getValidSessionOrNull();
 
-    if (!app.globalData.userInfo) {
-      try {
-        const r = await auth.trySilentLogin();
-        if (!r.ok) {
-          return "guest";
+    if (session || !app.globalData.userInfo) {
+      const r = await auth.trySilentLogin();
+      if (!r.ok) {
+        if (session && r.error) {
+          console.warn("[auth] silent login failed:", r.error);
         }
-      } catch (e) {
-        return "guest";
+        if (!app.globalData.userInfo) return "guest";
       }
+    } else if (!app.globalData.userInfo) {
+      return "guest";
     }
 
-    if (!app.globalData.currentFamilyId) {
-      return "needFamily";
-    }
-
+    if (!app.globalData.userInfo) return "guest";
+    if (!app.globalData.currentFamilyId) return "needFamily";
     return "ok";
   },
 
@@ -110,6 +110,7 @@ Page({
     this.setData({ currentFamily, families });
 
     this.setData({ homeGuest: false, homeNeedFamily: false });
+    this._skipShowRefreshOnce = true;
     await this.refreshHome();
     if (openOnboard) {
       this.setData({ onboardSheetVisible: true });
@@ -127,7 +128,6 @@ Page({
       return;
     }
 
-    // 返回主页时，确保家庭下拉浮层已关闭
     if (this.data.showFamilyPicker) {
       this.setData({ showFamilyPicker: false });
     }
@@ -139,15 +139,25 @@ Page({
     const families = app.globalData.families || [];
     const currentFamily = families.find((f) => f._id === familyId) || null;
     this.setData({ currentFamily, families });
+
+    if (this._skipShowRefreshOnce) {
+      this._skipShowRefreshOnce = false;
+      return;
+    }
     await this.refreshHome();
   },
 
   async guardGuestAction(content) {
     if (!this.data.homeGuest) return true;
-    const r = await auth.requireLoggedIn({
-      content: content || "使用此功能需要先登录。",
-    });
-    return r.ok;
+    wx.showLoading({ title: "登录中…", mask: false });
+    try {
+      const r = await auth.requireLoggedIn({
+        content: content || "使用此功能需要先登录。",
+      });
+      return r.ok;
+    } finally {
+      wx.hideLoading({ noConflict: true });
+    }
   },
 
   async refreshFamiliesIfNeeded() {
@@ -164,6 +174,19 @@ Page({
   },
 
   async refreshHome() {
+    const app = getApp();
+    const familyId = app.globalData.currentFamilyId;
+    if (!familyId) return;
+
+    if (this._refreshPromise) return this._refreshPromise;
+
+    this._refreshPromise = this._doRefreshHome().finally(() => {
+      this._refreshPromise = null;
+    });
+    return this._refreshPromise;
+  },
+
+  async _doRefreshHome() {
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
     if (!familyId) return;
@@ -276,8 +299,8 @@ Page({
       return;
     }
     if (!(await this.guardGuestAction("切换家庭需要先登录。"))) return;
-    await this.refreshFamiliesIfNeeded();
     this.setData({ showFamilyPicker: true });
+    this.refreshFamiliesIfNeeded().catch(() => {});
   },
 
   onCloseFamilyPicker() {
@@ -365,7 +388,7 @@ Page({
       const orderId = res && res.orderId;
       this.setData({ showCreateOrderModal: false, newOrderName: "" });
       if (orderId) {
-        await this.refreshHome();
+        getApp().globalData.homeDirty = true;
         wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
       }
     } finally {

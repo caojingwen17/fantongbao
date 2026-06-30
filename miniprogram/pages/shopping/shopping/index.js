@@ -70,16 +70,30 @@ Page({
     if (!ok) return;
     const orderId = options && options.orderId ? options.orderId : "";
     this.setData({ orderId });
+    this._skipShowFetchOnce = true;
     await this.fetchChecklist();
   },
 
   async onShow() {
     if (!auth.isLoggedIn()) return;
-    // 从“继续加菜”返回时自动刷新归并清单
+    if (this._skipShowFetchOnce) {
+      this._skipShowFetchOnce = false;
+      return;
+    }
     await this.fetchChecklist();
   },
 
   async fetchChecklist() {
+    const { orderId } = this.data;
+    if (!orderId) return;
+    if (this._fetchPromise) return this._fetchPromise;
+    this._fetchPromise = this._doFetchChecklist().finally(() => {
+      this._fetchPromise = null;
+    });
+    return this._fetchPromise;
+  },
+
+  async _doFetchChecklist() {
     const { orderId } = this.data;
     if (!orderId) return;
     this.setData({ checklistLoading: true });
@@ -125,7 +139,7 @@ Page({
         name: extraName,
         amount: extraAmount,
       });
-    }, "提交中…");
+    }, "提交中…", false);
     this.setData({ extraName: "", extraAmount: "" });
     await this.fetchChecklist();
   },
@@ -142,7 +156,7 @@ Page({
           orderId: this.data.orderId,
           itemIds,
         });
-      }, "处理中…");
+      }, "处理中…", false);
     } finally {
       this.setData({ actionBusy: false });
     }

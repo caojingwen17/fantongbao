@@ -1,4 +1,5 @@
 const cloud = require("wx-server-sdk");
+const { getOpenidOrThrow } = require("./auth");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -135,9 +136,78 @@ async function ensureShareQrFileId(token, envVersion) {
   return fileID;
 }
 
+function isCloudPathForFamily(fileId, familyId) {
+  const s = String(fileId || "");
+  if (!s || !familyId) return false;
+  return (
+    s.includes(`/recipes/${familyId}/`) ||
+    s.includes(`/imports/recipe_ocr/${familyId}/`)
+  );
+}
+
+/** 仅允许换链属于该家庭的 fileID（路径前缀 + 库内引用） */
+async function filterFamilyFileIds({ familyId, fileIds }) {
+  const ids = [...new Set((fileIds || []).filter((x) => x && String(x).indexOf("cloud://") === 0))];
+  if (!ids.length) return [];
+
+  const allowed = new Set();
+  for (const id of ids) {
+    if (isCloudPathForFamily(id, familyId)) allowed.add(id);
+  }
+
+  const remaining = ids.filter((id) => !allowed.has(id));
+  if (!remaining.length) return [...allowed];
+
+  const _ = db.command;
+  const remSet = new Set(remaining);
+
+  const recipeRes = await db
+    .collection("recipes")
+    .where({ familyId })
+    .field({ recipeImg: true, _id: true })
+    .get();
+  for (const r of recipeRes.data || []) {
+    const img = r && r.recipeImg;
+    if (img && remSet.has(img)) allowed.add(img);
+  }
+
+  const famRes = await db.collection("families").where({ _id: familyId }).get();
+  const memberIds = (famRes.data && famRes.data[0] && famRes.data[0].memberIds) || [];
+  for (let i = 0; i < memberIds.length; i += 30) {
+    const slice = memberIds.slice(i, i + 30);
+    const usersRes = await db
+      .collection("users")
+      .where({ _id: _.in(slice) })
+      .field({ avatarUrl: true })
+      .get();
+    for (const u of usersRes.data || []) {
+      const av = u && u.avatarUrl;
+      if (av && remSet.has(av)) allowed.add(av);
+    }
+  }
+
+  const familyRecipeIds = (recipeRes.data || []).map((r) => r._id).filter(Boolean);
+  if (familyRecipeIds.length) {
+    for (let i = 0; i < familyRecipeIds.length; i += 30) {
+      const slice = familyRecipeIds.slice(i, i + 30);
+      const tokenRes = await db
+        .collection("recipe_share_tokens")
+        .where({ recipeId: _.in(slice) })
+        .field({ qrFileId: true })
+        .get();
+      for (const t of tokenRes.data || []) {
+        const qr = t && t.qrFileId;
+        if (qr && remSet.has(qr)) allowed.add(qr);
+      }
+    }
+  }
+
+  return [...allowed];
+}
+
 exports.main = async (event) => {
   const ctx = getWXContext();
-  const openid = ctx.OPENID;
+  const openid = getOpenidOrThrow(ctx);
 
   if (!event || !event.type) throw new Error("缺少 type");
 
@@ -337,9 +407,7 @@ exports.main = async (event) => {
       const { familyId, fileIds } = event;
       if (!familyId) throw new Error("缺少 familyId");
       await assertFamilyMember({ openid, familyId });
-      const ids = Array.isArray(fileIds)
-        ? [...new Set(fileIds.filter((x) => x && String(x).indexOf("cloud://") === 0))]
-        : [];
+      const ids = await filterFamilyFileIds({ familyId, fileIds });
       if (!ids.length) return { success: true, map: {} };
       const tmp = await cloud.getTempFileURL({ fileList: ids });
       const map = {};

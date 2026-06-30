@@ -1,9 +1,67 @@
 const cloud = require("wx-server-sdk");
 const https = require("https");
+const { getOpenidOrThrow } = require("./auth");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
 });
+
+const db = cloud.database();
+
+const AI_RATE_WINDOW_MS = 60 * 60 * 1000;
+const AI_RATE_MAX_CALLS = 40;
+
+async function ensureAiUsageCollection() {
+  try {
+    await db.createCollection("ai_usage_logs");
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+async function assertAiRateLimit(openid) {
+  await ensureAiUsageCollection();
+  const since = new Date(Date.now() - AI_RATE_WINDOW_MS);
+  const countRes = await db
+    .collection("ai_usage_logs")
+    .where({
+      openid,
+      createTime: db.command.gte(since),
+    })
+    .count();
+  const total = (countRes && typeof countRes.total === "number" ? countRes.total : 0) || 0;
+  if (total >= AI_RATE_MAX_CALLS) {
+    throw new Error("AI 调用过于频繁，请稍后再试");
+  }
+  await db.collection("ai_usage_logs").add({
+    data: { openid, createTime: new Date() },
+  });
+}
+
+async function assertFamilyMember({ openid, familyId }) {
+  const famRes = await db.collection("families").where({ _id: familyId }).get();
+  const fam = famRes && famRes.data && famRes.data[0] ? famRes.data[0] : null;
+  if (!fam) throw new Error("家庭不存在");
+  if (!Array.isArray(fam.memberIds) || !fam.memberIds.includes(openid)) {
+    throw new Error("没有家庭访问权限");
+  }
+  return fam;
+}
+
+function isCloudPathForFamily(fileId, familyId) {
+  const s = String(fileId || "");
+  return s.includes(`/imports/recipe_ocr/${familyId}/`) || s.includes(`/recipes/${familyId}/`);
+}
+
+async function assertImageFileIdsForFamily({ openid, familyId, fileIds }) {
+  if (!familyId) throw new Error("缺少 familyId");
+  await assertFamilyMember({ openid, familyId });
+  for (const fileID of fileIds) {
+    if (!isCloudPathForFamily(fileID, familyId)) {
+      throw new Error("图片不属于当前家庭，请重新上传");
+    }
+  }
+}
 
 function safeStr(v) {
   return v === undefined || v === null ? "" : String(v);
@@ -451,10 +509,15 @@ async function qwenExtractRecipeFromPastedText(recipeName, pastedText) {
 exports.main = async (event) => {
   if (!event || !event.type) throw new Error("缺少 type");
 
+  const ctx = cloud.getWXContext();
+  const openid = getOpenidOrThrow(ctx);
+  await assertAiRateLimit(openid);
+
   switch (event.type) {
     case "generateCommonRecipe": {
-      const { recipeName } = event;
+      const { recipeName, familyId } = event;
       if (!recipeName) throw new Error("缺少 recipeName");
+      if (familyId) await assertFamilyMember({ openid, familyId });
       try {
         let modelOut = await qwenGenerateCommonRecipeByName(recipeName, { hard: false });
         let normalized = normalizeRecipeOut(modelOut, recipeName);
@@ -508,8 +571,9 @@ exports.main = async (event) => {
 
     /** 粘贴文案 + AI 提炼（推荐，替代小红书链接模式） */
     case "extractRecipeFromText": {
-      const { recipeName, pastedText } = event;
+      const { recipeName, pastedText, familyId } = event;
       if (!recipeName) throw new Error("缺少 recipeName");
+      if (familyId) await assertFamilyMember({ openid, familyId });
       const t = safeStr(pastedText).trim();
       if (t.length < 8) throw new Error("请先粘贴足够长度的做法文案");
       try {
@@ -549,8 +613,9 @@ exports.main = async (event) => {
     }
 
     case "extractRecipeFromImage": {
-      const { recipeName, imageFileId, imageFileIds } = event;
+      const { recipeName, imageFileId, imageFileIds, familyId } = event;
       if (!recipeName) throw new Error("缺少 recipeName");
+      if (!familyId) throw new Error("缺少 familyId");
 
       const ids = [];
       if (Array.isArray(imageFileIds) && imageFileIds.length) {
@@ -563,6 +628,8 @@ exports.main = async (event) => {
       }
       if (ids.length === 0) throw new Error("缺少 imageFileId 或 imageFileIds");
       if (ids.length > 9) throw new Error("最多支持 9 张图片");
+
+      await assertImageFileIdsForFamily({ openid, familyId, fileIds: ids });
 
       const images = [];
       for (const fileID of ids) {

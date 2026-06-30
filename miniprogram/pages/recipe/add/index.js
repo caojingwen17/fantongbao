@@ -115,6 +115,7 @@ Page({
         type: "extractRecipeFromText",
         recipeName: this.data.recipeName,
         pastedText: raw,
+        familyId: this.data.familyId,
       });
 
       if (result && result.recipeName) {
@@ -202,6 +203,7 @@ Page({
             type: "extractRecipeFromImage",
             recipeName: this.data.recipeName,
             imageFileIds,
+            familyId: this.data.familyId,
           });
 
           if (result && result.recipeName) {
@@ -249,6 +251,7 @@ Page({
         .callFunction("aiFunctions", {
           type: "generateCommonRecipe",
           recipeName: this.data.recipeName,
+          familyId: this.data.familyId,
         })
         .catch(() => null);
 

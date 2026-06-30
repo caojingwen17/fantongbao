@@ -5,6 +5,8 @@ cloud.init({
 
 const db = cloud.database();
 
+const INIT_ADMIN_SECRET = process.env.INIT_ADMIN_SECRET || "";
+
 async function safeCreateCollection(collectionName) {
   try {
     await db.createCollection(collectionName);
@@ -22,6 +24,11 @@ async function safeCreateIndex(collectionName, keys, options) {
 }
 
 exports.main = async (event) => {
+  const secret = event && event.adminSecret ? String(event.adminSecret) : "";
+  if (!INIT_ADMIN_SECRET || secret !== INIT_ADMIN_SECRET) {
+    throw new Error("无权执行初始化，请在云函数环境变量配置 INIT_ADMIN_SECRET 后由管理员调用");
+  }
+
   const collections = [
     "users",
     "families",
@@ -31,13 +38,13 @@ exports.main = async (event) => {
     "order_cooking_steps",
     "recipe_share_tokens",
     "feedback",
+    "ai_usage_logs",
   ];
 
   for (const name of collections) {
     await safeCreateCollection(name);
   }
 
-  // 常用查询索引（最佳实践：确保云数据库查询性能）
   await safeCreateIndex("families", { inviteCode: 1 }, { unique: true });
   await safeCreateIndex("families", { adminId: 1 });
   await safeCreateIndex("recipes", { familyId: 1, recipeName: 1 });
@@ -47,10 +54,10 @@ exports.main = async (event) => {
   await safeCreateIndex("recipe_share_tokens", { token: 1 }, { unique: true });
   await safeCreateIndex("recipe_share_tokens", { recipeId: 1 }, { unique: true });
   await safeCreateIndex("feedback", { createTime: -1 });
+  await safeCreateIndex("ai_usage_logs", { openid: 1, createTime: -1 });
 
   return {
     success: true,
     created: collections,
   };
 };
-

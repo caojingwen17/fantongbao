@@ -185,30 +185,24 @@ Page({
       return;
     }
 
-    try {
-      await ui.withLoading(async () => {
-        for (let i = 0; i < toRemove.length; i++) {
-          const recipeId = toRemove[i];
+      try {
+        await ui.withLoading(async () => {
           await cloud.callFunction("orderFunctions", {
-            type: "removeRecipeFromPendingShoppingOrder",
+            type: "syncOrderRecipes",
             orderId,
-            recipeId,
+            recipes: (localPicked || []).map((r) => ({
+              recipeId: r.recipeId,
+              note: r.note || "",
+              creatorId: r.creatorId,
+            })),
           });
-        }
-        for (let j = 0; j < toAdd.length; j++) {
-          const row = toAdd[j];
-          await cloud.callFunction("orderFunctions", {
-            type: "addRecipeToOrder",
-            orderId,
-            recipeId: row.recipeId,
-            note: row.note || "",
-          });
-        }
-      }, "提交中…");
-      wx.navigateBack();
-    } catch (err) {
-      wx.showToast({ title: "提交失败，请重试", icon: "none" });
-    }
+        }, "提交中…");
+        wx.navigateBack();
+      } catch (err) {
+        wx.showToast({ title: "提交失败，请重试", icon: "none" });
+        await this.loadInitial();
+        getApp().globalData.homeDirty = true;
+      }
   },
 
   onTapAdd(e) {

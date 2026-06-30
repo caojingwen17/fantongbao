@@ -1,4 +1,5 @@
 const cloud = require("wx-server-sdk");
+const { getOpenidOrThrow } = require("./auth");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -147,11 +148,84 @@ async function getPendingOrderId({ openid, familyId }) {
   const orderRes = await db
     .collection("orders")
     .where({ familyId, status: "pending_shopping" })
+    .orderBy("createTime", "asc")
     .limit(1)
     .get();
   const order = orderRes && orderRes.data && orderRes.data[0] ? orderRes.data[0] : null;
   if (order) return order._id;
   return null;
+}
+
+/** 合并并发创建的重复待买菜订单：保留最早一条，其余空单删除、有菜品的合并进 keeper */
+async function dedupePendingShoppingOrders({ familyId }) {
+  const dupRes = await db
+    .collection("orders")
+    .where({ familyId, status: "pending_shopping" })
+    .orderBy("createTime", "asc")
+    .get();
+  const dups = dupRes.data || [];
+  if (dups.length <= 1) return dups[0] ? dups[0]._id : null;
+
+  const keeper = dups[0];
+  let keeperId = keeper._id;
+
+  for (let i = 1; i < dups.length; i++) {
+    const extra = dups[i];
+    const extraRecipes = Array.isArray(extra.recipes) ? extra.recipes : [];
+    const keeperRecipes = Array.isArray(keeper.recipes) ? keeper.recipes : [];
+
+    if (extraRecipes.length === 0) {
+      await db.collection("orders").where({ _id: extra._id }).remove();
+      await db.collection("order_shopping_items").where({ orderId: extra._id, familyId }).remove();
+      await db.collection("order_cooking_steps").where({ orderId: extra._id, familyId }).remove();
+      continue;
+    }
+
+    const keeperIds = new Set(keeperRecipes.map((r) => r && r.recipeId).filter(Boolean));
+    for (const r of extraRecipes) {
+      if (!r || !r.recipeId || keeperIds.has(r.recipeId)) continue;
+      keeperRecipes.push(r);
+      keeperIds.add(r.recipeId);
+      await rebuildChecklistForRecipe({
+        openid: extra.creatorId || keeper.creatorId,
+        orderId: keeperId,
+        familyId,
+        recipeId: r.recipeId,
+      });
+    }
+
+    await db.collection("orders").where({ _id: keeperId }).update({
+      data: { recipes: keeperRecipes, updateTime: now() },
+    });
+    keeper.recipes = keeperRecipes;
+
+    await db.collection("order_shopping_items").where({ orderId: extra._id, familyId }).remove();
+    await db.collection("order_cooking_steps").where({ orderId: extra._id, familyId }).remove();
+    await db.collection("orders").where({ _id: extra._id }).remove();
+  }
+
+  return keeperId;
+}
+
+async function getOrCreatePendingOrderId({ openid, familyId, orderName }) {
+  let pendingId = await getPendingOrderId({ openid, familyId });
+  if (pendingId) return pendingId;
+
+  await db.collection("orders").add({
+    data: {
+      familyId,
+      orderName,
+      status: "pending_shopping",
+      recipes: [],
+      creatorId: openid,
+      createTime: now(),
+    },
+  });
+
+  pendingId = await dedupePendingShoppingOrders({ familyId });
+  if (pendingId) return pendingId;
+
+  return getPendingOrderId({ openid, familyId });
 }
 
 async function getOrderById(orderId) {
@@ -394,9 +468,80 @@ async function addRecipeToOrder({ openid, orderId, recipeId, note }) {
   await rebuildChecklistForRecipe({ openid, orderId, familyId, recipeId });
 }
 
+async function syncOrderRecipes({ openid, orderId, recipes }) {
+  const order = await getOrderById(orderId);
+  if (!order) throw new Error("点菜单不存在");
+  const familyId = order.familyId;
+  await assertFamilyMember({ openid, familyId });
+
+  if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {
+    throw new Error("当前点菜单已不可修改");
+  }
+
+  const incoming = Array.isArray(recipes) ? recipes : [];
+  const normalized = [];
+  const seen = new Set();
+  for (const r of incoming) {
+    const recipeId = r && (r.recipeId || r.id);
+    if (!recipeId || seen.has(recipeId)) continue;
+    seen.add(recipeId);
+    normalized.push({
+      recipeId,
+      note: (r && r.note) || "",
+      creatorId: (r && r.creatorId) || openid,
+    });
+  }
+
+  for (const r of normalized) {
+    const recipeRes = await db.collection("recipes").where({ _id: r.recipeId }).get();
+    const recipe = recipeRes && recipeRes.data && recipeRes.data[0] ? recipeRes.data[0] : null;
+    if (!recipe) throw new Error("菜谱不存在");
+    if (recipe.familyId !== familyId) throw new Error("菜谱不属于当前家庭");
+  }
+
+  const current = Array.isArray(order.recipes) ? order.recipes : [];
+  const currentIds = new Set(current.map((r) => r && r.recipeId).filter(Boolean));
+  const nextIds = new Set(normalized.map((r) => r.recipeId));
+
+  const toRemove = [...currentIds].filter((id) => !nextIds.has(id));
+  const toAdd = normalized.filter((r) => !currentIds.has(r.recipeId));
+
+  for (const recipeId of toRemove) {
+    await db
+      .collection("order_shopping_items")
+      .where({ orderId, familyId, recipeId })
+      .remove();
+    await db
+      .collection("order_cooking_steps")
+      .where({ orderId, familyId, recipeId })
+      .remove();
+  }
+
+  await db.collection("orders").where({ _id: orderId }).update({
+    data: {
+      recipes: normalized,
+      updateTime: now(),
+    },
+  });
+
+  for (const r of toAdd) {
+    await rebuildChecklistForRecipe({ openid, orderId, familyId, recipeId: r.recipeId });
+  }
+
+  const manualRes = await db
+    .collection("order_shopping_items")
+    .where({ orderId, familyId, itemSource: "manual" })
+    .limit(1)
+    .get();
+  const hasManual = !!(manualRes && manualRes.data && manualRes.data[0]);
+  const isEmpty = normalized.length === 0 && !hasManual;
+
+  return { success: true, isEmpty };
+}
+
 exports.main = async (event) => {
   const ctx = getWXContext();
-  const openid = ctx.OPENID;
+  const openid = getOpenidOrThrow(ctx);
 
   if (!event || !event.type) throw new Error("缺少 type");
 
@@ -413,18 +558,10 @@ exports.main = async (event) => {
       const fam = famRes && famRes.data && famRes.data[0] ? famRes.data[0] : null;
       const orderName = fam && fam.familyName ? `${fam.familyName}的点菜单` : "新的点菜单";
 
-      const created = await db.collection("orders").add({
-        data: {
-          familyId,
-          orderName,
-          status: "pending_shopping",
-          recipes: [],
-          creatorId: openid,
-          createTime: now(),
-        },
-      });
+      const orderId = await getOrCreatePendingOrderId({ openid, familyId, orderName });
+      if (!orderId) throw new Error("未能创建待买菜点菜单");
 
-      return { success: true, orderId: created._id };
+      return { success: true, orderId };
     }
 
     case "createOrder": {
@@ -455,18 +592,7 @@ exports.main = async (event) => {
         const famRes = await db.collection("families").where({ _id: familyId }).get();
         const fam = famRes && famRes.data && famRes.data[0] ? famRes.data[0] : null;
         const orderName = fam && fam.familyName ? `${fam.familyName}的点菜单` : "新的点菜单";
-
-        const created = await db.collection("orders").add({
-          data: {
-            familyId,
-            orderName,
-            status: "pending_shopping",
-            recipes: [],
-            creatorId: openid,
-            createTime: now(),
-          },
-        });
-        orderId = created._id;
+        orderId = await getOrCreatePendingOrderId({ openid, familyId, orderName });
       }
 
       if (!orderId) throw new Error("未能获取待买菜点菜单");
@@ -480,6 +606,13 @@ exports.main = async (event) => {
       if (!orderId || !recipeId) throw new Error("缺少 orderId/recipeId");
       await addRecipeToOrder({ openid, orderId, recipeId, note });
       return { success: true };
+    }
+
+    /** 原子同步点菜单内全部菜品（增删一次性提交） */
+    case "syncOrderRecipes": {
+      const { orderId, recipes } = event;
+      if (!orderId) throw new Error("缺少 orderId");
+      return await syncOrderRecipes({ openid, orderId, recipes });
     }
 
     case "getPendingShoppingOrderDetail": {

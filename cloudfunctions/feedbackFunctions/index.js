@@ -1,4 +1,5 @@
 const cloud = require("wx-server-sdk");
+const { getOpenidOrThrow } = require("./auth");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -22,8 +23,7 @@ exports.main = async (event) => {
   if (!event || !event.type) throw new Error("缺少 type");
 
   const ctx = cloud.getWXContext();
-  const openid = ctx.OPENID;
-  if (!openid) throw new Error("需要登录后提交");
+  const openid = getOpenidOrThrow(ctx);
 
   switch (event.type) {
     case "submitFeedback": {
