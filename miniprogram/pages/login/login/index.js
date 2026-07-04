@@ -1,8 +1,7 @@
 const auth = require("../../../utils/auth");
 const cloudDisplay = require("../../../utils/cloudDisplay");
 
-const { getValidSessionOrNull, completeLoginFlow, isPlaceholderNickName, formatLoginError } =
-  auth;
+const { isPlaceholderNickName, formatLoginError, completeLoginFlow } = auth;
 
 Page({
   data: {
@@ -15,6 +14,28 @@ Page({
   },
 
   onLoad() {
+    const pages = getCurrentPages();
+    const fromOtherPage = pages.length > 1;
+    let entryFromInvite = false;
+    let hasPendingInvite = false;
+    try {
+      const app = getApp();
+      entryFromInvite = !!(app.globalData && app.globalData.entryFromInvite);
+      const orderInvite = require("../../../utils/orderInvite");
+      const invite = require("../../../utils/invite");
+      hasPendingInvite = !!(
+        orderInvite.getPendingOrderInviteToken() || invite.getPendingInviteCode()
+      );
+    } catch (e) {
+      /* ignore */
+    }
+
+    // 非用户主动进入（如恢复上次页面栈到登录页）：回启动页，不强制登录
+    if (!fromOtherPage && !entryFromInvite && !hasPendingInvite) {
+      wx.reLaunch({ url: "/pages/launch/index" });
+      return;
+    }
+
     this.trySilentLogin();
   },
 
@@ -30,9 +51,17 @@ Page({
   },
 
   async trySilentLogin() {
-    const s = getValidSessionOrNull();
-    if (!s) {
-      let loginError = "";
+    const r = await auth.trySilentLogin();
+    if (r.ok) {
+      const app = getApp();
+      await this.afterLoginNavigate({
+        currentFamilyId: (app.globalData && app.globalData.currentFamilyId) || null,
+      });
+      return;
+    }
+
+    let loginError = r.error || "";
+    if (!loginError) {
       try {
         const raw = wx.getStorageSync(auth.SESSION_KEY);
         if (raw && raw.nickName) {
@@ -41,28 +70,8 @@ Page({
       } catch (e) {
         /* ignore */
       }
-      this.setData({ checkingSession: false, loginError });
-      return;
     }
-
-    this.setData({ isLoading: true, loginError: "" });
-    try {
-      const ctx = await completeLoginFlow(s, { silent: true });
-      await this.afterLoginNavigate(ctx);
-    } catch (e) {
-      auth.clearAuthState({ keepSession: true });
-      const msg = formatLoginError(e);
-      console.error("[login] silent login failed:", e);
-      this._sessionAvatarUrl = s.avatarUrl;
-      const avatarPreview = await this.resolveAvatarPreview(s.avatarUrl);
-      this.setData({
-        checkingSession: false,
-        isLoading: false,
-        loginError: msg,
-        nickName: s.nickName,
-        avatarPreview,
-      });
-    }
+    this.setData({ checkingSession: false, loginError });
   },
 
   onChooseAvatar(e) {
@@ -148,15 +157,35 @@ Page({
     wx.showToast({ title: "登录成功", icon: "none" });
 
     const app = getApp();
+    const orderInvite = require("../../../utils/orderInvite");
+    const invite = require("../../../utils/invite");
+
     if (app.globalData && app.globalData.pendingShareToken) {
       wx.reLaunch({ url: "/pages/recipe/share/index" });
       return;
     }
 
-    if (ctx && ctx.currentFamilyId) {
-      wx.reLaunch({ url: "/pages/index/index" });
-    } else {
-      wx.reLaunch({ url: "/pages/family/family/index" });
+    const orderToken = orderInvite.getPendingOrderInviteToken();
+    if (orderToken) {
+      try {
+        wx.showLoading({ title: "加入中…", mask: true });
+        const { orderId } = await orderInvite.acceptOrderInvite(orderToken);
+        wx.hideLoading();
+        wx.showToast({ title: "已加入，开始点菜", icon: "success", duration: 1500 });
+        wx.reLaunch({ url: `/pages/order/pick/index?orderId=${orderId}` });
+      } catch (e) {
+        wx.hideLoading();
+        wx.reLaunch({ url: orderInvite.buildOrderInvitePath(orderToken) });
+      }
+      return;
     }
+
+    const inviteCode = invite.getPendingInviteCode();
+    if (inviteCode) {
+      wx.reLaunch({ url: invite.buildFamilyInvitePath(inviteCode) });
+      return;
+    }
+
+    wx.reLaunch({ url: "/pages/index/index" });
   },
 });

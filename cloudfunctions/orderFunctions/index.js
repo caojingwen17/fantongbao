@@ -1,5 +1,6 @@
 const cloud = require("wx-server-sdk");
 const { getOpenidOrThrow } = require("./auth");
+const { assertTextsSafe } = require("./sec");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -436,6 +437,10 @@ async function rebuildChecklistForRecipe({ openid, orderId, familyId, recipeId }
 }
 
 async function addRecipeToOrder({ openid, orderId, recipeId, note }) {
+  if (note && String(note).trim()) {
+    await assertTextsSafe(cloud, { openid, texts: [note], scene: 3 });
+  }
+
   const orderRes = await db.collection("orders").where({ _id: orderId }).get();
   const order = orderRes && orderRes.data && orderRes.data[0] ? orderRes.data[0] : null;
   if (!order) throw new Error("点菜单不存在");
@@ -479,6 +484,11 @@ async function syncOrderRecipes({ openid, orderId, recipes }) {
   }
 
   const incoming = Array.isArray(recipes) ? recipes : [];
+  const notes = incoming.map((r) => (r && r.note) || "").filter((t) => String(t).trim());
+  if (notes.length) {
+    await assertTextsSafe(cloud, { openid, texts: notes, scene: 3 });
+  }
+
   const normalized = [];
   const seen = new Set();
   for (const r of incoming) {
@@ -539,11 +549,46 @@ async function syncOrderRecipes({ openid, orderId, recipes }) {
   return { success: true, isEmpty };
 }
 
+function randOrderInviteToken(len = 12) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let out = "";
+  for (let i = 0; i < len; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
+
+async function getOrCreateOrderInviteToken({ openid, orderId, familyId, inviteCode }) {
+  const existing = await db.collection("order_invite_tokens").where({ orderId }).limit(1).get();
+  const row = existing && existing.data && existing.data[0] ? existing.data[0] : null;
+  if (row && row.token) return row.token;
+
+  let token = randOrderInviteToken(12);
+  for (let i = 0; i < 5; i++) {
+    const hit = await db.collection("order_invite_tokens").where({ token }).limit(1).get();
+    if (!hit || !hit.data || hit.data.length === 0) break;
+    token = randOrderInviteToken(12);
+  }
+
+  await db.collection("order_invite_tokens").add({
+    data: {
+      token,
+      orderId,
+      familyId,
+      inviteCode,
+      createdAt: now(),
+      createdBy: openid,
+    },
+  });
+  return token;
+}
+
 exports.main = async (event) => {
   const ctx = getWXContext();
-  const openid = getOpenidOrThrow(ctx);
-
   if (!event || !event.type) throw new Error("缺少 type");
+
+  const publicTypes = new Set(["getOrderInvitePreview"]);
+  const openid = publicTypes.has(event.type) ? ctx.OPENID : getOpenidOrThrow(ctx);
 
   switch (event.type) {
     case "ensurePendingShoppingOrder": {
@@ -569,10 +614,13 @@ exports.main = async (event) => {
       if (!familyId) throw new Error("缺少 familyId");
       await assertFamilyMember({ openid, familyId });
 
+      const name = orderName || "新的点菜单";
+      await assertTextsSafe(cloud, { openid, texts: [name], scene: 3 });
+
       const created = await db.collection("orders").add({
         data: {
           familyId,
-          orderName: orderName || "新的点菜单",
+          orderName: name,
           status: "pending_shopping",
           recipes: [],
           creatorId: openid,
@@ -834,6 +882,63 @@ exports.main = async (event) => {
       const orders = await enrichOrdersForCalendarDetail(monthOrders, familyId);
 
       return { success: true, orders };
+    }
+
+    case "prepareOrderInvite": {
+      const { orderId } = event;
+      if (!orderId) throw new Error("缺少 orderId");
+
+      const order = await getOrderById(orderId);
+      if (!order) throw new Error("点菜单不存在");
+      await assertFamilyMember({ openid, familyId: order.familyId });
+
+      if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {
+        throw new Error("当前点菜单已不可邀请点餐");
+      }
+
+      const famRes = await db.collection("families").where({ _id: order.familyId }).get();
+      const fam = famRes && famRes.data && famRes.data[0] ? famRes.data[0] : null;
+      if (!fam || !fam.inviteCode) throw new Error("家庭邀请码不可用");
+
+      const token = await getOrCreateOrderInviteToken({
+        openid,
+        orderId,
+        familyId: order.familyId,
+        inviteCode: fam.inviteCode,
+      });
+
+      return { success: true, token };
+    }
+
+    case "getOrderInvitePreview": {
+      const { token } = event;
+      const t = String(token || "").trim();
+      if (!t) return { success: false, errMsg: "缺少 token" };
+
+      const tr = await db.collection("order_invite_tokens").where({ token: t }).limit(1).get();
+      const row = tr && tr.data && tr.data[0] ? tr.data[0] : null;
+      if (!row) return { success: false, errMsg: "邀请已失效或不存在" };
+
+      const order = await getOrderById(row.orderId);
+      if (!order) return { success: false, errMsg: "点菜单不存在" };
+      if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {
+        return { success: false, errMsg: "点菜单已结束，无法继续点餐" };
+      }
+
+      const famRes = await db.collection("families").where({ _id: row.familyId }).get();
+      const fam = famRes && famRes.data && famRes.data[0] ? famRes.data[0] : null;
+
+      return {
+        success: true,
+        preview: {
+          orderId: row.orderId,
+          familyId: row.familyId,
+          orderName: order.orderName || "点菜单",
+          familyName: (fam && fam.familyName) || "家庭",
+          inviteCode: row.inviteCode || (fam && fam.inviteCode) || "",
+          status: order.status,
+        },
+      };
     }
 
     default:

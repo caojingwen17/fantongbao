@@ -1,3 +1,5 @@
 {
-  "permissions": {}
+  "permissions": {
+    "openapi": ["security.msgSecCheck", "security.imgSecCheck"]
+  }
 }

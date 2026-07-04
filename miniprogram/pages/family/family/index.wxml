@@ -72,22 +72,36 @@
         </view>
 
         <view class="panel">
-          <view class="panel-head">
+          <view class="panel-head member-panel-head">
             <view class="panel-title">家人</view>
-            <view class="panel-badge">{{members ? members.length : 0}} 人</view>
+            <view class="member-invite-wrap">
+              <view class="member-invite-label">邀请</view>
+              <button class="member-invite-hit" hover-class="none" open-type="share">邀请</button>
+            </view>
           </view>
+          <view class="member-admin-hint" wx:if="{{isCurrentFamilyAdmin}}">你是管理员，可移除其他成员</view>
           <view class="member-scroll" wx:if="{{!membersLoading && members && members.length}}">
             <block wx:for="{{members}}" wx:key="_id">
               <view class="member-chip">
-                <image wx:if="{{item.avatarUrlDisplay}}" class="member-avatar" mode="aspectFill" src="{{item.avatarUrlDisplay}}" />
-                <view wx:else class="member-avatar member-avatar-placeholder" aria-hidden="true" />
+                <view class="member-avatar-wrap">
+                  <image wx:if="{{item.avatarUrlDisplay}}" class="member-avatar" mode="aspectFill" src="{{item.avatarUrlDisplay}}" />
+                  <view wx:else class="member-avatar member-avatar-placeholder" aria-hidden="true"></view>
+                  <view
+                    wx:if="{{isCurrentFamilyAdmin && item._id !== currentFamily.adminId && item._id !== currentOpenid}}"
+                    class="member-kick-x"
+                    catchtap="onKickMember"
+                    data-memberid="{{item._id}}"
+                    data-nickname="{{item.nickName}}"
+                    aria-label="移除成员"
+                  >×</view>
+                </view>
                 <view class="member-name">{{item.nickName}}</view>
                 <view class="member-role">{{currentFamily && currentFamily.adminId===item._id ? "管理员" : "成员"}}</view>
               </view>
             </block>
           </view>
           <view class="members-loading" wx:if="{{membersLoading}}">
-            <view class="members-loading-dot" />
+            <view class="members-loading-dot"></view>
             <text>正在加载成员…</text>
           </view>
           <view class="members-empty" wx:if="{{!membersLoading && (!members || members.length===0)}}">暂无成员</view>

@@ -1,5 +1,6 @@
 const cloud = require("wx-server-sdk");
 const { getOpenidOrThrow } = require("./auth");
+const { assertTextsSafe } = require("./sec");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -35,6 +36,8 @@ exports.main = async (event) => {
       const text = String(content || "").trim();
       if (!text.length) throw new Error("请填写内容");
       if (text.length > 2000) throw new Error("内容不超过 2000 字");
+
+      await assertTextsSafe(cloud, { openid, texts: [text], scene: 3 });
 
       await ensureCollection("feedback");
       await db.collection("feedback").add({

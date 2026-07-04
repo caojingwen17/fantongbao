@@ -1,0 +1,58 @@
+.launch-page {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  box-sizing: border-box;
+}
+
+.launch-center {
+  width: 100%;
+  max-width: 560rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.launch-logo-wrap {
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: 40rpx;
+  overflow: hidden;
+  box-shadow: 0 16rpx 48rpx rgba(135, 78, 0, 0.12);
+}
+
+.launch-logo {
+  width: 100%;
+  height: 100%;
+}
+
+.launch-name {
+  margin-top: 28rpx;
+  font-size: 34rpx;
+  font-weight: 900;
+  letter-spacing: 4rpx;
+  color: #432900;
+}
+
+.launch-progress-wrap {
+  width: 100%;
+  margin-top: 56rpx;
+}
+
+.launch-progress-track {
+  width: 100%;
+  height: 8rpx;
+  border-radius: 9999rpx;
+  background: rgba(208, 166, 109, 0.18);
+  overflow: hidden;
+}
+
+.launch-progress-bar {
+  height: 100%;
+  border-radius: 9999rpx;
+  background: linear-gradient(90deg, #ffb347 0%, #ff9800 100%);
+  transition: width 0.28s ease;
+}

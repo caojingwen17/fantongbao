@@ -1,6 +1,8 @@
 const cloud = require("../../utils/cloud");
-const { attachRecipeImgDisplay, resolveBatch } = require("../../utils/cloudDisplay");
+const { resolveBatch, getCachedUrl } = require("../../utils/cloudDisplay");
 const auth = require("../../utils/auth");
+const invite = require("../../utils/invite");
+const orderInvite = require("../../utils/orderInvite");
 
 function getDefaultNewOrderName() {
   const d = new Date();
@@ -48,21 +50,20 @@ Page({
   },
 
   /**
+   * 主入口：新用户 → guest 体验浏览；老用户（本地 session 或云端 restoreSession）→ 静默登录
    * @returns {"ok"|"guest"|"needFamily"}
    */
   async ensureEntryContext() {
     const app = getApp();
-    const session = auth.getValidSessionOrNull();
 
-    if (session || !app.globalData.userInfo) {
-      const r = await auth.trySilentLogin();
-      if (!r.ok) {
-        if (session && r.error) {
-          console.warn("[auth] silent login failed:", r.error);
-        }
-        if (!app.globalData.userInfo) return "guest";
-      }
-    } else if (!app.globalData.userInfo) {
+    if (app.globalData.userInfo) {
+      if (!app.globalData.currentFamilyId) return "needFamily";
+      return "ok";
+    }
+
+    const r = await auth.trySilentLogin();
+    if (!r.ok) {
+      if (r.error) console.warn("[auth] silent login failed:", r.error);
       return "guest";
     }
 
@@ -91,8 +92,123 @@ Page({
     });
   },
 
+  /** 访客登录返回后升级为已登录首页 */
+  async tryUpgradeGuestSession() {
+    try {
+      const r = await auth.trySilentLogin();
+      if (!r.ok) return;
+
+      const app = getApp();
+      if (!app.globalData.userInfo) return;
+
+      if (!app.globalData.currentFamilyId) {
+        this.setData({
+          homeBootstrapping: false,
+          homeGuest: false,
+          homeNeedFamily: true,
+        });
+        return;
+      }
+
+      const families = app.globalData.families || [];
+      const currentFamily =
+        families.find((f) => f._id === app.globalData.currentFamilyId) || null;
+      this.setData({
+        homeGuest: false,
+        homeNeedFamily: false,
+        currentFamily,
+        families,
+      });
+      await this.refreshHome();
+    } catch (e) {
+      /* 保持访客态 */
+    }
+  },
+
+  /** 主入口启动页已完成身份判定后，应用到首页 */
+  async applyMainEntryBoot(status, openOnboard) {
+    if (status === "guest") {
+      this.applyGuestBrowseState();
+      return;
+    }
+    if (status === "needFamily") {
+      this.setData({ homeBootstrapping: false, homeGuest: false, homeNeedFamily: true });
+      return;
+    }
+
+    const app = getApp();
+    const familyId = app.globalData.currentFamilyId;
+    const families = app.globalData.families || [];
+    const currentFamily = families.find((f) => f._id === familyId) || null;
+    this.setData({
+      homeGuest: false,
+      homeNeedFamily: false,
+      homeBootstrapping: false,
+      currentFamily,
+      families,
+    });
+    this._skipShowRefreshOnce = true;
+    await this.refreshHome();
+    if (openOnboard) {
+      this.setData({ onboardSheetVisible: true });
+    }
+  },
+
   async onLoad(options) {
+    this._mainEntryReady = false;
+    const app = getApp();
+    const launch =
+      typeof wx.getLaunchOptionsSync === "function" ? wx.getLaunchOptionsSync() : {};
+    const opts = options || {};
+    const skipLaunchInvite = String(opts.onboard) === "1";
+    // 仅冷启动首次进首页时合并 launch.query；加入成功带 onboard=1 时勿用冷启动参数
+    const mergedQuery =
+      app._indexEverLoaded || skipLaunchInvite
+        ? opts
+        : Object.assign({}, launch.query || {}, opts);
+    app._indexEverLoaded = true;
+
+    if (skipLaunchInvite) {
+      invite.clearPendingInviteCode();
+    }
+
+    const orderToken = orderInvite.parseTokenFromOptions(mergedQuery);
+    if (orderToken) {
+      this._mainEntryReady = true;
+      orderInvite.rememberPendingOrderInviteToken(orderToken);
+      await orderInvite.handlePendingOrderInviteOnEntry();
+      return;
+    }
+
+    const inviteCode = invite.parseInviteCodeFromOptions(mergedQuery);
+    if (inviteCode) {
+      this._mainEntryReady = true;
+      invite.rememberPendingInviteCode(inviteCode);
+      wx.redirectTo({ url: invite.buildFamilyInvitePath(inviteCode) });
+      return;
+    }
+
+    const isMainEntry = !app.globalData.entryFromInvite;
+
+    // 普通主入口（无分享参数）：清除残留邀请态，保留访客浏览体验
+    if (isMainEntry) {
+      orderInvite.clearPendingOrderInviteToken();
+      invite.clearPendingInviteCode();
+    }
+
     const openOnboard = options && String(options.onboard) === "1";
+
+    const boot = app.globalData.mainEntryBoot;
+    if (isMainEntry && boot && boot.status) {
+      app.globalData.mainEntryBoot = null;
+      this._mainEntryReady = true;
+      await this.applyMainEntryBoot(boot.status, openOnboard);
+      return;
+    }
+
+    this._mainEntryReady = true;
+    this.setData({ homeBootstrapping: true });
+
     const ctx = await this.ensureEntryContext();
     if (ctx === "guest") {
       this.applyGuestBrowseState();
@@ -103,7 +219,6 @@ Page({
       return;
     }
 
-    const app = getApp();
     const familyId = app.globalData.currentFamilyId;
     const families = app.globalData.families || [];
     const currentFamily = families.find((f) => f._id === familyId) || null;
@@ -117,7 +232,30 @@ Page({
     }
   },
 
-  async onShow() {
+  async onShow(options) {
+    const opts = options || {};
+    const orderToken = orderInvite.parseTokenFromOptions(opts);
+    if (orderToken) {
+      orderInvite.rememberPendingOrderInviteToken(orderToken);
+      wx.redirectTo({ url: orderInvite.buildOrderInvitePath(orderToken) });
+      return;
+    }
+    const inviteCode = invite.parseInviteCodeFromOptions(opts);
+    if (inviteCode) {
+      invite.rememberPendingInviteCode(inviteCode);
+      wx.redirectTo({ url: invite.buildFamilyInvitePath(inviteCode) });
+      return;
+    }
+
+    if (!this._mainEntryReady) return;
+
+    if (this.data.homeGuest && auth.isLoggedIn()) {
+      await this.tryUpgradeGuestSession();
+      return;
+    }
+
+    if (this.data.homeGuest) return;
+
     const ctx = await this.ensureEntryContext();
     if (ctx === "guest") {
       this.applyGuestBrowseState();
@@ -149,15 +287,8 @@ Page({
 
   async guardGuestAction(content) {
     if (!this.data.homeGuest) return true;
-    wx.showLoading({ title: "登录中…", mask: false });
-    try {
-      const r = await auth.requireLoggedIn({
-        content: content || "使用此功能需要先登录。",
-      });
-      return r.ok;
-    } finally {
-      wx.hideLoading({ noConflict: true });
-    }
+    wx.navigateTo({ url: "/pages/login/login/index" });
+    return false;
   },
 
   async refreshFamiliesIfNeeded() {
@@ -220,18 +351,6 @@ Page({
       const avatarIds = members
         .map((m) => (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "")
         .filter(Boolean);
-      const avatarMap = await resolveBatch(avatarIds, familyId ? { familyId } : {});
-      const memberAvatarDisplays = members
-        .map((m) => {
-          const id = (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "";
-          if (!id) return "";
-          if (typeof id === "string" && id.indexOf("cloud://") === 0) return avatarMap[id] || id;
-          return id;
-        })
-        .filter(Boolean)
-        .slice(0, 2);
-
-      this.setData({ membersCount: members.length, memberAvatarDisplays });
 
       const rawOrders = (ordersResp && ordersResp.orders) || [];
       const pendingOrders = rawOrders.map((o) => {
@@ -246,15 +365,61 @@ Page({
       const pendingCooking =
         pendingOrders.find((x) => x.status === "pending_cooking") || null;
 
-      this.setData({ pendingShopping, pendingCooking, pendingOrders });
-
       const list = (recipeResp && recipeResp.recipes) || [];
       const recipeTotalCount =
         typeof recipeResp.totalCount === "number" ? recipeResp.totalCount : list.length;
-      const withImg = await attachRecipeImgDisplay(list);
       const homeEmptyHero =
         (!pendingOrders || pendingOrders.length === 0) && recipeTotalCount === 0;
-      this.setData({ recipes: withImg, recipeTotalCount, homeEmptyHero });
+
+      // 先渲染文字/结构，去掉全屏 loading，图片稍后补齐
+      this.setData({
+        membersCount: members.length,
+        memberAvatarDisplays: [],
+        pendingShopping,
+        pendingCooking,
+        pendingOrders,
+        recipes: list,
+        recipeTotalCount,
+        homeEmptyHero,
+        homeBootstrapping: false,
+      });
+
+      const recipeImgIds = list
+        .map((r) => (r && r.recipeImg) || "")
+        .filter((id) => id && String(id).indexOf("cloud://") === 0);
+      const cloudIds = [
+        ...new Set([
+          ...avatarIds.filter((id) => String(id).indexOf("cloud://") === 0),
+          ...recipeImgIds,
+        ]),
+      ];
+
+      if (!cloudIds.length) return;
+
+      const urlMap = await resolveBatch(cloudIds, { familyId });
+      const memberAvatarDisplays = members
+        .map((m) => {
+          const id = (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "";
+          if (!id) return "";
+          if (typeof id === "string" && id.indexOf("cloud://") === 0) {
+            return urlMap[id] || getCachedUrl(id) || id;
+          }
+          return id;
+        })
+        .filter(Boolean)
+        .slice(0, 2);
+
+      const recipes = list.map((r) => {
+        const id = r && r.recipeImg;
+        if (!id) return { ...r, recipeImgDisplay: r.recipeImgDisplay || "" };
+        if (typeof id !== "string" || id.indexOf("cloud://") !== 0) {
+          return { ...r, recipeImgDisplay: id };
+        }
+        const display = urlMap[id] || getCachedUrl(id) || r.recipeImgDisplay || id;
+        return { ...r, recipeImgDisplay: display };
+      });
+
+      this.setData({ memberAvatarDisplays, recipes });
     } catch (e) {
       this.setData({
         membersCount: 0,
@@ -265,10 +430,11 @@ Page({
         recipes: [],
         recipeTotalCount: 0,
         homeEmptyHero: true,
+        homeBootstrapping: false,
       });
     } finally {
       wx.hideNavigationBarLoading();
-      this.setData({ homeRefreshing: false, homeBootstrapping: false });
+      this.setData({ homeRefreshing: false });
     }
   },
 

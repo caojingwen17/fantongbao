@@ -61,6 +61,27 @@
         </view>
       </view>
 
+      <view class="invite-order-panel" wx:if="{{canInviteOrder}}">
+        <view class="invite-order-hint">邀请好友一起点餐时，对方将默认加入本家庭</view>
+        <view class="invite-order-actions">
+          <view class="btn btn-invite-order" bindtap="onTapUnlockShareOrder">邀请点餐</view>
+        </view>
+      </view>
+
+      <view class="share-confirm-mask" wx:if="{{shareConfirmVisible}}" catchtap="onCloseShareConfirm">
+        <view class="share-confirm-card" catchtap="">
+          <view class="share-confirm-title">邀请点餐</view>
+          <view class="share-confirm-text">转发后，好友点击链接将默认加入你的家庭，并进入本点菜单一起点菜。</view>
+          <button
+            class="btn-share-order"
+            open-type="share"
+            wx:if="{{shareReady}}"
+          >转发到聊天</button>
+          <view class="share-confirm-preparing" wx:else>正在准备邀请…</view>
+          <view class="share-confirm-cancel" bindtap="onCloseShareConfirm">取消</view>
+        </view>
+      </view>
+
       <view class="order-delete-panel" wx:if="{{order && order._id}}">
         <view class="btn btn-delete-order" bindtap="onAskDeleteOrder">删除点菜单</view>
       </view>

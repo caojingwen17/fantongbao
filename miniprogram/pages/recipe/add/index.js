@@ -2,6 +2,7 @@ const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
+const { uploadRecipeDisplayImage, notifyPublishSecError } = require("../../../utils/sec");
 
 Page({
   data: {
@@ -72,22 +73,19 @@ Page({
         const familyId = this.data.familyId || app.globalData.currentFamilyId;
         const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : "";
         if (!filePath) return;
-        wx.showLoading({ title: "上传中..." });
+        if (!familyId) {
+          wx.showToast({ title: "请先选择家庭", icon: "none" });
+          return;
+        }
+        ui.showLoading("检测中…", true);
         try {
-          const cloudPath = `recipes/${familyId || "unknown"}/${Date.now()}-${Math.random()
-            .toString(16)
-            .slice(2)}.png`;
-          const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath });
-          const fid = uploadRes.fileID || "";
-          const recipeImgDisplay = await resolveForImage(fid, {
-            familyId,
-          });
+          const fid = await uploadRecipeDisplayImage(filePath, familyId);
+          const recipeImgDisplay = await resolveForImage(fid, { familyId });
           this.setData({ recipeImg: fid, recipeImgDisplay: recipeImgDisplay || fid });
+          ui.hideLoading();
           wx.showToast({ title: "图片上传成功", icon: "none" });
         } catch (e) {
-          wx.showToast({ title: "图片上传失败", icon: "none" });
-        } finally {
-          wx.hideLoading();
+          notifyPublishSecError(e);
         }
       },
     });
@@ -109,7 +107,7 @@ Page({
     }
     if (this.data.isExtractingFromText) return;
     this.setData({ isExtractingFromText: true });
-    ui.showLoading("AI 提炼中…");
+    ui.showLoading("正在提炼…");
     try {
       const result = await cloud.callFunction("aiFunctions", {
         type: "extractRecipeFromText",
@@ -146,6 +144,28 @@ Page({
 
   /* 小红书链接 onExtract 已移除；需要时从 git 恢复并对接 aiFunctions.extractRecipe */
 
+  compressImagePath(filePath) {
+    return new Promise((resolve) => {
+      wx.getFileInfo({
+        filePath,
+        success: (info) => {
+          const size = (info && info.size) || 0;
+          if (size <= 400 * 1024 || typeof wx.compressImage !== "function") {
+            resolve(filePath);
+            return;
+          }
+          wx.compressImage({
+            src: filePath,
+            quality: 60,
+            success: (r) => resolve((r && r.tempFilePath) || filePath),
+            fail: () => resolve(filePath),
+          });
+        },
+        fail: () => resolve(filePath),
+      });
+    });
+  },
+
   async onImportFromLocalImage() {
     if (!this.data.familyId) {
       wx.showToast({ title: "请先选择家庭", icon: "none" });
@@ -158,51 +178,62 @@ Page({
     if (this.data.isImportingImage) return;
 
     wx.chooseImage({
-      count: 9,
-      sizeType: ["original", "compressed"],
+      count: 6,
+      sizeType: ["compressed"],
       sourceType: ["album", "camera"],
       success: async (res) => {
         const paths = (res.tempFilePaths || []).filter(Boolean);
         if (!paths.length) return;
+        if (paths.length > 6) {
+          wx.showToast({ title: "最多选择 6 张以加快识别", icon: "none" });
+        }
         this.setData({ isImportingImage: true });
-        wx.showLoading({ title: "请耐心等待", mask: true });
+        wx.showLoading({ title: "压缩图片…", mask: true });
         try {
-          const okPaths = [];
-          for (const filePath of paths) {
-            const info = await new Promise((resolve) => {
-              wx.getFileInfo({
-                filePath,
-                success: (r) => resolve(r || null),
-                fail: () => resolve(null),
-              });
-            });
-            const size = info && info.size ? info.size : 0;
-            if (size > 10 * 1024 * 1024) continue;
-            okPaths.push(filePath);
-          }
-          if (!okPaths.length) {
+          const sizeChecks = await Promise.all(
+            paths.map(
+              (filePath) =>
+                new Promise((resolve) => {
+                  wx.getFileInfo({
+                    filePath,
+                    success: (r) => resolve({ filePath, size: (r && r.size) || 0 }),
+                    fail: () => resolve({ filePath, size: 0 }),
+                  });
+                })
+            )
+          );
+          const validPaths = sizeChecks
+            .filter((x) => x.size <= 10 * 1024 * 1024)
+            .map((x) => x.filePath);
+          if (!validPaths.length) {
             wx.showToast({ title: "所选图片均超过10MB", icon: "none" });
             return;
           }
+          const okPaths = await Promise.all(validPaths.map((p) => this.compressImagePath(p)));
 
-          wx.showLoading({ title: "请耐心等待", mask: true });
-          const imageFileIds = [];
-          for (let i = 0; i < okPaths.length; i++) {
-            const filePath = okPaths[i];
-            wx.showLoading({ title: "请耐心等待", mask: true });
-            const cloudPath = `imports/recipe_ocr/${this.data.familyId || "unknown"}/${Date.now()}-${i}-${Math.random()
-              .toString(16)
-              .slice(2)}.png`;
-            const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath });
-            if (uploadRes.fileID) imageFileIds.push(uploadRes.fileID);
-          }
-          if (!imageFileIds.length) throw new Error("上传失败");
+          wx.showLoading({ title: "上传图片…", mask: true });
+          const familyId = this.data.familyId || "unknown";
+          const stamp = Date.now();
+          const fileIds = (
+            await Promise.all(
+              okPaths.map((filePath, i) => {
+                const cloudPath = `imports/recipe_ocr/${familyId}/${stamp}-${i}-${Math.random()
+                  .toString(16)
+                  .slice(2)}.jpg`;
+                return wx.cloud
+                  .uploadFile({ cloudPath, filePath })
+                  .then((up) => (up && up.fileID ? up.fileID : ""))
+                  .catch(() => "");
+              })
+            )
+          ).filter(Boolean);
+          if (!fileIds.length) throw new Error("上传失败");
 
-          wx.showLoading({ title: "请耐心等待", mask: true });
+          wx.showLoading({ title: "识别图片中…", mask: true });
           const result = await cloud.callFunction("aiFunctions", {
             type: "extractRecipeFromImage",
             recipeName: this.data.recipeName,
-            imageFileIds,
+            imageFileIds: fileIds,
             familyId: this.data.familyId,
           });
 
@@ -213,15 +244,32 @@ Page({
               prepareSteps: result.prepareSteps || [],
               cookingSteps: result.cookingSteps || [],
             });
+            const tip =
+              result.tip ||
+              (result.mock ? "识别未完全成功，请核对后编辑" : "已导入内容，可继续编辑");
             wx.showToast({
-              title: result.tip || "已导入内容，可继续编辑",
+              title: tip.length > 28 ? tip.slice(0, 28) + "…" : tip,
               icon: "none",
+              duration: result.mock ? 4500 : 2500,
             });
+            if (result.mock && tip.length > 28) {
+              wx.showModal({
+                title: "识别提示",
+                content: tip,
+                showCancel: false,
+                confirmText: "知道了",
+              });
+            }
           } else {
             wx.showToast({ title: "识别失败，请手动添加", icon: "none" });
           }
         } catch (e) {
-          wx.showToast({ title: "导入失败，请重试", icon: "none" });
+          const msg =
+            (e && e.message) ||
+            (e && e.errMsg) ||
+            "导入失败，请重试";
+          wx.showToast({ title: String(msg).slice(0, 36), icon: "none", duration: 4000 });
+          console.error("[recipe/add] import image failed:", e);
         } finally {
           wx.hideLoading();
           this.setData({ isImportingImage: false });

@@ -1,9 +1,11 @@
 {
   "pages": [
+    "pages/launch/index",
     "pages/index/index",
     "pages/feedback/index",
     "pages/login/login/index",
     "pages/family/family/index",
+    "pages/family/invite/index",
     "pages/recipe/list/index",
     "pages/recipe/add/index",
     "pages/recipe/edit/index",
@@ -14,6 +16,7 @@
     "pages/order/choose/index",
     "pages/order/pick/index",
     "pages/order/detail/index",
+    "pages/order/invite/index",
     "pages/shopping/shopping/index",
     "pages/cooking/cooking/index"
   ],

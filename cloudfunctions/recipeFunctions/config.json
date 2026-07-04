@@ -1,5 +1,5 @@
 {
   "permissions": {
-    "openapi": ["wxacode.getUnlimited"]
+    "openapi": ["wxacode.getUnlimited", "security.msgSecCheck", "security.imgSecCheck"]
   }
 }

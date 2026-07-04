@@ -1,5 +1,6 @@
 const cloud = require("wx-server-sdk");
 const { getOpenidOrThrow, isNotMemberError } = require("./auth");
+const { assertTextsSafe, assertCloudImageSafe } = require("./sec");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -47,8 +48,10 @@ async function ensureCollection(collectionName) {
   }
 }
 
+let _baseCollectionsEnsured = false;
+
 async function ensureBaseCollections() {
-  // 兜底：首次使用时可能还没有运行 initFunctions
+  if (_baseCollectionsEnsured) return;
   const collections = [
     "users",
     "families",
@@ -57,9 +60,8 @@ async function ensureBaseCollections() {
     "order_shopping_items",
     "order_cooking_steps",
   ];
-  for (const name of collections) {
-    await ensureCollection(name);
-  }
+  await Promise.all(collections.map((name) => ensureCollection(name)));
+  _baseCollectionsEnsured = true;
 }
 
 function randInviteCode(len = 6) {
@@ -70,6 +72,19 @@ function randInviteCode(len = 6) {
     out += chars[Math.floor(Math.random() * chars.length)];
   }
   return out;
+}
+
+const PLACEHOLDER_NICKNAMES = ["微信用户", "WeChat User"];
+
+function pickRestorableUserProfile(user) {
+  if (!user) return null;
+  const nested = user.data || {};
+  const nickName = String(user.nickName || nested.nickName || "").trim();
+  const avatarUrl = String(user.avatarUrl || nested.avatarUrl || "").trim();
+  if (!nickName || !avatarUrl) return null;
+  if (PLACEHOLDER_NICKNAMES.includes(nickName)) return null;
+  if (avatarUrl.indexOf("mmbiz/icTdbqWNOwNRna42") !== -1) return null;
+  return { nickName, avatarUrl };
 }
 
 async function getUser(openid) {
@@ -112,7 +127,9 @@ async function assertFamilyAdmin({ openid, familyId }) {
 }
 
 async function handleFamilyEvent(event) {
-  await ensureBaseCollections();
+  if (event.type === "login" || event.type === "createFamily" || event.type === "joinFamily" || event.type === "previewFamilyInvite" || event.type === "restoreSession") {
+    await ensureBaseCollections();
+  }
 
   const ctx = getWXContext();
   const openid = ctx.OPENID;
@@ -121,7 +138,7 @@ async function handleFamilyEvent(event) {
     throw new Error("缺少 type");
   }
 
-  if (event.type !== "login") {
+  if (event.type !== "login" && event.type !== "previewFamilyInvite") {
     getOpenidOrThrow(ctx);
   }
 
@@ -132,6 +149,11 @@ async function handleFamilyEvent(event) {
       if (!openid) throw new Error("缺少 openid");
       if (!nickName) throw new Error("缺少 nickName");
       if (!avatarUrl) throw new Error("缺少 avatarUrl");
+
+      await assertTextsSafe(cloud, { openid, texts: [nickName], scene: 1 });
+      if (String(avatarUrl).indexOf("cloud://") === 0) {
+        await assertCloudImageSafe(cloud, avatarUrl);
+      }
 
       const existing = await getUser(openid);
       if (existing) {
@@ -159,9 +181,30 @@ async function handleFamilyEvent(event) {
       };
     }
 
+    /** 本地缓存清空后：凭 openid 恢复已注册用户的登录态 */
+    case "restoreSession": {
+      if (!openid) throw new Error("缺少 openid");
+
+      const user = await getUser(openid);
+      const profile = pickRestorableUserProfile(user);
+      if (!profile) {
+        return { success: true, restored: false, needManualLogin: true };
+      }
+
+      return {
+        success: true,
+        restored: true,
+        openid,
+        userInfo: profile,
+        currentFamilyId: (user && user.currentFamilyId) || null,
+      };
+    }
+
     case "createFamily": {
       const { familyName } = event;
       if (!familyName) throw new Error("缺少 familyName");
+
+      await assertTextsSafe(cloud, { openid, texts: [familyName], scene: 1 });
 
       // 确保用户存在（未登录先创建时）
       const existingUser = await getUser(openid);
@@ -206,6 +249,21 @@ async function handleFamilyEvent(event) {
       };
     }
 
+    case "previewFamilyInvite": {
+      const { inviteCode } = event;
+      if (!inviteCode) throw new Error("缺少 inviteCode");
+
+      const famRes = await db.collection("families").where({ inviteCode }).get();
+      const fam = famRes && famRes.data && famRes.data[0] ? famRes.data[0] : null;
+      if (!fam) throw new Error("邀请链接无效");
+
+      return {
+        success: true,
+        familyName: fam.familyName || "家庭",
+        inviteCode: fam.inviteCode,
+      };
+    }
+
     case "joinFamily": {
       const { inviteCode } = event;
       if (!inviteCode) throw new Error("缺少 inviteCode");
@@ -221,6 +279,9 @@ async function handleFamilyEvent(event) {
 
       try {
         await assertFamilyMember({ openid, familyId });
+        await db.collection("users").doc(openid).update({
+          data: { currentFamilyId: familyId },
+        });
       } catch (e) {
         if (!isNotMemberError(e)) throw e;
         await db.collection("families").where({ _id: familyId }).update({
@@ -314,9 +375,13 @@ async function handleFamilyEvent(event) {
     case "kickMember": {
       const { familyId, memberId } = event;
       if (!familyId || !memberId) throw new Error("缺少 familyId/memberId");
-      await assertFamilyAdmin({ openid, familyId });
+      const fam = await assertFamilyAdmin({ openid, familyId });
 
-      if (memberId === openid) throw new Error("管理员不能踢自己");
+      if (memberId === openid) throw new Error("管理员不能移除自己");
+      if (fam.adminId === memberId) throw new Error("不能移除管理员");
+
+      const memberIds = Array.isArray(fam.memberIds) ? fam.memberIds : [];
+      if (!memberIds.includes(memberId)) throw new Error("该成员不在当前家庭");
 
       await db.collection("families").where({ _id: familyId }).update({
         data: {
@@ -324,16 +389,30 @@ async function handleFamilyEvent(event) {
         },
       });
 
-      // 更新被踢用户
-      await db.collection("users").doc(memberId).update({
-        data: {
-          familyIds: db.command.pull(familyId),
-          [`familyRoles.${familyId}`]: undefined,
-          currentFamilyId: null,
-        },
-      });
+      let kickedUser = null;
+      try {
+        const userRes = await db.collection("users").doc(memberId).get();
+        kickedUser = userRes && userRes.data ? userRes.data : null;
+      } catch (e) {
+        // 用户文档可能已不存在，仍继续从家庭中移除
+      }
 
-      // 如果被踢用户当前家庭就是该家庭，置空（已在上一步完成）
+      const updateData = {
+        familyIds: db.command.pull(familyId),
+        [`familyRoles.${familyId}`]: db.command.remove(),
+      };
+      if (kickedUser && kickedUser.currentFamilyId === familyId) {
+        const remaining = (Array.isArray(kickedUser.familyIds) ? kickedUser.familyIds : []).filter(
+          (id) => id !== familyId
+        );
+        updateData.currentFamilyId = remaining[0] || null;
+      }
+
+      try {
+        await db.collection("users").doc(memberId).update({ data: updateData });
+      } catch (e) {
+        console.warn("[familyFunctions] kickMember update user:", (e && e.message) || e);
+      }
 
       return { success: true };
     }

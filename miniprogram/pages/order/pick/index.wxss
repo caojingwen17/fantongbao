@@ -74,6 +74,36 @@
   width: 80rpx;
   height: 80rpx;
 }
+.top-right {
+  flex-shrink: 0;
+}
+.invite-pick-btn,
+.invite-pick-share {
+  min-width: 112rpx;
+  height: 64rpx;
+  padding: 0 22rpx;
+  border-radius: 9999rpx;
+  background: #f9e534;
+  color: #5b5300;
+  font-size: 24rpx;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+}
+.invite-pick-share {
+  margin: 0;
+  background: linear-gradient(135deg, #874e00 0%, #ff9800 100%);
+  color: #fff;
+}
+.invite-pick-share::after {
+  border: none;
+}
+.invite-pick-btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
 
 .main {
   position: relative;
@@ -397,4 +427,61 @@
 .loading-title {
   font-size: 26rpx;
   font-weight: 900;
+}
+
+.share-confirm-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  box-sizing: border-box;
+}
+.share-confirm-card {
+  width: 100%;
+  max-width: 620rpx;
+  background: #fff;
+  border-radius: 32rpx;
+  padding: 48rpx 40rpx 36rpx;
+  box-sizing: border-box;
+}
+.share-confirm-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+.share-confirm-text {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #666;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+.invite-pick-share-modal {
+  width: 100%;
+  height: 88rpx;
+  font-size: 28rpx;
+}
+.share-confirm-cancel {
+  margin-top: 24rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #999;
+  padding: 16rpx;
+}
+.share-confirm-preparing {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #888;
 }

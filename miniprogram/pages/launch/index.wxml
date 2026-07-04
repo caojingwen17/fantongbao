@@ -1,0 +1,13 @@
+<view class="launch-page">
+  <view class="launch-center">
+    <view class="launch-logo-wrap">
+      <image class="launch-logo" mode="aspectFill" src="/images/icons/fantongbao.png" aria-label="饭桶宝" />
+    </view>
+    <view class="launch-name">饭桶宝</view>
+    <view class="launch-progress-wrap">
+      <view class="launch-progress-track">
+        <view class="launch-progress-bar" style="width: {{progress}}%;"></view>
+      </view>
+    </view>
+  </view>
+</view>

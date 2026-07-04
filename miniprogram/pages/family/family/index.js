@@ -1,5 +1,7 @@
 const cloud = require("../../../utils/cloud");
 const auth = require("../../../utils/auth");
+const share = require("../../../utils/share");
+const invite = require("../../../utils/invite");
 const { resolveBatch, attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 /** cloud:// 不能直接作 image src（开发者工具会拼成页面相对路径）；仅使用解析后的 https 或原 http(s) */
@@ -54,6 +56,9 @@ Page({
     dialogVisible: false,
     dialogMode: "",
     dialogValue: "",
+    /** 当前用户是否为家庭管理员（详情页展示移除按钮） */
+    isCurrentFamilyAdmin: false,
+    currentOpenid: "",
   },
 
   async onLoad() {
@@ -221,6 +226,7 @@ Page({
 
   async fetchFamilyDetail(familyId) {
     const app = getApp();
+    const openid = app.globalData.openid || "";
     const families = this.data.families || app.globalData.families || [];
     const family = families.find((f) => f && f._id === familyId) || null;
     if (!family) return;
@@ -228,6 +234,8 @@ Page({
     const calNow = new Date();
     this.setData({
       currentFamily: family,
+      isCurrentFamilyAdmin: !!(openid && family.adminId === openid),
+      currentOpenid: openid,
       detailLoading: true,
       membersLoading: true,
       recipesLoading: true,
@@ -530,17 +538,38 @@ Page({
     const r = await auth.requireLoggedIn({ content: "管理成员需要先登录。" });
     if (!r.ok) return;
     const { currentFamily } = this.data;
-    if (!currentFamily) return;
+    if (!currentFamily || !this.data.isCurrentFamilyAdmin) return;
     if (this.data.actionBusy) return;
+
     const memberId = e.currentTarget.dataset.memberid;
+    const nickName = (e.currentTarget.dataset.nickname || "该成员").trim();
+    if (!memberId) return;
+    if (memberId === this.data.currentOpenid) return;
+    if (memberId === currentFamily.adminId) return;
+
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: "移除成员",
+        content: `确定将「${nickName}」移出家庭吗？移除后对方将无法查看本家庭菜谱与点菜单。`,
+        confirmText: "移除",
+        confirmColor: "#dc2626",
+        cancelText: "取消",
+        success: (res) => resolve(!!(res && res.confirm)),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+
     this.setData({ actionBusy: true });
-    wx.showLoading({ title: "处理中…", mask: true });
+    wx.showLoading({ title: "移除中…", mask: true });
     try {
       await cloud.callFunctionWithErrorToast("familyFunctions", {
         type: "kickMember",
         familyId: currentFamily._id,
         memberId,
       });
+      wx.showToast({ title: "已移除成员", icon: "success" });
+      await this.refreshFamiliesList();
       await this.fetchFamilyDetail(currentFamily._id);
     } finally {
       wx.hideLoading();
@@ -575,6 +604,30 @@ Page({
     const openid = app.globalData.openid;
     const { currentFamily } = this.data;
     return !!(openid && currentFamily && currentFamily.adminId === openid);
+  },
+
+  onShareAppMessage() {
+    const { currentFamily, viewMode } = this.data;
+    if (viewMode !== "detail" || !currentFamily || !currentFamily.inviteCode) {
+      return share.defaultShareAppMessage();
+    }
+    const name = currentFamily.familyName || "家庭";
+    return {
+      title: `邀请你加入「${name}」一起玩饭桶宝`,
+      path: invite.buildFamilyInvitePath(currentFamily.inviteCode),
+    };
+  },
+
+  onShareTimeline() {
+    const { currentFamily, viewMode } = this.data;
+    if (viewMode !== "detail" || !currentFamily || !currentFamily.inviteCode) {
+      return share.defaultShareTimeline();
+    }
+    const name = currentFamily.familyName || "家庭";
+    return {
+      title: `邀请你加入「${name}」一起玩饭桶宝`,
+      query: `inviteCode=${encodeURIComponent(currentFamily.inviteCode)}`,
+    };
   },
 });
 

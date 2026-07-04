@@ -143,4 +143,5 @@ module.exports = {
   resolveForImage,
   resolveBatch,
   attachRecipeImgDisplay,
+  getCachedUrl,
 };

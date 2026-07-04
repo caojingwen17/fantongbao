@@ -19,6 +19,8 @@ Page({
     pickedCount: 0,
     listLoading: false,
     pickedSheetVisible: false,
+    canInviteOrder: false,
+    orderName: "",
   },
 
   async onLoad(options) {
@@ -94,7 +96,7 @@ Page({
       const order = orderRes && orderRes.order ? orderRes.order : null;
       if (order && order.status === "completed") {
         wx.showToast({ title: "该点菜单已完成", icon: "none" });
-        setTimeout(() => wx.navigateBack(), 1200);
+        setTimeout(() => this.goBackFromPick(), 1200);
         return;
       }
       const raw = (recipeRes && recipeRes.recipes) || [];
@@ -104,6 +106,10 @@ Page({
         order,
         recipesRaw: withImg,
         localPicked,
+        orderName: (order && order.orderName) || "点菜单",
+        canInviteOrder:
+          order &&
+          (order.status === "pending_shopping" || order.status === "pending_cooking"),
       });
       this.applyPickedFlags();
     } catch (e) {
@@ -146,8 +152,28 @@ Page({
     this.loadRecipesOnly();
   },
 
+  /** 从分享链接进入时页面栈无上一页，navigateBack 会失败，需显式回到点菜单详情 */
+  goBackFromPick() {
+    const { orderId } = this.data;
+    const pages = getCurrentPages();
+    const prev = pages.length >= 2 ? pages[pages.length - 2] : null;
+    const prevRoute = prev && prev.route ? prev.route : "";
+    if (prevRoute === "pages/order/detail/index") {
+      wx.navigateBack();
+      return;
+    }
+    if (orderId) {
+      // 分享进入等场景：reLaunch 清栈，避免详情页返回又落到点菜页
+      wx.reLaunch({ url: `/pages/order/detail/index?orderId=${orderId}` });
+      return;
+    }
+    wx.navigateBack({
+      fail: () => wx.reLaunch({ url: "/pages/index/index" }),
+    });
+  },
+
   onBack() {
-    wx.navigateBack();
+    this.goBackFromPick();
   },
 
   noop() {},
@@ -181,28 +207,30 @@ Page({
     const toAdd = (localPicked || []).filter((r) => r && r.recipeId && !serverIds.has(r.recipeId));
 
     if (toRemove.length === 0 && toAdd.length === 0) {
-      wx.navigateBack();
+      this.goBackFromPick();
       return;
     }
 
-      try {
-        await ui.withLoading(async () => {
-          await cloud.callFunction("orderFunctions", {
-            type: "syncOrderRecipes",
-            orderId,
-            recipes: (localPicked || []).map((r) => ({
-              recipeId: r.recipeId,
-              note: r.note || "",
-              creatorId: r.creatorId,
-            })),
-          });
-        }, "提交中…");
-        wx.navigateBack();
-      } catch (err) {
-        wx.showToast({ title: "提交失败，请重试", icon: "none" });
-        await this.loadInitial();
-        getApp().globalData.homeDirty = true;
-      }
+    try {
+      await ui.withLoading(async () => {
+        await cloud.callFunction("orderFunctions", {
+          type: "syncOrderRecipes",
+          orderId,
+          recipes: (localPicked || []).map((r) => ({
+            recipeId: r.recipeId,
+            note: r.note || "",
+            creatorId: r.creatorId,
+          })),
+        });
+      }, "提交中…");
+      getApp().globalData.homeDirty = true;
+      wx.showToast({ title: "已提交", icon: "success" });
+      setTimeout(() => this.goBackFromPick(), 400);
+    } catch (err) {
+      wx.showToast({ title: "提交失败，请重试", icon: "none" });
+      await this.loadInitial();
+      getApp().globalData.homeDirty = true;
+    }
   },
 
   onTapAdd(e) {

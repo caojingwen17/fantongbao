@@ -78,7 +78,7 @@
 
       <view class="card import-card {{canImport ? '' : 'disabled'}}">
         <!--
-        粘贴文案 · AI 提炼（正式版暂隐藏；云函数 extractRecipeFromText 仍可用，恢复下面整块即可）
+        粘贴文案 · 智能提炼（正式版暂隐藏；云函数 extractRecipeFromText 仍可用，恢复下面整块即可）
         <view class="import-block">...</view>
         <view class="divider"></view>
         -->
@@ -97,10 +97,10 @@
 
         <view class="import-block">
           <view class="import-row">
-            <view class="import-name">多图导入 · AI 识别</view>
+            <view class="import-name">多图导入识别</view>
           </view>
           <view class="import-actions">
-            <view class="import-hint">最多 9 张 · 单张 ≤ 10MB</view>
+            <view class="import-hint">最多 6 张 · 单张 ≤ 10MB</view>
             <view class="pick-btn {{(!canImport || isImportingImage) ? 'disabled' : ''}}" bindtap="onImportFromLocalImage" aria-label="选择图片">
               选择图片
             </view>
@@ -112,10 +112,10 @@
 
         <view class="import-block">
           <view class="import-row">
-            <view class="import-name">AI 一键生成</view>
+            <view class="import-name">一键生成菜谱</view>
           </view>
           <view class="import-actions">
-            <view class="import-hint">AI根据菜名自动生成常用菜谱</view>
+            <view class="import-hint">根据菜名自动生成常用菜谱</view>
             <view class="pick-btn {{(!canImport || isGeneratingCommon) ? 'disabled' : ''}}" bindtap="onGenerateCommonRecipe" aria-label="一键生成">
               生成
             </view>

@@ -10,6 +10,8 @@ function enableShareMenu() {
   });
 }
 
+const ORDER_INVITE_SHARE_TITLE = "邀请您一起点菜";
+
 function defaultShareAppMessage() {
   return {
     title: "饭桶宝 · 家庭菜谱协作",
@@ -39,6 +41,68 @@ function buildRecipeSharePath(token) {
   const t = String(token || "").trim();
   if (!t) return "/pages/index/index";
   return `/pages/recipe/share/index?token=${encodeURIComponent(t)}`;
+}
+
+function buildFamilyInvitePath(inviteCode) {
+  const invite = require("./invite");
+  return invite.buildFamilyInvitePath(inviteCode);
+}
+
+function buildOrderInvitePath(token) {
+  const orderInvite = require("./orderInvite");
+  return orderInvite.buildOrderInvitePath(token);
+}
+
+async function prepareOrderInviteToken(cloud, orderId) {
+  const prep = await cloud.callFunction("orderFunctions", {
+    type: "prepareOrderInvite",
+    orderId,
+  });
+  if (!prep || prep.success === false || !prep.token) {
+    const msg = (prep && (prep.errMsg || prep.message)) || "准备邀请失败";
+    throw new Error(msg);
+  }
+  return prep;
+}
+
+/** 预生成点餐邀请分享信息，写入 page.data 与 globalData（供 onShareAppMessage 同步读取） */
+async function prepareOrderInviteShareOnPage(page, cloud, orderId) {
+  const prep = await prepareOrderInviteToken(cloud, orderId);
+  const token = prep.token;
+  const path = buildOrderInvitePath(token);
+  const payload = { title: ORDER_INVITE_SHARE_TITLE, path, token };
+  try {
+    const app = getApp();
+    if (app && app.globalData) {
+      app.globalData.orderInviteShare = payload;
+    }
+  } catch (e) {
+    /* ignore */
+  }
+  if (page && typeof page.setData === "function") {
+    page.setData({ shareToken: token, sharePath: path, shareReady: true });
+  }
+  return payload;
+}
+
+/** onShareAppMessage 内同步取分享文案（勿用 this._xxx 或 promise，真机不可靠） */
+function getOrderInviteShareFromPage(page) {
+  const data = (page && page.data) || {};
+  let token = String(data.shareToken || "").trim();
+  if (!token) {
+    try {
+      const app = getApp();
+      const cached = app && app.globalData && app.globalData.orderInviteShare;
+      if (cached && cached.token) token = String(cached.token).trim();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  if (!token) return null;
+  return {
+    title: ORDER_INVITE_SHARE_TITLE,
+    path: buildOrderInvitePath(token),
+  };
 }
 
 async function prepareRecipeShareToken(cloud, recipeId) {
@@ -77,11 +141,17 @@ function enhancePageConfig(pageConfig) {
 }
 
 module.exports = {
+  ORDER_INVITE_SHARE_TITLE,
   enableShareMenu,
   defaultShareAppMessage,
   defaultShareTimeline,
   getEnvVersion,
   buildRecipeSharePath,
+  buildFamilyInvitePath,
+  buildOrderInvitePath,
+  prepareOrderInviteToken,
+  prepareOrderInviteShareOnPage,
+  getOrderInviteShareFromPage,
   prepareRecipeShareToken,
   enhancePageConfig,
 };

@@ -1,6 +1,7 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
+const share = require("../../../utils/share");
 
 Page({
   data: {
@@ -11,6 +12,35 @@ Page({
     statusText: "",
     statusCodeText: "0（待购物）",
     actionBusy: false,
+    shareConfirmVisible: false,
+    shareReady: false,
+    shareToken: "",
+    canInviteOrder: false,
+  },
+
+  async ensureShareToken() {
+    if (this.data.shareToken) return this.data.shareToken;
+    const { orderId } = this.data;
+    if (!orderId) throw new Error("缺少点菜单");
+    const payload = await share.prepareOrderInviteShareOnPage(this, cloud, orderId);
+    return payload.token;
+  },
+
+  onShareAppMessage() {
+    const msg = share.getOrderInviteShareFromPage(this);
+    if (this.data.shareConfirmVisible) {
+      setTimeout(() => this.setData({ shareConfirmVisible: false }), 400);
+    }
+    if (msg) return msg;
+    const { orderId } = this.data;
+    if (orderId && this.data.canInviteOrder) {
+      wx.showToast({ title: "邀请准备中，请稍后再试", icon: "none" });
+      return {
+        title: share.ORDER_INVITE_SHARE_TITLE,
+        path: `/pages/order/detail/index?orderId=${orderId}`,
+      };
+    }
+    return share.defaultShareAppMessage();
   },
 
   getStatusText(status, recipeCount) {
@@ -62,7 +92,16 @@ Page({
         recipeCount,
         statusText: this.getStatusText(order && order.status, recipeCount),
         statusCodeText: this.getStatusCodeText(order && order.status, recipeCount),
+        canInviteOrder:
+          order &&
+          (order.status === "pending_shopping" || order.status === "pending_cooking"),
       });
+      if (
+        order &&
+        (order.status === "pending_shopping" || order.status === "pending_cooking")
+      ) {
+        this.ensureShareToken().catch(() => {});
+      }
     }
   },
 
@@ -162,7 +201,24 @@ Page({
   },
 
   goBack() {
-    wx.reLaunch({ url: "/pages/index/index" });
+    const pages = getCurrentPages();
+    if (pages.length <= 1) {
+      wx.reLaunch({ url: "/pages/index/index" });
+      return;
+    }
+    const prev = pages[pages.length - 2];
+    const prevRoute = prev && prev.route ? prev.route : "";
+    // 分享链路：详情页下叠了点菜页时，直接回首页，勿再退回点菜页
+    if (
+      prevRoute === "pages/order/pick/index" ||
+      prevRoute === "pages/order/invite/index"
+    ) {
+      wx.reLaunch({ url: "/pages/index/index" });
+      return;
+    }
+    wx.navigateBack({
+      fail: () => wx.reLaunch({ url: "/pages/index/index" }),
+    });
   },
 
   onCompletedToHome() {
@@ -171,6 +227,22 @@ Page({
 
   onBack() {
     this.goBack();
+  },
+
+  onTapUnlockShareOrder() {
+    if (!this.data.canInviteOrder) return;
+    this.setData({ shareConfirmVisible: true, shareReady: !!this.data.shareToken });
+    if (this.data.shareToken) return;
+    this.ensureShareToken()
+      .then(() => this.setData({ shareReady: true }))
+      .catch(() => {
+        this.setData({ shareConfirmVisible: false });
+        wx.showToast({ title: "准备邀请失败，请重试", icon: "none" });
+      });
+  },
+
+  onCloseShareConfirm() {
+    this.setData({ shareConfirmVisible: false });
   },
 
   onAskDeleteOrder() {

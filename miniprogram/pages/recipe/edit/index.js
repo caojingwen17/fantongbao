@@ -2,6 +2,7 @@ const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
+const { uploadRecipeDisplayImage, notifyPublishSecError } = require("../../../utils/sec");
 
 Page({
   data: {
@@ -94,22 +95,21 @@ Page({
       success: async (res) => {
         const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : "";
         if (!filePath) return;
-        wx.showLoading({ title: "上传中..." });
+        if (!this.data.familyId) {
+          wx.showToast({ title: "请先选择家庭", icon: "none" });
+          return;
+        }
+        ui.showLoading("检测中…", true);
         try {
-          const cloudPath = `recipes/${this.data.familyId || "unknown"}/${Date.now()}-${Math.random()
-            .toString(16)
-            .slice(2)}.png`;
-          const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath });
-          const fid = uploadRes.fileID || "";
+          const fid = await uploadRecipeDisplayImage(filePath, this.data.familyId);
           const recipeImgDisplay = await resolveForImage(fid, {
             familyId: this.data.familyId,
           });
           this.setData({ recipeImg: fid, recipeImgDisplay: recipeImgDisplay || fid });
+          ui.hideLoading();
           wx.showToast({ title: "图片上传成功", icon: "none" });
         } catch (e) {
-          wx.showToast({ title: "图片上传失败", icon: "none" });
-        } finally {
-          wx.hideLoading();
+          notifyPublishSecError(e);
         }
       },
     });

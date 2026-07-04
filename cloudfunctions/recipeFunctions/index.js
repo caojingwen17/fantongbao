@@ -1,5 +1,10 @@
 const cloud = require("wx-server-sdk");
 const { getOpenidOrThrow } = require("./auth");
+const {
+  assertTextsSafe,
+  assertCloudImageSafe,
+  collectRecipeTexts,
+} = require("./sec");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -308,6 +313,18 @@ exports.main = async (event) => {
       };
     }
 
+    case "checkRecipeImage": {
+      const { fileID, familyId } = event;
+      if (!fileID) throw new Error("缺少 fileID");
+      if (!familyId) throw new Error("缺少 familyId");
+      await assertFamilyMember({ openid, familyId });
+      if (!isCloudPathForFamily(fileID, familyId) || !String(fileID).includes(`/recipes/${familyId}/`)) {
+        throw new Error("图片路径无效，请重新上传");
+      }
+      await assertCloudImageSafe(cloud, fileID);
+      return { success: true };
+    }
+
     case "addRecipe": {
       const {
         familyId,
@@ -326,6 +343,24 @@ exports.main = async (event) => {
       if (!prepareSteps || !prepareSteps.length) throw new Error("至少1个备菜步骤");
 
       await assertFamilyMember({ openid, familyId });
+
+      await assertTextsSafe(cloud, {
+        openid,
+        scene: 3,
+        texts: collectRecipeTexts({
+          recipeName,
+          ingredients,
+          seasonings,
+          prepareSteps,
+          cookingSteps,
+        }),
+      });
+      if (recipeImg) {
+        if (!isCloudPathForFamily(recipeImg, familyId) || !String(recipeImg).includes(`/recipes/${familyId}/`)) {
+          throw new Error("展示图路径无效，请重新上传");
+        }
+        await assertCloudImageSafe(cloud, recipeImg);
+      }
 
       const created = await db.collection("recipes").add({
         data: {
@@ -366,15 +401,43 @@ exports.main = async (event) => {
 
       await assertFamilyMember({ openid, familyId: recipe.familyId });
 
+      const nextName = recipeName || recipe.recipeName;
+      const nextIngredients = ingredients || recipe.ingredients || [];
+      const nextSeasonings = seasonings || recipe.seasonings || [];
+      const nextPrepare = prepareSteps || recipe.prepareSteps || [];
+      const nextCooking = cookingSteps || recipe.cookingSteps || [];
+      const nextImg = recipeImg || recipe.recipeImg;
+
+      await assertTextsSafe(cloud, {
+        openid,
+        scene: 3,
+        texts: collectRecipeTexts({
+          recipeName: nextName,
+          ingredients: nextIngredients,
+          seasonings: nextSeasonings,
+          prepareSteps: nextPrepare,
+          cookingSteps: nextCooking,
+        }),
+      });
+      if (nextImg) {
+        if (
+          !isCloudPathForFamily(nextImg, recipe.familyId) ||
+          !String(nextImg).includes(`/recipes/${recipe.familyId}/`)
+        ) {
+          throw new Error("展示图路径无效，请重新上传");
+        }
+        await assertCloudImageSafe(cloud, nextImg);
+      }
+
       await db.collection("recipes").where({ _id: recipeId }).update({
         data: {
-          recipeName: recipeName || recipe.recipeName,
-          recipeImg: recipeImg || recipe.recipeImg,
+          recipeName: nextName,
+          recipeImg: nextImg,
           xiaohongshuUrl: xiaohongshuUrl || recipe.xiaohongshuUrl || "",
-          ingredients: ingredients || recipe.ingredients || [],
-          seasonings: seasonings || recipe.seasonings || [],
-          prepareSteps: prepareSteps || recipe.prepareSteps || [],
-          cookingSteps: cookingSteps || recipe.cookingSteps || [],
+          ingredients: nextIngredients,
+          seasonings: nextSeasonings,
+          prepareSteps: nextPrepare,
+          cookingSteps: nextCooking,
           updateTime: now(),
         },
       });

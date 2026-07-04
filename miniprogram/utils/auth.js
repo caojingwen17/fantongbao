@@ -7,6 +7,12 @@ const PLACEHOLDER_NICKNAMES = ["微信用户", "WeChat User"];
 
 let _loginInflight = null;
 let _loginInflightKey = "";
+let _silentLoginInflight = null;
+
+function isLoggedIn() {
+  const app = getApp();
+  return !!(app && app.globalData && app.globalData.userInfo);
+}
 
 function isPlaceholderNickName(name) {
   if (!name || typeof name !== "string") return true;
@@ -159,26 +165,93 @@ async function completeLoginFlow(userInfo, options) {
   return _loginInflight;
 }
 
-async function trySilentLogin() {
-  const s = getValidSessionOrNull();
-  if (!s) return { ok: false, currentFamilyId: null, error: null };
-
-  try {
-    const { currentFamilyId } = await completeLoginFlow(s, { silent: true });
-    return { ok: true, currentFamilyId: currentFamilyId || null, error: null };
-  } catch (e) {
-    clearAuthState({ keepSession: true });
-    return { ok: false, currentFamilyId: null, error: formatLoginError(e) };
+async function applyServerSession(restoreResp) {
+  const userInfo = restoreResp && restoreResp.userInfo;
+  if (!userInfo || !userInfo.nickName || !userInfo.avatarUrl) {
+    return { ok: false, currentFamilyId: null, error: null };
   }
+
+  const { nickName, avatarUrl } = userInfo;
+  wx.setStorageSync(SESSION_KEY, { nickName, avatarUrl });
+
+  const app = getApp();
+  app.globalData.userInfo = { nickName, avatarUrl };
+  if (restoreResp.openid) app.globalData.openid = restoreResp.openid;
+
+  const familiesResp = await cloud
+    .callFunction("familyFunctions", { type: "getMyFamilies" })
+    .catch(() => null);
+
+  const families = (familiesResp && familiesResp.families) || [];
+  app.globalData.families = families;
+
+  const serverCid = restoreResp.currentFamilyId || null;
+  if (serverCid && families.some((f) => f._id === serverCid)) {
+    app.globalData.currentFamilyId = serverCid;
+  } else {
+    app.globalData.currentFamilyId = (families[0] && families[0]._id) || null;
+  }
+
+  return {
+    ok: true,
+    currentFamilyId: app.globalData.currentFamilyId || null,
+    error: null,
+  };
+}
+
+async function tryRestoreFromServer() {
+  await ensureWxLogin();
+  const resp = await cloud.callFunction("familyFunctions", { type: "restoreSession" });
+  if (!resp || !resp.restored || !resp.userInfo) {
+    return { ok: false, currentFamilyId: null, error: null };
+  }
+  const { nickName, avatarUrl } = resp.userInfo;
+  if (isPlaceholderNickName(nickName) || isWeChatDefaultAvatarUrl(avatarUrl)) {
+    return { ok: false, currentFamilyId: null, error: null };
+  }
+  return applyServerSession(resp);
+}
+
+async function trySilentLogin() {
+  const app = getApp();
+  if (isLoggedIn()) {
+    return {
+      ok: true,
+      currentFamilyId: (app.globalData && app.globalData.currentFamilyId) || null,
+      error: null,
+    };
+  }
+
+  if (_silentLoginInflight) return _silentLoginInflight;
+
+  _silentLoginInflight = (async () => {
+    try {
+      const restored = await tryRestoreFromServer();
+      if (restored.ok) return restored;
+
+      const local = getValidSessionOrNull();
+      if (local) {
+        try {
+          const { currentFamilyId } = await completeLoginFlow(local, { silent: true });
+          return { ok: true, currentFamilyId: currentFamilyId || null, error: null };
+        } catch (localErr) {
+          clearAuthState({ keepSession: false });
+          return { ok: false, currentFamilyId: null, error: formatLoginError(localErr) };
+        }
+      }
+      return { ok: false, currentFamilyId: null, error: null };
+    } catch (e) {
+      return { ok: false, currentFamilyId: null, error: formatLoginError(e) };
+    } finally {
+      _silentLoginInflight = null;
+    }
+  })();
+
+  return _silentLoginInflight;
 }
 
 async function bootstrapSilentLogin() {
   return trySilentLogin();
-}
-
-function isLoggedIn() {
-  const app = getApp();
-  return !!(app && app.globalData && app.globalData.userInfo);
 }
 
 async function requireLoggedIn(options) {
@@ -226,6 +299,7 @@ module.exports = {
   formatLoginError,
   ensureWxLogin,
   completeLoginFlow,
+  tryRestoreFromServer,
   trySilentLogin,
   bootstrapSilentLogin,
   isLoggedIn,
