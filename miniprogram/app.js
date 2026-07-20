@@ -43,6 +43,8 @@ App({
       homeDirty: false,
       /** 本次冷启动是否由分享/邀请链接进入 */
       entryFromInvite: false,
+      /** 点餐邀请已成功接受，避免回首页时重复跳转点菜页 */
+      orderInviteHandled: false,
       /** 主入口启动页判定结果：guest | needFamily | ok */
       mainEntryBoot: null,
     };

@@ -3,6 +3,13 @@ const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 const { uploadRecipeDisplayImage, notifyPublishSecError } = require("../../../utils/sec");
+const {
+  createStepItem,
+  normalizeStepItems,
+  getStepTexts,
+  reorderStepItems,
+  calcDragTargetIndex,
+} = require("../../../utils/recipeSteps");
 
 Page({
   data: {
@@ -26,7 +33,16 @@ Page({
       prep: false,
       cook: false,
     },
+    stepDrag: {
+      active: false,
+      listKey: "",
+      index: -1,
+      offsetY: 0,
+      targetIndex: -1,
+    },
   },
+
+  _stepDrag: null,
 
   async onLoad(options) {
     const ok = await auth.requireLoggedInOrBack({ content: "编辑菜谱需要先登录。" });
@@ -61,8 +77,12 @@ Page({
           canImport: !!String(r.recipeName || "").trim(),
           ingredients: r.ingredients && r.ingredients.length ? r.ingredients : [{ name: "", amount: "" }],
           seasonings: r.seasonings || [{ name: "", amount: "" }],
-          prepareSteps: r.prepareSteps && r.prepareSteps.length ? r.prepareSteps : ["备菜步骤（1）"],
-          cookingSteps: r.cookingSteps && r.cookingSteps.length ? r.cookingSteps : ["做菜步骤（1）"],
+          prepareSteps: normalizeStepItems(
+            r.prepareSteps && r.prepareSteps.length ? r.prepareSteps : ["备菜步骤（1）"]
+          ),
+          cookingSteps: normalizeStepItems(
+            r.cookingSteps && r.cookingSteps.length ? r.cookingSteps : ["做菜步骤（1）"]
+          ),
         });
       }
     } catch (e) {
@@ -168,38 +188,116 @@ Page({
   // 步骤
   onPrepareStepInput(e) {
     const idx = e.currentTarget.dataset.index;
-    const prepareSteps = this.data.prepareSteps || [];
-    prepareSteps[idx] = e.detail.value || "";
+    const prepareSteps = [...(this.data.prepareSteps || [])];
+    if (!prepareSteps[idx]) return;
+    prepareSteps[idx] = { ...prepareSteps[idx], text: e.detail.value || "" };
     this.setData({ prepareSteps });
   },
   onCookingStepInput(e) {
     const idx = e.currentTarget.dataset.index;
-    const cookingSteps = this.data.cookingSteps || [];
-    cookingSteps[idx] = e.detail.value || "";
+    const cookingSteps = [...(this.data.cookingSteps || [])];
+    if (!cookingSteps[idx]) return;
+    cookingSteps[idx] = { ...cookingSteps[idx], text: e.detail.value || "" };
     this.setData({ cookingSteps });
   },
 
   addPrepareStep() {
-    const prepareSteps = this.data.prepareSteps || [];
-    prepareSteps.push("");
+    const prepareSteps = [...(this.data.prepareSteps || [])];
+    prepareSteps.push(createStepItem(""));
     this.setData({ prepareSteps });
   },
   addCookingStep() {
-    const cookingSteps = this.data.cookingSteps || [];
-    cookingSteps.push("");
+    const cookingSteps = [...(this.data.cookingSteps || [])];
+    cookingSteps.push(createStepItem(""));
     this.setData({ cookingSteps });
   },
   removePrepareStep(e) {
     const idx = e.currentTarget.dataset.index;
-    const prepareSteps = this.data.prepareSteps || [];
+    const prepareSteps = [...(this.data.prepareSteps || [])];
     prepareSteps.splice(idx, 1);
-    this.setData({ prepareSteps: prepareSteps.length ? prepareSteps : [""] });
+    this.setData({ prepareSteps: prepareSteps.length ? prepareSteps : [createStepItem("")] });
   },
   removeCookingStep(e) {
     const idx = e.currentTarget.dataset.index;
-    const cookingSteps = this.data.cookingSteps || [];
+    const cookingSteps = [...(this.data.cookingSteps || [])];
     cookingSteps.splice(idx, 1);
-    this.setData({ cookingSteps: cookingSteps.length ? cookingSteps : [""] });
+    this.setData({ cookingSteps: cookingSteps.length ? cookingSteps : [createStepItem("")] });
+  },
+
+  onStepDragStart(e) {
+    const listKey = e.currentTarget.dataset.list;
+    const index = Number(e.currentTarget.dataset.index);
+    if (!listKey || Number.isNaN(index)) return;
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+
+    const className = listKey === "prepareSteps" ? ".js-prep-step" : ".js-cook-step";
+    wx.createSelectorQuery()
+      .in(this)
+      .selectAll(className)
+      .boundingClientRect()
+      .exec((res) => {
+        const rects = (res && res[0]) || [];
+        if (!rects.length || !rects[index]) return;
+        this._stepDrag = {
+          listKey,
+          fromIndex: index,
+          startY: touch.clientY,
+          rects,
+        };
+        this.setData({
+          stepDrag: {
+            active: true,
+            listKey,
+            index,
+            offsetY: 0,
+            targetIndex: index,
+          },
+        });
+      });
+  },
+
+  onStepDragMove(e) {
+    if (!this._stepDrag || !this.data.stepDrag.active) return;
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+
+    const { fromIndex, rects } = this._stepDrag;
+    const offsetY = touch.clientY - this._stepDrag.startY;
+    const targetIndex = calcDragTargetIndex(rects, touch.clientY, fromIndex);
+    if (
+      this.data.stepDrag.offsetY === offsetY &&
+      this.data.stepDrag.targetIndex === targetIndex
+    ) {
+      return;
+    }
+    this.setData({
+      "stepDrag.offsetY": offsetY,
+      "stepDrag.targetIndex": targetIndex,
+    });
+  },
+
+  onStepDragEnd() {
+    if (!this._stepDrag || !this.data.stepDrag.active) {
+      this._stepDrag = null;
+      return;
+    }
+    const { listKey, fromIndex } = this._stepDrag;
+    const targetIndex = this.data.stepDrag.targetIndex;
+    const items = this.data[listKey] || [];
+    const next = reorderStepItems(items, fromIndex, targetIndex);
+
+    this._stepDrag = null;
+    this.setData({
+      [listKey]: next,
+      stepDrag: {
+        active: false,
+        listKey: "",
+        index: -1,
+        offsetY: 0,
+        targetIndex: -1,
+      },
+    });
   },
 
   async onSubmit() {
@@ -224,8 +322,8 @@ Page({
     }
     const cleanedIngredients = (ingredients || []).filter((i) => i && i.name);
     const cleanedSeasonings = (seasonings || []).filter((s) => s && s.name);
-    const cleanedPrepareSteps = (prepareSteps || []).filter((s) => s !== undefined && String(s).trim() !== "");
-    const cleanedCookingSteps = (cookingSteps || []).filter((s) => s !== undefined && String(s).trim() !== "");
+    const cleanedPrepareSteps = getStepTexts(prepareSteps).filter((s) => String(s).trim() !== "");
+    const cleanedCookingSteps = getStepTexts(cookingSteps).filter((s) => String(s).trim() !== "");
 
     if (!cleanedIngredients.length) {
       wx.showToast({ title: "至少填写1种食材", icon: "none" });

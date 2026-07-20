@@ -571,20 +571,48 @@
   min-height: 4rpx;
 }
 /* 与年月同系但更轻：小胶囊数字，替代 ①② 字符 */
-.meal-cal-count-pill {
+.meal-cal-expense-pill {
   align-self: center;
-  min-width: 40rpx;
+  max-width: 100%;
+  min-width: 0;
   height: 34rpx;
-  padding: 0 12rpx;
+  padding: 0 8rpx;
   border-radius: var(--ft-r-full);
-  font-size: 22rpx;
+  font-size: 18rpx;
   font-weight: 900;
   line-height: 34rpx;
   text-align: center;
   color: var(--ft-primary);
   background: rgba(255, 152, 0, 0.14);
-  border: 1rpx solid rgba(135, 78, 0, 0.1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   box-sizing: border-box;
+}
+.meal-cal-expense-pill.is-zero {
+  color: rgba(118, 85, 36, 0.55);
+  background: rgba(0, 0, 0, 0.05);
+}
+.meal-cal-month-total {
+  margin-top: 20rpx;
+  padding: 22rpx 24rpx;
+  border-radius: var(--ft-r-xl);
+  background: rgba(255, 152, 0, 0.08);
+  border: 1rpx solid rgba(135, 78, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.meal-cal-month-total-k {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: rgba(118, 85, 36, 0.72);
+}
+.meal-cal-month-total-v {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: var(--ft-primary);
 }
 
 .meal-cal-modal-mask {
@@ -675,12 +703,32 @@
 .meal-cal-modal-card--1 .meal-cal-modal-accent {
   background: linear-gradient(180deg, #43a047, #91f78e);
 }
+.meal-cal-modal-head-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
 .meal-cal-modal-order-name {
   flex: 1;
+  min-width: 0;
   font-size: 30rpx;
   font-weight: 900;
   line-height: 1.4;
   color: #2c1f08;
+}
+.meal-cal-modal-order-expense {
+  flex-shrink: 0;
+  font-size: 28rpx;
+  font-weight: 900;
+  line-height: 1.4;
+  color: var(--ft-primary);
+  white-space: nowrap;
+}
+.meal-cal-modal-order-expense.is-zero {
+  color: rgba(118, 85, 36, 0.55);
 }
 .meal-cal-modal-section {
   margin-bottom: 16rpx;

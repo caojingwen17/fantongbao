@@ -216,12 +216,102 @@ function buildStrictJsonOutputRules(hard) {
   return lines.join("\n");
 }
 
+/** 食材/调料名称统一：别名 → 标准名（后处理兜底，与提示词规则一致） */
+const RECIPE_CANONICAL_NAMES = {
+  // 葱姜蒜香料
+  葱: ["小葱", "香葱", "大葱", "青葱", "葱花", "葱白", "葱丝", "葱末", "葱头"],
+  姜: ["生姜", "老姜", "嫩姜", "姜片", "姜丝", "姜末", "姜块"],
+  蒜: ["大蒜", "蒜头", "蒜瓣", "蒜末", "蒜泥", "蒜蓉", "蒜片"],
+  蒜苗: ["青蒜", "蒜黄"],
+  蒜苔: ["蒜薹"],
+  洋葱: ["圆葱"],
+  韭菜: ["韭黄", "韭菜花"],
+  香菜: ["芫荽"],
+  小米辣: ["小米椒", "朝天椒", "指天椒"],
+  干辣椒: ["干红椒", "红辣椒", "辣椒段"],
+  青椒: ["甜椒", "菜椒", "彩椒", "柿子椒"],
+  红椒: ["红甜椒", "红菜椒"],
+  花椒: ["川椒", "麻椒", "青花椒", "红花椒"],
+  八角: ["大料", "茴香角"],
+  桂皮: ["肉桂"],
+  香叶: ["月桂叶"],
+  陈皮: ["橘皮", "干橘皮"],
+  // 常见蔬菜
+  西红柿: ["番茄", "蕃茄"],
+  土豆: ["马铃薯", "洋芋", "地蛋"],
+  红薯: ["地瓜", "番薯", "山芋"],
+  白菜: ["大白菜", "黄芽白"],
+  // 基础调料
+  盐: ["食盐", "精盐", "细盐", "海盐"],
+  糖: ["白糖", "砂糖", "细砂糖", "绵白糖"],
+  冰糖: ["冰片糖", "老冰糖"],
+  生抽: ["味极鲜", "海鲜酱油"],
+  老抽: ["红烧酱油", "上色酱油"],
+  蚝油: ["耗油"],
+  料酒: ["黄酒", "米酒", "花雕酒", "烹饪酒"],
+  醋: ["陈醋", "米醋", "香醋", "白醋"],
+  食用油: ["植物油", "炒菜油", "色拉油", "调和油"],
+  花生油: ["生油"],
+  菜籽油: ["菜油"],
+  芝麻油: ["香油", "麻油", "芝麻香油"],
+  淀粉: ["生粉", "玉米淀粉", "土豆淀粉", "地瓜粉"],
+  胡椒粉: ["白胡椒粉", "黑胡椒粉", "胡椒面"],
+  辣椒粉: ["辣椒面"],
+  花椒粉: ["花椒面", "麻椒粉"],
+  孜然粉: ["孜然"],
+  豆瓣酱: ["郫县豆瓣", "辣豆瓣", "豆酱"],
+  豆豉: ["干豆豉", "永川豆豉"],
+  番茄酱: ["番茄沙司"],
+  甜面酱: ["面酱"],
+  黄豆酱: ["大酱"],
+  芝麻酱: ["麻酱"],
+  沙拉酱: ["蛋黄酱"],
+  腐乳: ["豆腐乳", "南乳"],
+  味精: ["味素"],
+  鸡精: ["鸡粉"],
+  五香粉: [],
+  十三香: ["十三香调料"],
+  咖喱粉: ["咖喱块"],
+  蜂蜜: ["蜜糖"],
+  芥末: ["芥末酱", "青芥"],
+  小苏打: ["食用碱"],
+};
+
+const RECIPE_ALIAS_TO_CANONICAL = (() => {
+  const map = {};
+  Object.entries(RECIPE_CANONICAL_NAMES).forEach(([canonical, aliases]) => {
+    map[canonical] = canonical;
+    (aliases || []).forEach((alias) => {
+      map[alias] = canonical;
+    });
+  });
+  // 未标明生抽/老抽时，「酱油」默认归生抽
+  map.酱油 = "生抽";
+  // 单独写「油」时归食用油
+  map.油 = "食用油";
+  return map;
+})();
+
+function canonicalizeRecipeItemName(name) {
+  const raw = safeStr(name).trim();
+  if (!raw) return raw;
+  if (RECIPE_ALIAS_TO_CANONICAL[raw]) return RECIPE_ALIAS_TO_CANONICAL[raw];
+  return raw;
+}
+
 function buildIngredientSeasoningRules() {
   return [
     "【食材/调料分类规则】",
-    "1) ingredients：主料、配菜等实物食材（如鸡翅、青椒、土豆、鸡蛋、葱姜蒜作配菜时）。",
+    "1) ingredients：主料、配菜等实物食材（如鸡翅、青椒、土豆、鸡蛋；葱姜蒜作配菜时）。",
     "2) seasonings：盐、糖、生抽、老抽、蚝油、料酒、醋、胡椒、花椒、豆瓣、淀粉、鸡精、味精、油类等调味品。",
     "3) 明显用于调味的项禁止放进 ingredients；同名项不要在两边重复出现。",
+    "",
+    "【名称统一规则 — name 字段必须使用标准名，禁止输出别名】",
+    "葱姜蒜香料：葱（小葱/香葱/大葱/葱花/葱白等）、姜（生姜/老姜/姜片/姜丝等）、蒜（大蒜/蒜头/蒜末/蒜蓉等）、蒜苗、蒜苔、洋葱、韭菜、香菜、小米辣、干辣椒、青椒、红椒、花椒、八角、桂皮、香叶、陈皮",
+    "常见蔬菜：西红柿（番茄）、土豆（马铃薯/洋芋）、红薯（地瓜/番薯）、白菜（大白菜）",
+    "基础调料：盐、糖、冰糖、生抽（味极鲜；未标明时酱油默认生抽）、老抽、蚝油、料酒、醋、食用油（未指明种类时油/植物油）、花生油、菜籽油、芝麻油（香油/麻油）、淀粉（生粉）、胡椒粉、辣椒粉、花椒粉、孜然粉、豆瓣酱、豆豉、番茄酱、甜面酱、黄豆酱、芝麻酱、沙拉酱、腐乳、味精、鸡精、五香粉、十三香、咖喱粉、蜂蜜、芥末、小苏打",
+    "4) 「葱姜蒜」写在同一行时必须拆成 葱、姜、蒜 三条；用量只写在 amount。",
+    "5) 花椒/八角/桂皮/香叶整粒入菜放 ingredients，粉状放 seasonings。",
   ].join("\n");
 }
 
@@ -516,28 +606,32 @@ function normalizeRecipeOut(obj, fallbackName) {
   const finalIngredients = [];
   const finalSeasonings = [];
 
+  const pushUnique = (list, seen, item) => {
+    const canonicalName = canonicalizeRecipeItemName(item.name);
+    const key = norm(canonicalName);
+    if (!key) return;
+    if (seen[key]) {
+      const existing = list.find((x) => norm(x.name) === key);
+      if (existing && !existing.amount && item.amount) existing.amount = item.amount;
+      return;
+    }
+    seen[key] = true;
+    list.push({ name: canonicalName, amount: item.amount });
+  };
+
   // 先放模型的调料
-  cleanedSeasonings.forEach((x) => {
-    const key = norm(x.name);
-    if (!key || seenSea[key]) return;
-    seenSea[key] = true;
-    finalSeasonings.push(x);
-  });
+  cleanedSeasonings.forEach((x) => pushUnique(finalSeasonings, seenSea, x));
 
   // 对模型的食材做纠偏：像调料的项移到调料列表
   cleanedIngredients.forEach((x) => {
-    const key = norm(x.name);
+    const canonicalName = canonicalizeRecipeItemName(x.name);
+    const key = norm(canonicalName);
     if (!key) return;
-    if (seasoningRe.test(x.name)) {
-      if (!seenSea[key]) {
-        seenSea[key] = true;
-        finalSeasonings.push(x);
-      }
+    if (seasoningRe.test(canonicalName) || seasoningRe.test(x.name)) {
+      pushUnique(finalSeasonings, seenSea, { name: canonicalName, amount: x.amount });
       return;
     }
-    if (seenIng[key]) return;
-    seenIng[key] = true;
-    finalIngredients.push(x);
+    pushUnique(finalIngredients, seenIng, { name: canonicalName, amount: x.amount });
   });
 
   return {

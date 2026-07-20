@@ -69,6 +69,29 @@ function clearPendingOrderInviteToken() {
   }
 }
 
+/** 邀请已成功接受：清除残留 token，并阻止首页再次消费冷启动 query */
+function markOrderInviteHandled() {
+  clearPendingOrderInviteToken();
+  try {
+    const app = getApp();
+    if (app && app.globalData) {
+      app.globalData.orderInviteHandled = true;
+      app.globalData.entryFromInvite = false;
+    }
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function isOrderInviteHandled() {
+  try {
+    const app = getApp();
+    return !!(app && app.globalData && app.globalData.orderInviteHandled);
+  } catch (e) {
+    return false;
+  }
+}
+
 function buildOrderInvitePath(token) {
   const t = String(token || "").trim();
   if (!t) return "/pages/order/invite/index";
@@ -109,12 +132,13 @@ async function acceptOrderInvite(token) {
     app.globalData.currentFamilyId = familyId;
   }
 
-  clearPendingOrderInviteToken();
+  markOrderInviteHandled();
   return { orderId, familyId, preview };
 }
 
 /** 从启动参数解析并记住点餐邀请 */
 function captureOrderInviteFromLaunchOptions(options) {
+  if (isOrderInviteHandled()) return "";
   const token = parseTokenFromOptions(options || {});
   if (!token) return "";
   rememberPendingOrderInviteToken(token);
@@ -150,7 +174,7 @@ async function handlePendingOrderInviteOnEntry() {
   } catch (e) {
     /* ignore */
   }
-  if (!entryFromInvite) return false;
+  if (!entryFromInvite || isOrderInviteHandled()) return false;
 
   const token = getPendingOrderInviteToken();
   if (!token) return false;
@@ -181,6 +205,8 @@ module.exports = {
   rememberPendingOrderInviteToken,
   getPendingOrderInviteToken,
   clearPendingOrderInviteToken,
+  markOrderInviteHandled,
+  isOrderInviteHandled,
   buildOrderInvitePath,
   previewOrderInvite,
   acceptOrderInvite,

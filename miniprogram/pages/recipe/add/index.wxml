@@ -14,7 +14,7 @@
     <view class="top-spacer" aria-hidden="true"></view>
   </view>
 
-  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+  <scroll-view scroll-y="{{!stepDrag.active}}" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
     <view class="main-inner">
       <!-- 基础信息 -->
       <view class="card base-card">
@@ -77,45 +77,60 @@
       </view>
 
       <view class="card import-card {{canImport ? '' : 'disabled'}}">
-        <!--
-        粘贴文案 · 智能提炼（正式版暂隐藏；云函数 extractRecipeFromText 仍可用，恢复下面整块即可）
-        <view class="import-block">...</view>
-        <view class="divider"></view>
-        -->
-
-        <!--
-        正式版暂不提供「小红书链接导入」，后续接入合规解析再开放。云函数仍保留 type: extractRecipe。
-        <view class="import-block">
-          <view class="import-row">
-            <view class="import-name">小红书链接导入</view>
-            <view class="pill pill-muted">开发中</view>
-          </view>
-          <view class="import-dev">...</view>
+        <view class="import-tabs" aria-label="导入方式">
+          <view
+            class="import-tab {{importTab === 'image' ? 'import-tab-active' : ''}}"
+            bindtap="onImportTabChange"
+            data-tab="image"
+            aria-label="多图识别"
+          >多图识别</view>
+          <view
+            class="import-tab {{importTab === 'text' ? 'import-tab-active' : ''}}"
+            bindtap="onImportTabChange"
+            data-tab="text"
+            aria-label="文字识别"
+          >文字识别</view>
+          <view
+            class="import-tab {{importTab === 'auto' ? 'import-tab-active' : ''}}"
+            bindtap="onImportTabChange"
+            data-tab="auto"
+            aria-label="自动生成"
+          >自动生成</view>
         </view>
-        <view class="divider"></view>
-        -->
 
-        <view class="import-block">
-          <view class="import-row">
-            <view class="import-name">多图导入识别</view>
-          </view>
-          <view class="import-actions">
-            <view class="import-hint">最多 6 张 · 单张 ≤ 10MB</view>
+        <!-- 多图识别 -->
+        <view class="import-block" wx:if="{{importTab === 'image'}}">
+          <view class="import-hint import-hint-below-title">可从小红书下载或截图菜谱图片，最多 6 张 · 单张 ≤ 10MB</view>
+          <view class="import-actions import-actions-single">
             <view class="pick-btn {{(!canImport || isImportingImage) ? 'disabled' : ''}}" bindtap="onImportFromLocalImage" aria-label="选择图片">
               选择图片
             </view>
           </view>
-          <view class="import-hint import-hint-extra">可从小红书下载或截图菜谱图片</view>
         </view>
 
-        <view class="divider" aria-hidden="true"></view>
-
-        <view class="import-block">
-          <view class="import-row">
-            <view class="import-name">一键生成菜谱</view>
+        <!-- 文字识别 -->
+        <view class="import-block" wx:if="{{importTab === 'text'}}">
+          <view class="import-hint import-hint-below-title">粘贴小红书文案、食材清单或做法步骤等文字内容</view>
+          <textarea
+            class="paste-textarea"
+            placeholder="粘贴菜谱文字，例如食材、调料、备菜与做菜步骤…"
+            value="{{pastedRecipeText}}"
+            bindinput="onPastedRecipeTextInput"
+            maxlength="8000"
+            disabled="{{!canImport}}"
+          />
+          <view class="import-actions import-actions-paste">
+            <view class="import-hint">已输入 {{pastedLen}} 字 · 至少 8 字</view>
+            <view class="pick-btn {{(!canImport || isExtractingFromText || pastedLen < 8) ? 'disabled' : ''}}" bindtap="onExtractFromPastedText" aria-label="识别文字">
+              识别
+            </view>
           </view>
-          <view class="import-actions">
-            <view class="import-hint">根据菜名自动生成常用菜谱</view>
+        </view>
+
+        <!-- 自动生成 -->
+        <view class="import-block" wx:if="{{importTab === 'auto'}}">
+          <view class="import-hint import-hint-below-title">根据菜名自动生成常用家常菜谱，可继续手动调整</view>
+          <view class="import-actions import-actions-single">
             <view class="pick-btn {{(!canImport || isGeneratingCommon) ? 'disabled' : ''}}" bindtap="onGenerateCommonRecipe" aria-label="一键生成">
               生成
             </view>
@@ -197,9 +212,23 @@
           <view class="acc-chev" aria-hidden="true">{{accordion.prep ? "˄" : "˅"}}</view>
         </view>
         <view class="acc-body" wx:if="{{accordion.prep}}">
-          <block wx:for="{{prepareSteps}}" wx:key="index">
-            <view class="step-row">
-              <input class="step-input" placeholder="输入备菜步骤" data-index="{{index}}" value="{{item}}" bindinput="onPrepareStepInput" />
+          <view class="step-drag-tip">按住左侧把手拖动可调整顺序</view>
+          <block wx:for="{{prepareSteps}}" wx:key="id">
+            <view
+              class="step-row js-prep-step {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
+              style="{{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px);' : ''}}"
+            >
+              <view
+                class="step-drag-handle"
+                catchtouchstart="onStepDragStart"
+                catchtouchmove="onStepDragMove"
+                catchtouchend="onStepDragEnd"
+                catchtouchcancel="onStepDragEnd"
+                data-list="prepareSteps"
+                data-index="{{index}}"
+                aria-label="拖动排序"
+              >⋮⋮</view>
+              <input class="step-input" placeholder="输入备菜步骤" data-index="{{index}}" value="{{item.text}}" bindinput="onPrepareStepInput" />
               <view class="remove-btn" bindtap="removePrepareStep" data-index="{{index}}" aria-label="删除">－</view>
             </view>
           </block>
@@ -223,9 +252,23 @@
           <view class="acc-chev" aria-hidden="true">{{accordion.cook ? "˄" : "˅"}}</view>
         </view>
         <view class="acc-body" wx:if="{{accordion.cook}}">
-          <block wx:for="{{cookingSteps}}" wx:key="index">
-            <view class="step-row">
-              <input class="step-input" placeholder="输入做菜步骤" data-index="{{index}}" value="{{item}}" bindinput="onCookingStepInput" />
+          <view class="step-drag-tip">按住左侧把手拖动可调整顺序</view>
+          <block wx:for="{{cookingSteps}}" wx:key="id">
+            <view
+              class="step-row js-cook-step {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
+              style="{{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px);' : ''}}"
+            >
+              <view
+                class="step-drag-handle"
+                catchtouchstart="onStepDragStart"
+                catchtouchmove="onStepDragMove"
+                catchtouchend="onStepDragEnd"
+                catchtouchcancel="onStepDragEnd"
+                data-list="cookingSteps"
+                data-index="{{index}}"
+                aria-label="拖动排序"
+              >⋮⋮</view>
+              <input class="step-input" placeholder="输入做菜步骤" data-index="{{index}}" value="{{item.text}}" bindinput="onCookingStepInput" />
               <view class="remove-btn" bindtap="removeCookingStep" data-index="{{index}}" aria-label="删除">－</view>
             </view>
           </block>

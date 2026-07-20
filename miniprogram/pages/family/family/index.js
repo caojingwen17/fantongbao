@@ -47,6 +47,8 @@ Page({
     mealWeekdayLabels: ["日", "一", "二", "三", "四", "五", "六"],
     calendarCells: [],
     calendarLoading: false,
+    mealCalMonthExpense: 0,
+    mealCalMonthExpenseText: "0",
     /** 干饭日历：按日聚合的订单详情（弹窗用） */
     mealCalDayMap: {},
     mealCalModalVisible: false,
@@ -319,12 +321,15 @@ Page({
       const key = `${ym}-${String(d).padStart(2, "0")}`;
       const orders = byDay[key] || [];
       const orderCount = orders.length;
+      const dayExpense = orders.reduce((sum, o) => sum + this.parseShoppingExpense(o && o.shoppingExpense), 0);
       cells.push({
         type: "day",
         day: d,
         orders,
         cellKey: key,
         orderCount,
+        dayExpense,
+        expenseText: orderCount > 0 ? this.formatExpenseShort(dayExpense, true) : "",
       });
     }
     const remainder = cells.length % 7;
@@ -334,6 +339,28 @@ Page({
       }
     }
     return cells;
+  },
+
+  formatExpenseShort(amount, allowZero) {
+    if (!amount || amount <= 0) return allowZero ? "0" : "";
+    if (amount >= 1000) return `${Math.round(amount)}`;
+    if (amount >= 100) return String(Math.round(amount));
+    if (Number.isInteger(amount)) return String(amount);
+    return amount.toFixed(1).replace(/\.0$/, "");
+  },
+
+  parseShoppingExpense(val) {
+    if (val == null || val === "") return 0;
+    const n = typeof val === "number" ? val : parseFloat(String(val).trim());
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    return Math.round(n * 100) / 100;
+  },
+
+  formatExpenseFull(amount) {
+    if (!amount || amount <= 0) return "0";
+    const rounded = Math.round(amount * 100) / 100;
+    if (Number.isInteger(rounded)) return String(rounded);
+    return rounded.toFixed(2).replace(/0$/, "").replace(/\.$/, "");
   },
 
   async fetchMealCalendar() {
@@ -352,24 +379,41 @@ Page({
       const list = (res && res.orders) || [];
       const byDay = {};
       list.forEach((o) => {
-        const t = o.completedAt;
+        const t = o.shoppingCompletedAt || o.completedAt;
         if (!t) return;
         const d = new Date(t);
         if (Number.isNaN(d.getTime())) return;
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         if (!byDay[key]) byDay[key] = [];
+        const expense = this.parseShoppingExpense(o.shoppingExpense);
         byDay[key].push({
           _id: o._id,
           orderName: o.orderName || "点菜单",
           recipeNames: Array.isArray(o.recipeNames) ? o.recipeNames : [],
           durationText: o.durationText || "—",
           timeRangeText: o.timeRangeText || "—",
+          shoppingExpense: expense,
+          expenseText: this.formatExpenseFull(expense),
         });
       });
+      const monthExpenseTotal =
+        typeof res.monthExpenseTotal === "number"
+          ? res.monthExpenseTotal
+          : list.reduce((sum, o) => sum + this.parseShoppingExpense(o && o.shoppingExpense), 0);
       const calendarCells = this.buildCalendarCells(mealCalYear, mealCalMonth, byDay);
-      this.setData({ calendarCells, mealCalDayMap: byDay });
+      this.setData({
+        calendarCells,
+        mealCalDayMap: byDay,
+        mealCalMonthExpense: monthExpenseTotal,
+        mealCalMonthExpenseText: this.formatExpenseFull(monthExpenseTotal),
+      });
     } catch (e) {
-      this.setData({ calendarCells: [], mealCalDayMap: {} });
+      this.setData({
+        calendarCells: [],
+        mealCalDayMap: {},
+        mealCalMonthExpense: 0,
+        mealCalMonthExpenseText: "0",
+      });
     } finally {
       this.setData({ calendarLoading: false });
     }
@@ -398,9 +442,9 @@ Page({
   },
 
   onMealCalDayTap(e) {
-    const has = Number(e.currentTarget.dataset.hasorders || 0);
+    const orderCount = Number(e.currentTarget.dataset.ordercount || 0);
     const key = e.currentTarget.dataset.daykey;
-    if (!has || !key) return;
+    if (!orderCount || !key) return;
     const map = this.data.mealCalDayMap || {};
     const raw = map[key] || [];
     const mealCalModalOrders = raw.map((o) => ({
@@ -411,7 +455,8 @@ Page({
     const y = parts[0];
     const mo = parts[1];
     const day = parts[2];
-    const mealCalModalTitle = `${y}年${Number(mo)}月${Number(day)}日`;
+    const dayTotal = raw.reduce((sum, o) => sum + this.parseShoppingExpense(o && o.shoppingExpense), 0);
+    const mealCalModalTitle = `${y}年${Number(mo)}月${Number(day)}日 · ¥${this.formatExpenseFull(dayTotal)}`;
     this.setData({ mealCalModalVisible: true, mealCalModalTitle, mealCalModalOrders });
   },
 

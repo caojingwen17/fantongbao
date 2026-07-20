@@ -11,6 +11,13 @@ function now() {
   return new Date();
 }
 
+function parseShoppingExpense(val) {
+  if (val == null || val === "") return null;
+  const n = typeof val === "number" ? val : parseFloat(String(val).trim());
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100) / 100;
+}
+
 function getWXContext() {
   return cloud.getWXContext();
 }
@@ -330,13 +337,37 @@ exports.main = async (event) => {
         return { success: true, newOrderStatus: order.status };
       }
 
-      // 允许强制完成买菜：即使仍有未勾选采购项，也可直接进入待制作阶段。
       const newOrderStatus = "pending_cooking";
-      await db.collection("orders").where({ _id: order._id }).update({
-        data: { status: newOrderStatus },
+      await db.collection("orders").doc(orderId).update({
+        data: {
+          status: newOrderStatus,
+          shoppingCompletedAt: now(),
+        },
       });
 
       return { success: true, newOrderStatus };
+    }
+
+    case "setShoppingExpense": {
+      const { orderId, shoppingExpense } = event;
+      if (!orderId) throw new Error("缺少 orderId");
+
+      const expense = parseShoppingExpense(shoppingExpense);
+      if (expense == null) throw new Error("消费金额需大于 0");
+
+      const order = await getOrder({ orderId });
+      if (!order) throw new Error("点菜单不存在");
+      await assertFamilyMember({ openid, familyId: order.familyId });
+
+      if (order.status !== "pending_cooking" && order.status !== "completed") {
+        throw new Error("当前订单不可记录买菜消费");
+      }
+
+      await db.collection("orders").doc(orderId).update({
+        data: { shoppingExpense: expense },
+      });
+
+      return { success: true, shoppingExpense: expense };
     }
 
     case "addExtraShoppingItem": {

@@ -81,7 +81,51 @@
 .acc-sub { margin-top: 6rpx; font-size: 22rpx; font-weight: 700; color: var(--ft-on-surface-variant); }
 .acc-chev { color: rgba(149,112,60,0.7); font-size: 34rpx; font-weight: 900; }
 .acc-body { padding: 0 40rpx 40rpx; display: flex; flex-direction: column; gap: 18rpx; }
-.pair-row, .step-row { display: flex; align-items: center; gap: 18rpx; }
+.step-drag-tip {
+  font-size: 20rpx;
+  font-weight: 700;
+  color: var(--ft-on-surface-variant);
+  opacity: 0.85;
+}
+.pair-row, .step-row { display: flex; align-items: center; gap: 12rpx; }
+.step-row {
+  position: relative;
+  transition: transform 0.08s linear;
+}
+.step-row-dragging {
+  z-index: 20;
+  opacity: 0.96;
+  box-shadow: 0 16rpx 40rpx rgba(67, 41, 0, 0.14);
+  background: var(--ft-surface-container-lowest);
+  border-radius: 64rpx;
+}
+.step-row-target::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10rpx;
+  height: 4rpx;
+  border-radius: 9999rpx;
+  background: var(--ft-primary-container, #ff9800);
+}
+.step-drag-handle {
+  width: 64rpx;
+  height: 96rpx;
+  flex: 0 0 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ft-on-surface-variant);
+  font-size: 24rpx;
+  font-weight: 900;
+  letter-spacing: -6rpx;
+  opacity: 0.55;
+}
+.step-drag-handle:active {
+  opacity: 0.9;
+  transform: scale(0.95);
+}
 .pair-left { flex: 1 1 auto; min-width: 0; display: flex; gap: 18rpx; }
 .pair-input, .step-input { height: 96rpx; border-radius: 64rpx; background: var(--ft-surface-container); padding: 0 24rpx; font-size: 26rpx; box-sizing: border-box; flex: 1 1 auto; min-width: 0; }
 .pair-amt { flex: 0 0 160rpx; }

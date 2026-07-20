@@ -12,15 +12,28 @@ function now() {
   return new Date();
 }
 
-/** 干饭日历用时间：优先 completedAt，旧数据无该字段时用 updateTime / createTime */
-function pickOrderCalendarTime(o) {
-  const candidates = [o.completedAt, o.updateTime, o.createTime];
-  for (const c of candidates) {
-    if (c == null) continue;
-    const d = new Date(c);
-    if (!Number.isNaN(d.getTime())) return c;
+function parseShoppingExpense(val) {
+  if (val == null || val === "") return null;
+  const n = typeof val === "number" ? val : parseFloat(String(val).trim());
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100) / 100;
+}
+
+/** 干饭日历用时间：有买菜完成日用买菜日，否则已完成订单用 completedAt */
+function pickShoppingCalendarTime(o) {
+  if (o.shoppingCompletedAt != null) {
+    const d = new Date(o.shoppingCompletedAt);
+    if (!Number.isNaN(d.getTime())) return o.shoppingCompletedAt;
+  }
+  if (o.status === "completed" && o.completedAt != null) {
+    const d = new Date(o.completedAt);
+    if (!Number.isNaN(d.getTime())) return o.completedAt;
   }
   return null;
+}
+
+function isCalendarEligibleOrder(o) {
+  return !!(o && (o.shoppingCompletedAt || o.status === "completed"));
 }
 
 function pad2(n) {
@@ -114,14 +127,17 @@ async function enrichOrdersForCalendarDetail(monthOrders, familyId) {
 
   const results = await Promise.all(
     monthOrders.map(async (o) => {
-      const t = pickOrderCalendarTime(o);
+      const t = pickShoppingCalendarTime(o);
       const mapped = await mapOrderRecipesWithNames(o.recipes, o.creatorId);
       const recipeNames = mapped.map((x) => (x.recipeName || "").trim()).filter(Boolean);
-      const stats = computeCookingDisplay(stepsByOrder[o._id] || [], t, o.createTime);
+      const stats = computeCookingDisplay(stepsByOrder[o._id] || [], o.completedAt, o.createTime);
+      const expense = parseShoppingExpense(o.shoppingExpense);
       return {
         _id: o._id,
         orderName: o.orderName || "",
-        completedAt: t,
+        shoppingCompletedAt: t,
+        completedAt: o.completedAt || null,
+        shoppingExpense: expense,
         recipeNames,
         durationText: stats.durationText,
         timeRangeText: stats.timeRangeText,
@@ -851,7 +867,7 @@ exports.main = async (event) => {
       return { success: true, counts };
     }
 
-    /** 某月内已完成的点菜单（用于家庭页干饭日历） */
+    /** 某月内已买菜的点菜单（用于家庭页干饭日历消费统计） */
     case "listCompletedOrdersInMonth": {
       const { familyId, year, month } = event;
       if (!familyId) throw new Error("缺少 familyId");
@@ -865,12 +881,13 @@ exports.main = async (event) => {
 
       const ordersRes = await db
         .collection("orders")
-        .where({ familyId, status: "completed" })
+        .where({ familyId })
         .limit(1000)
         .get();
       const monthOrders = (ordersRes.data || [])
+        .filter(isCalendarEligibleOrder)
         .map((o) => {
-          const t = pickOrderCalendarTime(o);
+          const t = pickShoppingCalendarTime(o);
           if (!t) return null;
           const d = new Date(t);
           if (Number.isNaN(d.getTime())) return null;
@@ -880,8 +897,12 @@ exports.main = async (event) => {
         .filter(Boolean);
 
       const orders = await enrichOrdersForCalendarDetail(monthOrders, familyId);
+      const monthExpenseTotal = orders.reduce((sum, o) => {
+        const v = parseShoppingExpense(o && o.shoppingExpense);
+        return sum + (v || 0);
+      }, 0);
 
-      return { success: true, orders };
+      return { success: true, orders, monthExpenseTotal };
     }
 
     case "prepareOrderInvite": {

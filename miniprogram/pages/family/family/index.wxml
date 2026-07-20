@@ -149,15 +149,19 @@
                     class="meal-cal-day-inner {{item.orderCount ? 'has-orders' : 'is-empty'}}"
                     bindtap="onMealCalDayTap"
                     data-daykey="{{item.cellKey}}"
-                    data-hasorders="{{item.orderCount}}"
+                    data-ordercount="{{item.orderCount}}"
                   >
                     <text class="meal-cal-daynum">{{item.day}}</text>
                     <view class="meal-cal-day-spacer"></view>
-                    <view wx:if="{{item.orderCount > 0}}" class="meal-cal-count-pill">{{item.orderCount}}</view>
+                    <view wx:if="{{item.orderCount > 0}}" class="meal-cal-expense-pill {{item.dayExpense ? '' : 'is-zero'}}">¥{{item.expenseText}}</view>
                   </view>
                 </block>
               </view>
             </view>
+          </view>
+          <view class="meal-cal-month-total" wx:if="{{!calendarLoading}}">
+            <text class="meal-cal-month-total-k">本月消费</text>
+            <text class="meal-cal-month-total-v">¥{{mealCalMonthExpenseText}}</text>
           </view>
         </view>
 
@@ -179,7 +183,7 @@
   <view class="meal-cal-modal-mask" wx:if="{{mealCalModalVisible}}" catchtap="closeMealCalModal">
     <view class="meal-cal-modal-sheet" catchtap="noop">
       <view class="meal-cal-modal-hero">
-        <view class="meal-cal-modal-kicker">当天点菜单</view>
+        <view class="meal-cal-modal-kicker">当天消费明细</view>
         <view class="meal-cal-modal-title">{{mealCalModalTitle}}</view>
       </view>
       <scroll-view scroll-y class="meal-cal-modal-scroll" show-scrollbar="{{false}}" enhanced="{{true}}">
@@ -187,7 +191,10 @@
           <view class="meal-cal-modal-card {{idx % 2 === 0 ? 'meal-cal-modal-card--0' : 'meal-cal-modal-card--1'}}">
             <view class="meal-cal-modal-card-head">
               <view class="meal-cal-modal-accent"></view>
-              <text class="meal-cal-modal-order-name">{{item.orderName}}</text>
+              <view class="meal-cal-modal-head-main">
+                <text class="meal-cal-modal-order-name">{{item.orderName}}</text>
+                <text class="meal-cal-modal-order-expense {{item.expenseText && item.expenseText !== '0' ? '' : 'is-zero'}}">¥{{item.expenseText || '0'}}</text>
+              </view>
             </view>
             <view class="meal-cal-modal-section">
               <view class="meal-cal-tags" wx:if="{{item.recipeNames.length}}">

@@ -21,6 +21,9 @@ Page({
     actionBusy: false,
     pendingToggleCount: 0,
     manualItemIdsFlat: [],
+    expenseDialogVisible: false,
+    expenseInput: "",
+    pendingCompleteOrderId: "",
   },
 
   buildViewItems(mergedItems) {
@@ -267,30 +270,76 @@ Page({
       content: "确认完成采购？即使仍有未勾选项也会直接进入做菜阶段。",
       confirmText: "确认完成",
       confirmColor: "#07C160",
-      success: async (r) => {
+      success: (r) => {
         if (!r.confirm) return;
-        // 等待可能还在进行中的勾选提交结束，避免后端读到旧状态。
         if ((this.data.pendingToggleCount || 0) > 0) {
           wx.showToast({ title: "正在同步勾选，请稍后", icon: "none" });
           return;
         }
-        this.setData({ actionBusy: true });
-        try {
-          await ui.withLoading(async () => {
-            await cloud.callFunctionWithErrorToast("checklistFunctions", {
-              type: "completeShoppingOrder",
-              orderId,
-            });
-          }, "提交中…");
-          wx.showToast({ title: "已完成买菜", icon: "none" });
-          await this.fetchChecklist();
-          // 用 redirect 回到详情，避免 navigateTo 叠多层详情导致「返回」在详情与清单间来回跳
-          wx.redirectTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
-        } finally {
-          this.setData({ actionBusy: false });
-        }
+        this.setData({
+          expenseDialogVisible: true,
+          expenseInput: "",
+          pendingCompleteOrderId: orderId,
+        });
       },
     });
+  },
+
+  closeExpenseDialog() {
+    this.setData({
+      expenseDialogVisible: false,
+      expenseInput: "",
+      pendingCompleteOrderId: "",
+    });
+  },
+
+  onExpenseInput(e) {
+    this.setData({ expenseInput: (e && e.detail && e.detail.value) || "" });
+  },
+
+  async onSkipExpense() {
+    await this._submitCompleteShopping(null);
+  },
+
+  async onConfirmExpense() {
+    const raw = (this.data.expenseInput || "").trim();
+    if (!raw) {
+      wx.showToast({ title: "请输入金额或点击跳过", icon: "none" });
+      return;
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) {
+      wx.showToast({ title: "请输入有效金额", icon: "none" });
+      return;
+    }
+    await this._submitCompleteShopping(n);
+  },
+
+  async _submitCompleteShopping(shoppingExpense) {
+    const orderId = this.data.pendingCompleteOrderId || this.data.orderId;
+    if (!orderId || this.data.actionBusy) return;
+    this.setData({ actionBusy: true });
+    try {
+      await ui.withLoading(async () => {
+        await cloud.callFunctionWithErrorToast("checklistFunctions", {
+          type: "completeShoppingOrder",
+          orderId,
+        });
+        const expense = shoppingExpense != null && shoppingExpense !== "" ? Number(shoppingExpense) : null;
+        if (expense != null && Number.isFinite(expense) && expense > 0) {
+          await cloud.callFunctionWithErrorToast("checklistFunctions", {
+            type: "setShoppingExpense",
+            orderId,
+            shoppingExpense: expense,
+          });
+        }
+      }, "提交中…");
+      this.closeExpenseDialog();
+      wx.showToast({ title: "已完成买菜", icon: "none" });
+      wx.redirectTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+    } finally {
+      this.setData({ actionBusy: false });
+    }
   },
 
   goBack() {
@@ -318,5 +367,7 @@ Page({
     if (!ids.length) return;
     this.onDeleteItem({ currentTarget: { dataset: { itemids: ids } } });
   },
+
+  noop() {},
 });
 

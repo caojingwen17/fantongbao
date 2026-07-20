@@ -160,7 +160,8 @@ Page({
     const launch =
       typeof wx.getLaunchOptionsSync === "function" ? wx.getLaunchOptionsSync() : {};
     const opts = options || {};
-    const skipLaunchInvite = String(opts.onboard) === "1";
+    const skipLaunchInvite =
+      String(opts.onboard) === "1" || orderInvite.isOrderInviteHandled();
     // 仅冷启动首次进首页时合并 launch.query；加入成功带 onboard=1 时勿用冷启动参数
     const mergedQuery =
       app._indexEverLoaded || skipLaunchInvite
@@ -172,7 +173,9 @@ Page({
       invite.clearPendingInviteCode();
     }
 
-    const orderToken = orderInvite.parseTokenFromOptions(mergedQuery);
+    const orderToken = skipLaunchInvite
+      ? ""
+      : orderInvite.parseTokenFromOptions(mergedQuery);
     if (orderToken) {
       this._mainEntryReady = true;
       orderInvite.rememberPendingOrderInviteToken(orderToken);

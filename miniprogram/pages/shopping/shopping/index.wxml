@@ -100,5 +100,33 @@
       完成买菜
     </view>
   </view>
+
+  <view class="expense-mask" wx:if="{{expenseDialogVisible}}" catchtap="closeExpenseDialog">
+    <view class="expense-sheet" catchtap="noop">
+      <view class="expense-head">
+        <view>
+          <view class="expense-kicker">记录消费</view>
+          <view class="expense-title">这次买菜花了多少钱？</view>
+        </view>
+        <view class="expense-close" bindtap="closeExpenseDialog">×</view>
+      </view>
+      <view class="expense-input-wrap">
+        <text class="expense-yen">¥</text>
+        <input
+          class="expense-input"
+          type="digit"
+          placeholder="0.00"
+          value="{{expenseInput}}"
+          bindinput="onExpenseInput"
+          focus="{{expenseDialogVisible}}"
+        />
+      </view>
+      <view class="expense-hint">填写后可在家族干饭日历中查看每日消费</view>
+      <view class="expense-actions">
+        <view class="expense-btn skip" bindtap="onSkipExpense">跳过</view>
+        <view class="expense-btn ok" bindtap="onConfirmExpense">确认</view>
+      </view>
+    </view>
+  </view>
 </view>
 

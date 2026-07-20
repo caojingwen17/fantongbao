@@ -89,14 +89,16 @@
         />
         <view class="avatar-fallback avatar-a" wx:else aria-hidden="true"></view>
 
-        <image
-          class="member-avatar avatar-b"
-          wx:if="{{memberAvatarDisplays && memberAvatarDisplays[1]}}"
-          mode="aspectFill"
-          src="{{memberAvatarDisplays[1]}}"
-          aria-label="成员头像"
-        />
-        <view class="avatar-fallback avatar-b" wx:else aria-hidden="true"></view>
+        <block wx:if="{{membersCount >= 2}}">
+          <image
+            class="member-avatar avatar-b"
+            wx:if="{{memberAvatarDisplays && memberAvatarDisplays[1]}}"
+            mode="aspectFill"
+            src="{{memberAvatarDisplays[1]}}"
+            aria-label="成员头像"
+          />
+          <view class="avatar-fallback avatar-b" wx:else aria-hidden="true"></view>
+        </block>
 
         <view class="avatar-more" wx:if="{{membersCount>2}}" aria-hidden="true">+{{membersCount-2}}</view>
       </view>

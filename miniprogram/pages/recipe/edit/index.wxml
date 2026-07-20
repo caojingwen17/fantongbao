@@ -12,7 +12,7 @@
     <view class="top-spacer" aria-hidden="true"></view>
   </view>
 
-  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+  <scroll-view scroll-y="{{!stepDrag.active}}" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
     <view class="main-inner">
       <view class="card base-card">
         <view class="card-head">
@@ -124,9 +124,23 @@
           <view class="acc-chev" aria-hidden="true">{{accordion.prep ? "˄" : "˅"}}</view>
         </view>
         <view class="acc-body" wx:if="{{accordion.prep}}">
-          <block wx:for="{{prepareSteps}}" wx:key="index">
-            <view class="step-row">
-              <input class="step-input" placeholder="输入备菜步骤" data-index="{{index}}" value="{{item}}" bindinput="onPrepareStepInput" />
+          <view class="step-drag-tip">按住左侧把手拖动可调整顺序</view>
+          <block wx:for="{{prepareSteps}}" wx:key="id">
+            <view
+              class="step-row js-prep-step {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
+              style="{{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px);' : ''}}"
+            >
+              <view
+                class="step-drag-handle"
+                catchtouchstart="onStepDragStart"
+                catchtouchmove="onStepDragMove"
+                catchtouchend="onStepDragEnd"
+                catchtouchcancel="onStepDragEnd"
+                data-list="prepareSteps"
+                data-index="{{index}}"
+                aria-label="拖动排序"
+              >⋮⋮</view>
+              <input class="step-input" placeholder="输入备菜步骤" data-index="{{index}}" value="{{item.text}}" bindinput="onPrepareStepInput" />
               <view class="remove-btn" bindtap="removePrepareStep" data-index="{{index}}">－</view>
             </view>
           </block>
@@ -149,9 +163,23 @@
           <view class="acc-chev" aria-hidden="true">{{accordion.cook ? "˄" : "˅"}}</view>
         </view>
         <view class="acc-body" wx:if="{{accordion.cook}}">
-          <block wx:for="{{cookingSteps}}" wx:key="index">
-            <view class="step-row">
-              <input class="step-input" placeholder="输入做菜步骤" data-index="{{index}}" value="{{item}}" bindinput="onCookingStepInput" />
+          <view class="step-drag-tip">按住左侧把手拖动可调整顺序</view>
+          <block wx:for="{{cookingSteps}}" wx:key="id">
+            <view
+              class="step-row js-cook-step {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
+              style="{{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px);' : ''}}"
+            >
+              <view
+                class="step-drag-handle"
+                catchtouchstart="onStepDragStart"
+                catchtouchmove="onStepDragMove"
+                catchtouchend="onStepDragEnd"
+                catchtouchcancel="onStepDragEnd"
+                data-list="cookingSteps"
+                data-index="{{index}}"
+                aria-label="拖动排序"
+              >⋮⋮</view>
+              <input class="step-input" placeholder="输入做菜步骤" data-index="{{index}}" value="{{item.text}}" bindinput="onCookingStepInput" />
               <view class="remove-btn" bindtap="removeCookingStep" data-index="{{index}}">－</view>
             </view>
           </block>
