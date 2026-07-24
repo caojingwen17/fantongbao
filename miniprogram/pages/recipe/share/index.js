@@ -207,7 +207,7 @@ Page({
   },
 
   goHome() {
-    wx.reLaunch({ url: "/pages/index/index" });
+    wx.switchTab({ url: "/pages/index/index" });
   },
 
   goFamily() {

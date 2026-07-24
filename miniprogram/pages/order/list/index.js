@@ -4,10 +4,11 @@ const auth = require("../../../utils/auth");
 Page({
   data: {
     status: "pending_shopping",
-    statusText: "0（待购物）",
+    statusText: "待买菜",
     familyId: null,
     orders: [],
     listLoading: false,
+    refreshing: false,
   },
 
   async onLoad() {
@@ -28,9 +29,17 @@ Page({
     const status = e.currentTarget.dataset.status;
     this.setData({
       status,
-      statusText: status === "pending_shopping" ? "0（待购物）" : status === "pending_cooking" ? "1（待制作）" : "2（已完成）",
+      statusText: status === "pending_shopping" ? "待买菜" : status === "pending_cooking" ? "待制作" : "已完成",
     });
     this.fetchOrders();
+  },
+
+  async onRefresh() {
+    try {
+      await this.fetchOrders();
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   async fetchOrders() {
@@ -76,7 +85,11 @@ Page({
   },
 
   goRecipeList() {
-    wx.navigateTo({ url: "/pages/recipe/list/index" });
+    wx.switchTab({ url: "/pages/recipe/list/index" });
+  },
+
+  onGoPick() {
+    wx.switchTab({ url: "/pages/index/index" });
   },
 });
 

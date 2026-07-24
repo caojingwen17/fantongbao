@@ -1,5 +1,9 @@
 {
   "navigationBarTitleText": "菜谱详情",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "ft-topbar": "/components/ft-topbar/index",
+    "ft-modal": "/components/ft-modal/index"
+  }
 }
 

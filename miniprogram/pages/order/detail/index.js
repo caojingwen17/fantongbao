@@ -16,6 +16,40 @@ Page({
     shareReady: false,
     shareToken: "",
     canInviteOrder: false,
+    confirmModal: {
+      visible: false,
+      kicker: "",
+      title: "",
+      content: "",
+      confirmText: "确认",
+      danger: false,
+    },
+  },
+
+  openConfirm(opts, action) {
+    this._confirmAction = action || null;
+    this.setData({
+      confirmModal: {
+        visible: true,
+        kicker: opts.kicker || "",
+        title: opts.title || "",
+        content: opts.content || "",
+        confirmText: opts.confirmText || "确认",
+        danger: !!opts.danger,
+      },
+    });
+  },
+
+  async onConfirmModalOk() {
+    const action = this._confirmAction;
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
+    if (action) await action();
+  },
+
+  onConfirmModalCancel() {
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
   },
 
   async ensureShareToken() {
@@ -133,13 +167,15 @@ Page({
     const recipeId = e.currentTarget.dataset.recipeid;
     if (!recipeId || this.data.actionBusy) return;
 
-    wx.showModal({
-      title: "确认删除",
-      content: "确认删除该菜品？删除后将同步更新买菜清单。",
-      confirmText: "删除",
-      confirmColor: "#e64545",
-      success: async (r) => {
-        if (!r.confirm) return;
+    this.openConfirm(
+      {
+        kicker: "删除菜品",
+        title: "确认删除该菜品？",
+        content: "删除后将同步更新买菜清单。",
+        confirmText: "删除",
+        danger: true,
+      },
+      async () => {
         this.setData({ actionBusy: true });
         try {
           const resp = await ui.withLoading(async () => {
@@ -153,13 +189,15 @@ Page({
           await this.refreshOrder();
 
           if (resp && resp.isEmpty) {
-            wx.showModal({
-              title: "点菜单已空",
-              content: "该点菜单已无菜品，是否一并删除点菜单？",
-              confirmText: "删除点菜单",
-              confirmColor: "#e64545",
-              success: async (rr) => {
-                if (!rr.confirm) return;
+            this.openConfirm(
+              {
+                kicker: "点菜单已空",
+                title: "该点菜单已无菜品",
+                content: "是否一并删除本点菜单？",
+                confirmText: "删除点菜单",
+                danger: true,
+              },
+              async () => {
                 await ui.withLoading(async () => {
                   await cloud.callFunctionWithErrorToast("orderFunctions", {
                     type: "deleteOrderIfEmpty",
@@ -167,17 +205,17 @@ Page({
                   });
                 }, "删除中…");
                 wx.showToast({ title: "已删除", icon: "none" });
-                wx.navigateTo({ url: "/pages/order/list/index" });
-              },
-            });
+                wx.switchTab({ url: "/pages/order/list/index" });
+              }
+            );
           } else {
             wx.showToast({ title: "已删除", icon: "none" });
           }
         } finally {
           this.setData({ actionBusy: false });
         }
-      },
-    });
+      }
+    );
   },
 
   goShopping() {
@@ -247,13 +285,15 @@ Page({
 
   onAskDeleteOrder() {
     if (this.data.actionBusy || !this.data.orderId) return;
-    wx.showModal({
-      title: "删除点菜单",
-      content: "将删除本点菜单及关联的买菜/做菜清单，且不可恢复。确定删除？",
-      confirmText: "删除",
-      confirmColor: "#e64545",
-      success: async (r) => {
-        if (!r.confirm) return;
+    this.openConfirm(
+      {
+        kicker: "删除点菜单",
+        title: "确定删除本点菜单？",
+        content: "将删除本点菜单及关联的买菜/做菜清单，且不可恢复。",
+        confirmText: "删除",
+        danger: true,
+      },
+      async () => {
         this.setData({ actionBusy: true });
         try {
           await ui.withLoading(async () => {
@@ -267,8 +307,8 @@ Page({
         } finally {
           this.setData({ actionBusy: false });
         }
-      },
-    });
+      }
+    );
   },
 });
 

@@ -17,6 +17,7 @@ Page({
     showCompleteModal: false,
     pendingToggleCount: 0,
     actionBusy: false,
+    refreshing: false,
   },
 
   async onLoad(options) {
@@ -203,6 +204,14 @@ Page({
 
   onCompleteCooking() {
     this.setData({ showCompleteModal: true });
+  },
+
+  async onRefresh() {
+    try {
+      await this.fetchChecklist();
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 });
 

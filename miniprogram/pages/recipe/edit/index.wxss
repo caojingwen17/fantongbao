@@ -1,32 +1,18 @@
 .recipe-add-page {
-  min-height: 100vh;
+  height: 100vh;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .blob { position: absolute; border-radius: 9999rpx; pointer-events: none; filter: blur(60rpx); }
 .blob-a { width: 520rpx; height: 520rpx; right: -200rpx; top: -220rpx; background: var(--ft-secondary-fixed, #f9e534); opacity: 0.18; }
 .blob-b { width: 520rpx; height: 520rpx; left: -240rpx; top: 420rpx; background: var(--ft-tertiary-fixed, #91f78e); opacity: 0.12; }
 
-.topbar {
-  position: fixed; left: 0; right: 0; top: 0; z-index: 50;
-  padding: 70rpx 40rpx 0rpx;
-  padding-top: calc(80rpx + constant(safe-area-inset-top));
-  padding-top: calc(80rpx + env(safe-area-inset-top));
-  display: flex; align-items: center; justify-content: space-between;
-  background: rgba(255, 247, 237, 0.82);
-  backdrop-filter: blur(12rpx);
-}
-.top-left { display: flex; align-items: center; gap: 18rpx; min-width: 0; }
-.icon-btn { width: 80rpx; height: 80rpx; border-radius: 9999rpx; background: var(--ft-surface-container-lowest); display: flex; align-items: center; justify-content: center; color: var(--ft-on-surface-variant); }
-.icon-btn:active { transform: scale(0.90); }
-.ico { font-size: 42rpx; font-weight: 900; line-height: 1; transform: translateY(-2rpx); }
-.top-title { font-size: 32rpx; font-weight: 900; letter-spacing: -0.5rpx; white-space: nowrap; }
-.top-spacer { width: 80rpx; height: 80rpx; }
-
-.main { position: relative; z-index: 1; height: 100vh; padding-top: calc(246rpx + constant(safe-area-inset-top)); padding-top: calc(246rpx + env(safe-area-inset-top)); }
+.main { position: relative; z-index: 1; flex: 1; height: auto; }
 .main::-webkit-scrollbar { display: none; }
 .main-inner {
-  padding: 0 40rpx 0;
+  padding: 20rpx 40rpx 0;
   padding-bottom: calc(200rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
   display: flex;
@@ -66,7 +52,7 @@
 .cover-bottom { position: absolute; left: 24rpx; right: 24rpx; bottom: 24rpx; display: flex; align-items: flex-end; justify-content: space-between; gap: 18rpx; }
 .cover-state { font-size: 18rpx; font-weight: 900; letter-spacing: 1.6rpx; color: rgba(255,255,255,0.82); }
 .cover-tip { margin-top: 8rpx; font-size: 24rpx; font-weight: 900; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.reupload-btn { height: 88rpx; padding: 0 26rpx; border-radius: 9999rpx; background: rgba(255,255,255,0.25); color: #fff; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.reupload-btn { height: 88rpx; padding: 0 26rpx; border-radius: 9999rpx; background: rgba(255,255,255,0.25); color: #fff; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 12rpx; }
 
 .acc { overflow: hidden; }
 .acc-head { padding: 32rpx 40rpx; display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
@@ -132,21 +118,6 @@
 .remove-btn { width: 96rpx; height: 96rpx; border-radius: 9999rpx; background: var(--ft-surface-container); display: flex; align-items: center; justify-content: center; color: var(--ft-on-surface-variant); font-weight: 900; font-size: 34rpx; }
 .add-row-btn { height: 96rpx; border-radius: 9999rpx; background: var(--ft-surface-container); display: flex; align-items: center; justify-content: center; font-weight: 900; }
 
-.submit-bar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 55;
-  padding: 24rpx 40rpx 40rpx;
-  padding-bottom: calc(40rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
-  background: rgba(255, 245, 236, 0.88);
-  backdrop-filter: blur(14rpx);
-  border-top: 2rpx solid var(--ft-surface-container);
-}
-.submit-btn {
-  height: 112rpx; border-radius: 9999rpx;
-  background: linear-gradient(135deg, var(--ft-primary) 0%, var(--ft-primary-container) 100%);
-  color: var(--ft-on-primary); font-weight: 900; font-size: 32rpx;
-  display: flex; align-items: center; justify-content: center; gap: 12rpx;
-}
 .bottom-spacer { height: 40rpx; }
 .disabled { opacity: 0.45; filter: grayscale(0.2); pointer-events: none; }
 

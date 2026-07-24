@@ -16,18 +16,17 @@
     <view class="invite-sub">正在进入「{{orderName}}」点菜页…</view>
   </view>
 
-  <view class="invite-main" wx:elif="{{needLogin}}">
-    <view class="invite-icon">≣</view>
+  <view class="invite-main" wx:else>
+    <view class="invite-icon invite-icon-img">
+      <view class="ft-ico ft-ico-list ft-ico-lg"></view>
+    </view>
     <view class="invite-kicker">邀请点餐</view>
     <view class="invite-title">加入「{{familyName}}」一起点菜</view>
     <view class="invite-sub">点菜单：{{orderName}}</view>
     <view class="invite-warn">接受邀请将默认把你加入该家庭，加入后可一起点菜、查看家庭菜谱。</view>
-    <view class="invite-btn" bindtap="onGoLogin">登录并加入</view>
+    <view class="invite-btn {{joining ? 'disabled' : ''}}" bindtap="onConfirmJoin">
+      {{joining ? "加入中…" : (needLogin ? "登录并加入" : "加入并开始点菜")}}
+    </view>
     <view class="invite-btn secondary" bindtap="goHome">稍后再说</view>
-  </view>
-
-  <view class="invite-main" wx:else>
-    <view class="invite-spinner"></view>
-    <view class="invite-sub">正在加入「{{familyName}}」并进入点菜页…</view>
   </view>
 </view>

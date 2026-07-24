@@ -4,7 +4,6 @@ const auth = require("../../../utils/auth");
 const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 const KEYWORD_DEBOUNCE_MS = 320;
-const TAGS = ["家常快手", "微辣下饭", "适合聚餐", "慢炖浓香", "轻食健康", "主厨推荐"];
 
 Page({
   data: {
@@ -13,10 +12,44 @@ Page({
     viewRecipes: [],
     familyId: null,
     listLoading: false,
+    refreshing: false,
     sheetVisible: false,
-    confirmVisible: false,
     selectedRecipeId: "",
     selectedRecipeName: "",
+    confirmModal: {
+      visible: false,
+      kicker: "",
+      title: "",
+      content: "",
+      confirmText: "确认",
+      danger: false,
+    },
+  },
+
+  openConfirm(opts, action) {
+    this._confirmAction = action || null;
+    this.setData({
+      confirmModal: {
+        visible: true,
+        kicker: opts.kicker || "",
+        title: opts.title || "",
+        content: opts.content || "",
+        confirmText: opts.confirmText || "确认",
+        danger: !!opts.danger,
+      },
+    });
+  },
+
+  async onConfirmModalOk() {
+    const action = this._confirmAction;
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
+    if (action) await action();
+  },
+
+  onConfirmModalCancel() {
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
   },
 
   async onLoad() {
@@ -27,7 +60,16 @@ Page({
   },
 
   onBack() {
-    wx.navigateBack();
+    wx.switchTab({ url: "/pages/index/index" });
+  },
+
+  async onRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      await this.fetchRecipes();
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   onShow() {
@@ -54,13 +96,12 @@ Page({
   },
 
   buildViewRecipes(raw) {
-    return (raw || []).map((item, index) => {
+    return (raw || []).map((item) => {
       const time = item && item.createTime ? item.createTime : "";
       const createDateText = this.formatDate(time);
       return {
         ...item,
         createDateText,
-        tagText: TAGS[index % TAGS.length],
       };
     });
   },
@@ -133,8 +174,8 @@ Page({
     this.setData({
       selectedRecipeId: recipeId,
       selectedRecipeName: (target && target.recipeName) || "",
-      confirmVisible: true,
     });
+    this.askDeleteSelected();
   },
 
   closeSheet() {
@@ -150,26 +191,32 @@ Page({
   },
 
   onAskDeleteSelected() {
-    this.setData({ sheetVisible: false, confirmVisible: true });
+    this.setData({ sheetVisible: false });
+    this.askDeleteSelected();
   },
 
-  closeConfirm() {
-    if (!this.data.confirmVisible) return;
-    this.setData({ confirmVisible: false });
-  },
-
-  async onConfirmDelete() {
+  askDeleteSelected() {
     const recipeId = this.data.selectedRecipeId;
     if (!recipeId) return;
-    this.setData({ confirmVisible: false });
-    await ui.withLoading(async () => {
-      await cloud.callFunctionWithErrorToast("recipeFunctions", {
-        type: "deleteRecipe",
-        recipeId,
-      });
-    }, "删除中…");
-    wx.showToast({ title: "删除成功", icon: "none" });
-    await this.fetchRecipes();
+    this.openConfirm(
+      {
+        kicker: "确认删除",
+        title: "删除后不可恢复",
+        content: `你确定要删除「${this.data.selectedRecipeName}」吗？`,
+        confirmText: "删除",
+        danger: true,
+      },
+      async () => {
+        await ui.withLoading(async () => {
+          await cloud.callFunctionWithErrorToast("recipeFunctions", {
+            type: "deleteRecipe",
+            recipeId,
+          });
+        }, "删除中…");
+        wx.showToast({ title: "删除成功", icon: "none" });
+        await this.fetchRecipes();
+      }
+    );
   },
 });
 

@@ -45,24 +45,33 @@ Page({
       return;
     }
 
-    await this.tryAutoJoin();
+    // 静默登录成功后只更新按钮文案，不自动加入；由用户主动确认
+    this.refreshLoginState();
   },
 
   async onShow() {
-    if (this._joinHandled || this.data.loading || this.data.errMsg || this.data.joined) return;
-    if (!this.data.needLogin) return;
-    const silent = await auth.trySilentLogin();
-    if (silent.ok) {
-      await this.tryAutoJoin();
-    }
+    if (this.data.loading || this.data.errMsg || this.data.joined) return;
+    this.refreshLoginState();
   },
 
-  async tryAutoJoin() {
+  async refreshLoginState() {
+    if (auth.isLoggedIn()) {
+      if (this.data.needLogin) this.setData({ needLogin: false });
+      return;
+    }
+    const silent = await auth.trySilentLogin();
+    this.setData({ needLogin: !silent.ok });
+  },
+
+  /** 用户主动点击「加入家庭」后才执行加入 */
+  async onConfirmJoin() {
     if (this._joinHandled || this.data.joining || this.data.joined) return;
+
     if (!auth.isLoggedIn()) {
       const silent = await auth.trySilentLogin();
       if (!silent.ok) {
-        this.setData({ needLogin: true });
+        invite.rememberPendingInviteCode(this.data.inviteCode);
+        wx.navigateTo({ url: "/pages/login/login/index" });
         return;
       }
     }
@@ -74,17 +83,18 @@ Page({
       this._joinHandled = true;
       invite.clearPendingInviteCode();
       wx.hideLoading();
-      wx.showToast({ title: "已加入家庭", icon: "success", duration: 1500 });
-      wx.reLaunch({ url: "/pages/index/index?onboard=1" });
+      this.setData({ joined: true });
+      setTimeout(() => {
+        wx.reLaunch({ url: "/pages/index/index?onboard=1" });
+      }, 600);
     } catch (e) {
-      this.setData({ joining: false, needLogin: !auth.isLoggedIn() });
       wx.hideLoading();
+      this.setData({ joining: false, needLogin: !auth.isLoggedIn() });
+      wx.showToast({
+        title: (e && e.message) || "加入失败，请重试",
+        icon: "none",
+      });
     }
-  },
-
-  onGoLogin() {
-    invite.rememberPendingInviteCode(this.data.inviteCode);
-    wx.navigateTo({ url: "/pages/login/login/index" });
   },
 
   goHome() {

@@ -24,6 +24,41 @@ Page({
     expenseDialogVisible: false,
     expenseInput: "",
     pendingCompleteOrderId: "",
+    refreshing: false,
+    confirmModal: {
+      visible: false,
+      kicker: "",
+      title: "",
+      content: "",
+      confirmText: "确认",
+      danger: false,
+    },
+  },
+
+  openConfirm(opts, action) {
+    this._confirmAction = action || null;
+    this.setData({
+      confirmModal: {
+        visible: true,
+        kicker: opts.kicker || "",
+        title: opts.title || "",
+        content: opts.content || "",
+        confirmText: opts.confirmText || "确认",
+        danger: !!opts.danger,
+      },
+    });
+  },
+
+  async onConfirmModalOk() {
+    const action = this._confirmAction;
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
+    if (action) await action();
+  },
+
+  onConfirmModalCancel() {
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
   },
 
   buildViewItems(mergedItems) {
@@ -265,13 +300,14 @@ Page({
     const { orderId, order } = this.data;
     if (!orderId || !order || order.status !== "pending_shopping" || this.data.actionBusy) return;
 
-    wx.showModal({
-      title: "确认完成买菜",
-      content: "确认完成采购？即使仍有未勾选项也会直接进入做菜阶段。",
-      confirmText: "确认完成",
-      confirmColor: "#07C160",
-      success: (r) => {
-        if (!r.confirm) return;
+    this.openConfirm(
+      {
+        kicker: "完成买菜",
+        title: "确认完成采购？",
+        content: "即使仍有未勾选项也会直接进入做菜阶段。",
+        confirmText: "确认完成",
+      },
+      async () => {
         if ((this.data.pendingToggleCount || 0) > 0) {
           wx.showToast({ title: "正在同步勾选，请稍后", icon: "none" });
           return;
@@ -281,8 +317,8 @@ Page({
           expenseInput: "",
           pendingCompleteOrderId: orderId,
         });
-      },
-    });
+      }
+    );
   },
 
   closeExpenseDialog() {
@@ -365,9 +401,27 @@ Page({
   onDeleteManualAll() {
     const ids = this.data.manualItemIdsFlat || [];
     if (!ids.length) return;
-    this.onDeleteItem({ currentTarget: { dataset: { itemids: ids } } });
+    this.openConfirm(
+      {
+        kicker: "删除手动项",
+        title: "删除全部手动添加的采购项？",
+        confirmText: "删除",
+        danger: true,
+      },
+      async () => {
+        await this.onDeleteItem({ currentTarget: { dataset: { itemids: ids } } });
+      }
+    );
   },
 
   noop() {},
+
+  async onRefresh() {
+    try {
+      await this.fetchChecklist();
+    } finally {
+      this.setData({ refreshing: false });
+    }
+  },
 });
 

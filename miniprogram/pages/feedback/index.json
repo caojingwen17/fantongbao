@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "吐槽与建议",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "ft-topbar": "/components/ft-topbar/index"
+  }
 }

@@ -9,10 +9,6 @@ Page({
     submitting: false,
   },
 
-  onBack() {
-    wx.navigateBack();
-  },
-
   onPickCategory(e) {
     const cat = e.currentTarget.dataset.cat;
     if (cat === "rant" || cat === "suggestion") {

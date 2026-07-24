@@ -2,15 +2,7 @@
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
-  <view class="topbar">
-    <view class="top-left">
-      <view class="icon-btn" bindtap="onBack" aria-label="返回">
-        <text class="ico" aria-hidden="true">‹</text>
-      </view>
-      <view class="top-title">吐槽与建议</view>
-    </view>
-    <view class="top-spacer"></view>
-  </view>
+  <ft-topbar title="吐槽与建议" />
 
   <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
     <view class="main-inner">
@@ -50,9 +42,8 @@
         <view class="counter">{{contentLen}} / 2000</view>
 
         <view
-          class="submit-btn {{submitting ? 'disabled' : ''}}"
+          class="ft-btn ft-btn-primary ft-btn-block submit-btn {{submitting ? 'disabled' : ''}}"
           bindtap="onSubmit"
-          aria-label="提交"
         >
           {{submitting ? "提交中…" : "提交"}}
         </view>

@@ -31,9 +31,9 @@
           <view class="row-title">头像</view>
           <view class="row-sub">{{avatarPreview ? "已选择" : "点击选择头像"}}</view>
         </view>
-        <button class="avatar-pick" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" aria-label="选择头像">
+        <button class="avatar-pick" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
           <image wx:if="{{avatarPreview}}" class="avatar-img" mode="aspectFill" src="{{avatarPreview}}" />
-          <text wx:else class="avatar-icon">📷</text>
+          <view wx:else class="ft-ico ft-ico-users avatar-icon"></view>
         </button>
       </view>
 
@@ -41,7 +41,6 @@
       <view class="field">
         <view class="field-label">昵称</view>
         <view class="field-input-wrap">
-          <text class="field-icon">🏷️</text>
           <input
             class="field-input"
             type="nickname"
@@ -53,8 +52,7 @@
       </view>
 
       <!-- Submit -->
-      <button class="ft-btn ft-btn-primary submit-btn" bindtap="onSubmitLogin" disabled="{{isLoading}}">
-        <text class="submit-icon">{{isLoading ? "⏳" : "🔐"}}</text>
+      <button class="ft-btn ft-btn-primary ft-btn-block submit-btn" bindtap="onSubmitLogin" disabled="{{isLoading}}">
         {{isLoading ? "登录中…" : "完成登录"}}
       </button>
     </view>

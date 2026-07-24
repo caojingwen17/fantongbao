@@ -18,6 +18,40 @@ Page({
     prepareSteps: [],
     cookingSteps: [],
     posterWorking: false,
+    confirmModal: {
+      visible: false,
+      kicker: "",
+      title: "",
+      content: "",
+      confirmText: "确认",
+      danger: false,
+    },
+  },
+
+  openConfirm(opts, action) {
+    this._confirmAction = action || null;
+    this.setData({
+      confirmModal: {
+        visible: true,
+        kicker: opts.kicker || "",
+        title: opts.title || "",
+        content: opts.content || "",
+        confirmText: opts.confirmText || "确认",
+        danger: !!opts.danger,
+      },
+    });
+  },
+
+  async onConfirmModalOk() {
+    const action = this._confirmAction;
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
+    if (action) await action();
+  },
+
+  onConfirmModalCancel() {
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
   },
 
   async ensureShareToken() {
@@ -273,13 +307,15 @@ Page({
   onAskDeleteRecipe() {
     const { recipeId, recipeName } = this.data;
     if (!recipeId) return;
-    wx.showModal({
-      title: "删除菜谱",
-      content: `确定删除「${recipeName || "该菜谱"}」？删除后不可恢复。`,
-      confirmText: "删除",
-      confirmColor: "#e64545",
-      success: async (r) => {
-        if (!r.confirm) return;
+    this.openConfirm(
+      {
+        kicker: "删除菜谱",
+        title: `确定删除「${recipeName || "该菜谱"}」？`,
+        content: "删除后不可恢复。",
+        confirmText: "删除",
+        danger: true,
+      },
+      async () => {
         try {
           await ui.withLoading(async () => {
             await cloud.callFunctionWithErrorToast("recipeFunctions", {
@@ -290,8 +326,8 @@ Page({
           wx.showToast({ title: "已删除", icon: "none" });
           wx.navigateBack();
         } catch (e) {}
-      },
-    });
+      }
+    );
   },
 });
 

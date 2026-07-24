@@ -6,16 +6,8 @@
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
-  <!-- Top App Bar (height rule kept) -->
-  <view class="topbar">
-    <view class="top-left">
-      <view class="icon-btn" bindtap="onBack" aria-label="返回">
-        <text class="ico" aria-hidden="true">‹</text>
-      </view>
-      <view class="top-title">菜谱详情</view>
-    </view>
-    <view class="top-spacer" aria-hidden="true"></view>
-  </view>
+  <!-- Top App Bar -->
+  <ft-topbar title="菜谱详情" custom-back bind:back="onBack" />
 
   <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
     <view class="main-inner">
@@ -24,7 +16,7 @@
         <view class="hero-media">
           <image class="hero-img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" aria-label="菜谱图片" />
           <view class="hero-grad" aria-hidden="true"></view>
-          <view class="hero-edit-btn" bindtap="goEdit" aria-label="修改菜谱">修改</view>
+          <view class="hero-edit-btn ft-btn ft-btn-sm" bindtap="goEdit">修改</view>
           <view class="hero-bottom">
             <view class="hero-kicker">家常快手</view>
             <view class="hero-title">{{recipeName}}</view>
@@ -106,11 +98,20 @@
 
   <canvas type="2d" id="sharePosterCanvas" class="share-poster-hidden" aria-hidden="true"></canvas>
 
-  <view class="recipe-detail-footer" wx:if="{{recipeId}}">
-    <view class="footer-row">
-      <view class="recipe-share-btn" bindtap="onShareAsImage">分享图片</view>
-      <view class="recipe-del-btn" bindtap="onAskDeleteRecipe">删除</view>
-    </view>
+  <view class="ft-bottom-bar" wx:if="{{recipeId}}">
+    <view class="ft-btn ft-btn-primary" bindtap="onShareAsImage">分享图片</view>
+    <view class="ft-btn ft-btn-danger" bindtap="onAskDeleteRecipe">删除</view>
   </view>
+
+  <ft-modal
+    visible="{{confirmModal.visible}}"
+    kicker="{{confirmModal.kicker}}"
+    title="{{confirmModal.title}}"
+    content="{{confirmModal.content}}"
+    confirm-text="{{confirmModal.confirmText}}"
+    danger="{{confirmModal.danger}}"
+    bind:confirm="onConfirmModalOk"
+    bind:cancel="onConfirmModalCancel"
+  />
 </view>
 

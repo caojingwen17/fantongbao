@@ -1,28 +1,34 @@
-<view class="ft-loading-mask" wx:if="{{pageLoading}}">
-  <view class="ft-loading-spinner" />
-  <text class="ft-loading-text">加载中…</text>
-</view>
-<scroll-view scroll-y="true" class="page ft-page" wx:else>
-  <view class="dish ft-card ft-card-low p-card">
-    <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
-    <view class="dish-meta">
-      <view class="dish-name ft-title">{{recipeName}}</view>
-      <view class="dish-sub ft-subtle">添加到点菜单前，可写备注</view>
+<view class="ft-page note-page">
+  <ft-topbar title="点菜备注" />
+
+  <view class="ft-loading-mask" wx:if="{{pageLoading}}">
+    <view class="ft-loading-spinner" />
+    <text class="ft-loading-text">加载中…</text>
+  </view>
+
+  <scroll-view scroll-y="true" class="main" wx:else show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <view class="main-inner">
+      <view class="dish ft-card ft-card-low p-card">
+        <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
+        <view class="dish-meta">
+          <view class="dish-name ft-title">{{recipeName}}</view>
+          <view class="dish-sub ft-subtle">添加到点菜单前，可写备注</view>
+        </view>
+      </view>
+
+      <view class="section ft-card ft-card-low p-card">
+        <view class="section-title ft-title">备注（选填）</view>
+        <textarea
+          class="textarea ft-textarea"
+          maxlength="200"
+          placeholder="可输入口味偏好、食材替换、制作要求等"
+          value="{{note}}"
+          bindinput="onNoteInput"
+        />
+      </view>
+
+      <view class="ft-btn ft-btn-primary ft-btn-block btn" bindtap="onConfirm">确认添加到点菜单</view>
+      <view class="ft-btn ft-btn-block btn" bindtap="onCancel">取消</view>
     </view>
-  </view>
-
-  <view class="section ft-card ft-card-low p-card">
-    <view class="section-title ft-title">备注（选填）</view>
-    <textarea
-      class="textarea ft-textarea"
-      maxlength="200"
-      placeholder="可输入口味偏好、食材替换、制作要求等"
-      value="{{note}}"
-      bindinput="onNoteInput"
-    />
-  </view>
-
-  <button class="ft-btn ft-btn-primary ft-pill btn" bindtap="onConfirm">确认添加到点菜单</button>
-  <button class="ft-btn ft-pill btn" bindtap="onCancel">取消</button>
-</scroll-view>
-
+  </scroll-view>
+</view>

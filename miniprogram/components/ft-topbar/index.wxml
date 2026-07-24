@@ -1,0 +1,15 @@
+<view class="ft-topbar" style="padding-top: {{paddingTopPx}}px;">
+  <view class="ft-topbar-left">
+    <view
+      wx:if="{{showBack}}"
+      class="ft-topbar-back"
+      bindtap="onBack"
+      hover-class="ft-topbar-back-hover"
+    >
+      <view class="ft-topbar-back-ico"></view>
+    </view>
+    <view class="ft-topbar-title">{{title}}</view>
+  </view>
+  <view class="ft-topbar-spacer"></view>
+  <slot></slot>
+</view>

@@ -1,0 +1,44 @@
+.ft-topbar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  /* padding-top 由组件 JS 按 statusBarHeight + 52rpx 注入 */
+  padding: 26px 32rpx 30rpx;
+}
+.ft-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  height: 80rpx;
+}
+.ft-topbar-back {
+  width: 80rpx;
+  height: 80rpx;
+  margin-left: -16rpx;
+  border-radius: 9999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+}
+.ft-topbar-back-hover {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+.ft-topbar-back-ico {
+  width: 18rpx;
+  height: 18rpx;
+  border-left: 4rpx solid var(--ft-primary, #874e00);
+  border-bottom: 4rpx solid var(--ft-primary, #874e00);
+  transform: rotate(45deg);
+  margin-left: 8rpx;
+}
+.ft-topbar-title {
+  font-size: 36rpx;
+  font-weight: 900;
+  color: var(--ft-on-surface, #432900);
+}
+.ft-topbar-spacer {
+  flex: 1;
+}

@@ -49,6 +49,10 @@
   font-weight: 900;
 }
 
+.invite-icon-img {
+  background: var(--ft-surface-container, #ffe4c4);
+}
+
 .invite-kicker {
   font-size: 22rpx;
   font-weight: 900;
@@ -116,4 +120,9 @@
 .invite-btn:active {
   opacity: 0.88;
   transform: scale(0.98);
+}
+
+.invite-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }

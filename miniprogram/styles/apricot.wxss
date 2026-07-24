@@ -84,9 +84,91 @@
   background: linear-gradient(135deg, var(--ft-primary) 0%, var(--ft-primary-container) 100%);
   box-shadow: 0 24rpx 48rpx rgba(67, 41, 0, 0.12);
 }
+.ft-btn-secondary {
+  color: var(--ft-primary);
+  background: var(--ft-surface-container-lowest);
+  border: 1rpx solid var(--ft-outline-variant);
+  box-shadow: none;
+}
 .ft-btn-danger {
   color: var(--ft-error);
   background: var(--ft-error-bg);
+}
+/* 页底主按钮（整宽） */
+.ft-btn-block {
+  width: 100%;
+  height: 96rpx;
+  font-size: 32rpx;
+}
+/* 行内小按钮 */
+.ft-btn-sm {
+  height: 64rpx;
+  padding: 0 24rpx;
+  font-size: 26rpx;
+}
+/* 文字按钮 */
+.ft-btn-text {
+  background: transparent;
+  color: var(--ft-primary);
+  height: auto;
+  padding: 12rpx 16rpx;
+  font-size: 26rpx;
+}
+/* 禁用态统一 */
+.ft-btn.disabled,
+.ft-btn-primary.disabled,
+.ft-btn-secondary.disabled,
+.ft-btn-danger.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* 底部固定操作栏（主流程页统一） */
+.ft-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  gap: 20rpx;
+  padding: 16rpx 40rpx calc(24rpx + constant(safe-area-inset-bottom));
+  padding: 16rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--ft-surface) 70%, rgba(255, 245, 236, 0));
+}
+.ft-bottom-bar .ft-btn {
+  flex: 1;
+  height: 96rpx;
+  font-size: 32rpx;
+}
+
+/* 统一空态 */
+.ft-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  padding: 80rpx 40rpx;
+  background: var(--ft-surface-container-lowest);
+  border-radius: var(--ft-r-xl);
+}
+.ft-empty-title {
+  font-size: 30rpx;
+  font-weight: 900;
+  color: var(--ft-on-surface);
+}
+.ft-empty-sub {
+  font-size: 24rpx;
+  color: var(--ft-on-surface-variant);
+}
+
+/* 通用按下反馈 */
+.ft-tap {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.ft-tap:active {
+  transform: scale(0.98);
+  opacity: 0.9;
 }
 
 /* icon buttons */

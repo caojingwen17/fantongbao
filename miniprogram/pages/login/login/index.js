@@ -167,16 +167,8 @@ Page({
 
     const orderToken = orderInvite.getPendingOrderInviteToken();
     if (orderToken) {
-      try {
-        wx.showLoading({ title: "加入中…", mask: true });
-        const { orderId } = await orderInvite.acceptOrderInvite(orderToken);
-        wx.hideLoading();
-        wx.showToast({ title: "已加入，开始点菜", icon: "success", duration: 1500 });
-        wx.reLaunch({ url: `/pages/order/pick/index?orderId=${orderId}` });
-      } catch (e) {
-        wx.hideLoading();
-        wx.reLaunch({ url: orderInvite.buildOrderInvitePath(orderToken) });
-      }
+      // 回到邀请落地页，由用户主动确认加入
+      wx.reLaunch({ url: orderInvite.buildOrderInvitePath(orderToken) });
       return;
     }
 

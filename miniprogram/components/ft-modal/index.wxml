@@ -1,0 +1,21 @@
+<view class="ft-modal-mask" wx:if="{{visible}}" catchtap="onMaskTap">
+  <view class="ft-modal-card" catchtap="onContentTap">
+    <view class="ft-modal-kicker" wx:if="{{kicker}}">{{kicker}}</view>
+    <view class="ft-modal-title" wx:if="{{title}}">{{title}}</view>
+    <view class="ft-modal-content" wx:if="{{content}}">{{content}}</view>
+    <slot></slot>
+    <view class="ft-modal-actions">
+      <view
+        wx:if="{{showCancel}}"
+        class="ft-modal-btn ft-modal-btn-cancel"
+        hover-class="ft-modal-btn-hover"
+        bindtap="onCancel"
+      >{{cancelText}}</view>
+      <view
+        class="ft-modal-btn {{danger ? 'ft-modal-btn-danger' : 'ft-modal-btn-ok'}}"
+        hover-class="ft-modal-btn-hover"
+        bindtap="onConfirm"
+      >{{confirmText}}</view>
+    </view>
+  </view>
+</view>

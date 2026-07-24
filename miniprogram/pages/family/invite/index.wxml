@@ -17,17 +17,16 @@
     <view class="invite-btn" bindtap="goHome">进入饭桶宝</view>
   </view>
 
-  <view class="invite-main" wx:elif="{{needLogin}}">
-    <view class="invite-icon">⌂</view>
+  <view class="invite-main" wx:else>
+    <view class="invite-icon invite-icon-img">
+      <view class="ft-ico ft-ico-home ft-ico-lg"></view>
+    </view>
     <view class="invite-kicker">家庭邀请</view>
     <view class="invite-title">加入「{{familyName}}」</view>
     <view class="invite-sub">好友邀请你一起管理菜谱、点菜买菜。加入前需要先登录并设置头像昵称。</view>
-    <view class="invite-btn" bindtap="onGoLogin">登录并加入</view>
+    <view class="invite-btn {{joining ? 'disabled' : ''}}" bindtap="onConfirmJoin">
+      {{joining ? "加入中…" : (needLogin ? "登录并加入" : "加入家庭")}}
+    </view>
     <view class="invite-btn secondary" bindtap="goHome">稍后再说</view>
-  </view>
-
-  <view class="invite-main" wx:else>
-    <view class="invite-spinner"></view>
-    <view class="invite-sub">正在加入「{{familyName}}」…</view>
   </view>
 </view>

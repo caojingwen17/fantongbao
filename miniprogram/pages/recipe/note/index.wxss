@@ -1,4 +1,17 @@
-.page{
+.note-page {
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  height: auto;
+}
+.main-inner {
   padding: 20rpx;
 }
 .dish{

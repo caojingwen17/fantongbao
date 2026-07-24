@@ -61,6 +61,55 @@ Page({
     /** 当前用户是否为家庭管理员（详情页展示移除按钮） */
     isCurrentFamilyAdmin: false,
     currentOpenid: "",
+    /** 下拉刷新 */
+    refreshing: false,
+    confirmModal: {
+      visible: false,
+      kicker: "",
+      title: "",
+      content: "",
+      confirmText: "确认",
+      danger: false,
+    },
+  },
+
+  openConfirm(opts, action) {
+    this._confirmAction = action || null;
+    this.setData({
+      confirmModal: {
+        visible: true,
+        kicker: opts.kicker || "",
+        title: opts.title || "",
+        content: opts.content || "",
+        confirmText: opts.confirmText || "确认",
+        danger: !!opts.danger,
+      },
+    });
+  },
+
+  async onConfirmModalOk() {
+    const action = this._confirmAction;
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
+    if (action) await action();
+  },
+
+  onConfirmModalCancel() {
+    this._confirmAction = null;
+    this.setData({ "confirmModal.visible": false });
+  },
+
+  async onRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      if (this.data.viewMode === "detail" && this.data.currentFamily) {
+        await this.fetchFamilyDetail(this.data.currentFamily._id);
+      } else {
+        await this.refreshFamiliesList();
+      }
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   async onLoad() {
@@ -592,34 +641,32 @@ Page({
     if (memberId === this.data.currentOpenid) return;
     if (memberId === currentFamily.adminId) return;
 
-    const confirmed = await new Promise((resolve) => {
-      wx.showModal({
-        title: "移除成员",
-        content: `确定将「${nickName}」移出家庭吗？移除后对方将无法查看本家庭菜谱与点菜单。`,
+    this.openConfirm(
+      {
+        kicker: "移除成员",
+        title: `确定将「${nickName}」移出家庭吗？`,
+        content: "移除后对方将无法查看本家庭菜谱与点菜单。",
         confirmText: "移除",
-        confirmColor: "#dc2626",
-        cancelText: "取消",
-        success: (res) => resolve(!!(res && res.confirm)),
-        fail: () => resolve(false),
-      });
-    });
-    if (!confirmed) return;
-
-    this.setData({ actionBusy: true });
-    wx.showLoading({ title: "移除中…", mask: true });
-    try {
-      await cloud.callFunctionWithErrorToast("familyFunctions", {
-        type: "kickMember",
-        familyId: currentFamily._id,
-        memberId,
-      });
-      wx.showToast({ title: "已移除成员", icon: "success" });
-      await this.refreshFamiliesList();
-      await this.fetchFamilyDetail(currentFamily._id);
-    } finally {
-      wx.hideLoading();
-      this.setData({ actionBusy: false });
-    }
+        danger: true,
+      },
+      async () => {
+        this.setData({ actionBusy: true });
+        wx.showLoading({ title: "移除中…", mask: true });
+        try {
+          await cloud.callFunctionWithErrorToast("familyFunctions", {
+            type: "kickMember",
+            familyId: currentFamily._id,
+            memberId,
+          });
+          wx.showToast({ title: "已移除成员", icon: "success" });
+          await this.refreshFamiliesList();
+          await this.fetchFamilyDetail(currentFamily._id);
+        } finally {
+          wx.hideLoading();
+          this.setData({ actionBusy: false });
+        }
+      }
+    );
   },
 
   async onExitFamily() {

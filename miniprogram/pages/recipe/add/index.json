@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "添加菜谱",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "ft-topbar": "/components/ft-topbar/index"
+  }
 }
 

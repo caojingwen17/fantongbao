@@ -62,10 +62,6 @@
   width: 80rpx;
   height: 80rpx;
 }
-.topbar-ico {
-  font-size: 34rpx;
-  opacity: 0.9;
-}
 
 .main {
   position: relative;
@@ -177,6 +173,10 @@
   font-size: 24rpx;
   font-weight: 700;
   color: var(--ft-on-surface-variant);
+}
+.meta {
+  display: flex;
+  align-items: center;
 }
 .meta-ico {
   margin-right: 6rpx;
@@ -503,16 +503,6 @@
 .cta::after { border: none; }
 .cta:active {
   transform: scale(0.95);
-}
-.cta.secondary {
-  background: #f9e534;
-  color: #5b5300;
-}
-.cta.primary {
-  /* 原型 bubbly-gradient + 指定阴影 */
-  background: linear-gradient(135deg, var(--ft-primary) 0%, #ff9800 100%);
-  color: var(--ft-on-primary);
-  box-shadow: 0 24rpx 48rpx rgba(135, 78, 0, 0.18);
 }
 
 /* CTA icons (no icon font available, draw in WXSS) */
@@ -905,11 +895,6 @@
 .sheet-manage:active {
   transform: scale(0.95);
 }
-.sheet-manage-ico {
-  font-size: 34rpx;
-  transform: translateY(-1rpx);
-  opacity: 0.9;
-}
 
 .home-feedback-row {
   margin-top: 28rpx;
@@ -918,6 +903,9 @@
   justify-content: center;
 }
 .home-feedback-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
   font-size: 26rpx;
   font-weight: 800;
   color: var(--ft-on-surface-variant);

@@ -2,15 +2,7 @@
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
-  <view class="topbar">
-    <view class="top-left">
-      <view class="icon-btn" bindtap="onBack" aria-label="返回">
-        <text class="ico" aria-hidden="true">‹</text>
-      </view>
-      <view class="top-title">点菜单详情</view>
-    </view>
-    <view class="top-spacer" aria-hidden="true"></view>
-  </view>
+  <ft-topbar title="点菜单详情" custom-back bind:back="onBack" />
 
   <view class="ft-loading-mask" wx:if="{{pageLoading}}">
     <view class="ft-loading-spinner" />
@@ -26,13 +18,13 @@
           <view class="head-status">状态：<text class="head-status-text {{statusText==='待点菜' ? 'head-status-muted' : ''}}">{{statusText || order.status || ""}}</text></view>
         </view>
         <view class="head-icon" aria-hidden="true">
-          <text class="head-icon-glyph">≣</text>
+          <view class="ft-ico ft-ico-list"></view>
         </view>
       </view>
 
       <view class="order-empty-cta" wx:if="{{recipeCount===0 && order.status!=='completed'}}">
         <view class="order-empty-cta-hint">还没有点菜</view>
-        <view class="btn btn-primary order-empty-cta-btn" bindtap="goOrder">点菜</view>
+        <view class="ft-btn ft-btn-primary order-empty-cta-btn" bindtap="goOrder">点菜</view>
       </view>
 
       <view class="dish-section" wx:if="{{recipeCount > 0}}">
@@ -50,12 +42,13 @@
                 <view class="dish-note" wx:if="{{item.note}}">备注：{{item.note}}</view>
               </view>
               <view
-                class="dish-del"
+                class="dish-del ft-tap"
                 wx:if="{{order.status==='pending_shopping'}}"
                 data-recipeid="{{item.recipeId}}"
                 bindtap="onRemoveRecipe"
-                aria-label="删除菜品"
-              >🗑</view>
+              >
+                <view class="ft-ico ft-ico-trash ft-ico-sm"></view>
+              </view>
             </view>
           </block>
         </view>
@@ -82,28 +75,36 @@
         </view>
       </view>
 
-      <view class="order-delete-panel" wx:if="{{order && order._id}}">
-        <view class="btn btn-delete-order" bindtap="onAskDeleteOrder">删除点菜单</view>
+      <view class="order-delete-panel" wx:if="{{order && order._id && order.status!=='completed'}}">
+        <view class="ft-btn ft-btn-danger" bindtap="onAskDeleteOrder">删除点菜单</view>
       </view>
 
       <view class="bottom-safe-spacer" aria-hidden="true"></view>
     </view>
   </scroll-view>
 
-  <view class="bottom-actions" wx:if="{{order.status==='completed'}}">
-    <view class="actions-single">
-      <view class="btn btn-completed" bindtap="onCompletedToHome">已完成（返回首页）</view>
-    </view>
+  <view class="ft-bottom-bar" wx:if="{{order.status==='completed'}}">
+    <view class="ft-btn btn-completed" bindtap="onCompletedToHome">已完成（返回首页）</view>
   </view>
-  <view class="bottom-actions" wx:elif="{{recipeCount > 0}}">
-    <view class="actions-grid" wx:if="{{order.status==='pending_shopping'}}">
-      <view class="btn btn-secondary" bindtap="goContinueAdd">继续加菜</view>
-      <view class="btn btn-primary" bindtap="goShopping">去买菜</view>
-    </view>
-    <view class="actions-grid" wx:if="{{order.status==='pending_cooking'}}">
-      <view class="btn btn-secondary" bindtap="goContinueAdd">继续加菜</view>
-      <view class="btn btn-cooking" bindtap="goCooking">去做菜</view>
-    </view>
+  <view class="ft-bottom-bar" wx:elif="{{recipeCount > 0 && !pageLoading}}">
+    <block wx:if="{{order.status==='pending_shopping'}}">
+      <view class="ft-btn ft-btn-secondary" bindtap="goContinueAdd">继续加菜</view>
+      <view class="ft-btn ft-btn-primary" bindtap="goShopping">去买菜</view>
+    </block>
+    <block wx:if="{{order.status==='pending_cooking'}}">
+      <view class="ft-btn ft-btn-secondary" bindtap="goContinueAdd">继续加菜</view>
+      <view class="ft-btn ft-btn-primary" bindtap="goCooking">去做菜</view>
+    </block>
   </view>
-</view>
 
+  <ft-modal
+    visible="{{confirmModal.visible}}"
+    kicker="{{confirmModal.kicker}}"
+    title="{{confirmModal.title}}"
+    content="{{confirmModal.content}}"
+    confirm-text="{{confirmModal.confirmText}}"
+    danger="{{confirmModal.danger}}"
+    bind:confirm="onConfirmModalOk"
+    bind:cancel="onConfirmModalCancel"
+  />
+</view>

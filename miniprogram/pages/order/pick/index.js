@@ -4,7 +4,6 @@ const auth = require("../../../utils/auth");
 const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 const KEYWORD_DEBOUNCE_MS = 320;
-const TAGS = ["家常快手", "微辣下饭", "适合聚餐", "慢炖浓香", "轻食健康", "主厨推荐"];
 
 Page({
   data: {
@@ -18,6 +17,7 @@ Page({
     pickedRows: [],
     pickedCount: 0,
     listLoading: false,
+    refreshing: false,
     pickedSheetVisible: false,
     canInviteOrder: false,
     orderName: "",
@@ -63,10 +63,9 @@ Page({
     const raw = this.data.recipesRaw || [];
     const localPicked = this.data.localPicked || [];
     const ids = new Set(localPicked.map((r) => r.recipeId).filter(Boolean));
-    const viewRecipes = raw.map((item, index) => ({
+    const viewRecipes = raw.map((item) => ({
       ...item,
       createDateText: this.formatDate(item.createTime),
-      tagText: TAGS[index % TAGS.length],
       inOrder: ids.has(item.id),
     }));
     this.setData({
@@ -150,6 +149,14 @@ Page({
     if (!this.data.keyword) return;
     this.setData({ keyword: "" });
     this.loadRecipesOnly();
+  },
+
+  async onRefresh() {
+    try {
+      await this.loadRecipesOnly();
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   /** 从分享链接进入时页面栈无上一页，navigateBack 会失败，需显式回到点菜单详情 */

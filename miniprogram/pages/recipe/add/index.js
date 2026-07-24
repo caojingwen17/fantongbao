@@ -60,10 +60,6 @@ Page({
     });
   },
 
-  onBack() {
-    wx.navigateBack();
-  },
-
   toggleAccordion(e) {
     const key = e && e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset.key : "";
     if (!key) return;

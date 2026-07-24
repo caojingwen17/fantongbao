@@ -47,6 +47,17 @@ Page({
     homeGuest: false,
     /** 已登录但尚未加入任何家庭：可浏览本页提示，不强制跳转家庭页 */
     homeNeedFamily: false,
+    /** 下拉刷新 */
+    refreshing: false,
+  },
+
+  async onRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      await this.refreshHome();
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   /**
@@ -567,7 +578,7 @@ Page({
 
   async goRecipeList() {
     if (!(await this.guardGuestAction("查看菜谱需要先登录。"))) return;
-    wx.navigateTo({ url: "/pages/recipe/list/index" });
+    wx.switchTab({ url: "/pages/recipe/list/index" });
   },
 
   async goRecipeAdd() {

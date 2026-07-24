@@ -1,5 +1,6 @@
 /**app.wxss**/
 @import "styles/apricot.wxss";
+@import "styles/icons.wxss";
 .container {
   display: flex;
   flex-direction: column;

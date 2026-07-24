@@ -43,62 +43,54 @@ Page({
       return;
     }
 
-    await this.tryAutoAccept();
+    // 静默登录成功后只更新按钮文案，不自动加入；由用户主动确认
+    this.refreshLoginState();
   },
 
   async onShow() {
-    if (this._acceptHandled || this.data.loading || this.data.errMsg || this.data.joined) return;
-    if (!this.data.needLogin) return;
-    const silent = await auth.trySilentLogin();
-    if (silent.ok) {
-      await this.tryAutoAccept();
-    }
+    if (this.data.loading || this.data.errMsg || this.data.joined) return;
+    this.refreshLoginState();
   },
 
-  async tryAutoAccept() {
+  async refreshLoginState() {
+    if (auth.isLoggedIn()) {
+      if (this.data.needLogin) this.setData({ needLogin: false });
+      return;
+    }
+    const silent = await auth.trySilentLogin();
+    this.setData({ needLogin: !silent.ok });
+  },
+
+  /** 用户主动点击「加入并开始点菜」后才执行加入家庭 + 进入点菜页 */
+  async onConfirmJoin() {
     if (this._acceptHandled || this.data.joining || this.data.joined) return;
 
     if (!auth.isLoggedIn()) {
       const silent = await auth.trySilentLogin();
       if (!silent.ok) {
-        this.setData({ joining: false, needLogin: true, errMsg: "" });
         orderInvite.rememberPendingOrderInviteToken(this.data.token);
+        wx.navigateTo({ url: "/pages/login/login/index" });
         return;
       }
     }
 
-    this.setData({ joining: true, needLogin: false, errMsg: "" });
-    wx.showLoading({ title: "加入中…", mask: true });
+    this.setData({ joining: true, needLogin: false });
     try {
       const { orderId } = await orderInvite.acceptOrderInvite(this.data.token);
       this._acceptHandled = true;
       orderInvite.clearPendingOrderInviteToken();
-      wx.showToast({ title: "已加入，开始点菜", icon: "success", duration: 1500 });
-      wx.reLaunch({ url: `/pages/order/pick/index?orderId=${orderId}` });
+      this.setData({ joined: true });
+      setTimeout(() => {
+        wx.reLaunch({ url: `/pages/order/pick/index?orderId=${orderId}` });
+      }, 600);
     } catch (e) {
       const msg = (e && e.message) || "加入失败，请重试";
       this.setData({
         joining: false,
         needLogin: !auth.isLoggedIn(),
-        errMsg: auth.isLoggedIn() ? msg : "",
       });
-      if (auth.isLoggedIn()) {
-        wx.showToast({ title: msg, icon: "none" });
-      } else {
-        orderInvite.rememberPendingOrderInviteToken(this.data.token);
-        this.setData({ needLogin: true });
-      }
-    } finally {
-      wx.hideLoading();
-      if (!this._acceptHandled) {
-        this.setData({ joining: false });
-      }
+      wx.showToast({ title: msg, icon: "none" });
     }
-  },
-
-  onGoLogin() {
-    orderInvite.rememberPendingOrderInviteToken(this.data.token);
-    wx.navigateTo({ url: "/pages/login/login/index" });
   },
 
   goHome() {

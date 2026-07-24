@@ -81,7 +81,7 @@ Page({
       });
     }, "提交中…");
     wx.showToast({ title: "添加成功", icon: "none" });
-    wx.navigateTo({ url: "/pages/order/list/index" });
+    wx.switchTab({ url: "/pages/order/list/index" });
   },
 
   onCancel() {

@@ -2,15 +2,7 @@
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
-  <view class="topbar">
-    <view class="top-left">
-      <view class="icon-btn" bindtap="onBack" aria-label="返回">
-        <text class="ico" aria-hidden="true">‹</text>
-      </view>
-      <view class="top-title">编辑菜谱</view>
-    </view>
-    <view class="top-spacer" aria-hidden="true"></view>
-  </view>
+  <ft-topbar title="编辑菜谱" />
 
   <scroll-view scroll-y="{{!stepDrag.active}}" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
     <view class="main-inner">
@@ -24,7 +16,7 @@
             <view class="pill pill-warn" aria-hidden="true">必填</view>
           </view>
           <view class="input-wrap">
-            <view class="input-ico" aria-hidden="true">🍽️</view>
+            <view class="input-ico ft-ico ft-ico-dish ft-ico-sm"></view>
             <input class="input input-name" placeholder="例如：西红柿炒蛋" value="{{recipeName}}" bindinput="onRecipeNameInput" />
           </view>
         </view>
@@ -47,7 +39,10 @@
                 <view class="cover-state">已上传</view>
                 <view class="cover-tip">可重新上传替换图片</view>
               </view>
-              <view class="reupload-btn" bindtap="onChooseImage">重新上传</view>
+              <view class="reupload-btn" bindtap="onChooseImage">
+                <view class="ft-ico ft-ico-upload ft-ico-sm"></view>
+                重新上传
+              </view>
             </view>
           </view>
         </view>
@@ -56,7 +51,7 @@
       <view class="acc card">
         <view class="acc-head" bindtap="toggleAccordion" data-key="ingredients">
           <view class="acc-left">
-            <view class="acc-ico acc-ico-warn" aria-hidden="true">🧺</view>
+            <view class="acc-ico acc-ico-warn"><view class="ft-ico ft-ico-basket"></view></view>
             <view class="acc-meta">
               <view class="acc-title-row">
                 <view class="acc-title">食材</view>
@@ -84,7 +79,7 @@
       <view class="acc card">
         <view class="acc-head" bindtap="toggleAccordion" data-key="seasonings">
           <view class="acc-left">
-            <view class="acc-ico acc-ico-ok" aria-hidden="true">⚗️</view>
+            <view class="acc-ico acc-ico-ok"><view class="ft-ico ft-ico-dish"></view></view>
             <view class="acc-meta">
               <view class="acc-title-row">
                 <view class="acc-title">调料</view>
@@ -112,7 +107,7 @@
       <view class="acc card">
         <view class="acc-head" bindtap="toggleAccordion" data-key="prep">
           <view class="acc-left">
-            <view class="acc-ico acc-ico-neutral" aria-hidden="true">①</view>
+            <view class="acc-ico acc-ico-neutral"><view class="ft-ico ft-ico-list"></view></view>
             <view class="acc-meta">
               <view class="acc-title-row">
                 <view class="acc-title">备菜步骤</view>
@@ -151,7 +146,7 @@
       <view class="acc card">
         <view class="acc-head" bindtap="toggleAccordion" data-key="cook">
           <view class="acc-left">
-            <view class="acc-ico acc-ico-neutral" aria-hidden="true">🍳</view>
+            <view class="acc-ico acc-ico-neutral"><view class="ft-ico ft-ico-cook"></view></view>
             <view class="acc-meta">
               <view class="acc-title-row">
                 <view class="acc-title">做菜步骤</view>
@@ -191,8 +186,8 @@
     </view>
   </scroll-view>
 
-  <view class="submit-bar">
-    <view class="submit-btn" bindtap="onSubmit">💾 保存修改</view>
+  <view class="ft-bottom-bar">
+    <view class="ft-btn ft-btn-primary" bindtap="onSubmit">保存修改</view>
   </view>
 </view>
 

@@ -5,7 +5,7 @@
 
   <view class="share-error" wx:elif="{{errMsg}}">
     <text class="share-error-text">{{errMsg}}</text>
-    <button class="share-btn secondary" bindtap="goHome">回首页</button>
+    <view class="ft-btn ft-btn-secondary ft-btn-block" bindtap="goHome">回首页</view>
   </view>
 
   <block wx:else>
@@ -32,7 +32,7 @@
           <text class="fold-title">食材</text>
           <text class="fold-meta">{{ingredientCount}} 项</text>
         </view>
-        <text class="fold-chev" aria-hidden="true">›</text>
+        <view class="fold-chev ft-ico ft-ico-chev-down"></view>
       </view>
       <view class="fold-body" wx:if="{{expandIngredients}}">
         <block wx:if="{{ingredientRows.length}}">
@@ -63,7 +63,7 @@
           <text class="fold-title">备菜</text>
           <text class="fold-meta">{{prepareCount}} 步</text>
         </view>
-        <text class="fold-chev" aria-hidden="true">›</text>
+        <view class="fold-chev ft-ico ft-ico-chev-down"></view>
       </view>
       <view class="fold-body" wx:if="{{expandPrepare}}">
         <block wx:if="{{prepareStepList.length}}">
@@ -87,7 +87,7 @@
           <text class="fold-title">做菜</text>
           <text class="fold-meta">{{cookingCount}} 步</text>
         </view>
-        <text class="fold-chev" aria-hidden="true">›</text>
+        <view class="fold-chev ft-ico ft-ico-chev-down"></view>
       </view>
       <view class="fold-body" wx:if="{{expandCooking}}">
         <block wx:if="{{cookingStepList.length}}">
@@ -103,7 +103,7 @@
     <view class="card family-card" wx:if="{{shareGuest}}">
       <view class="family-title">导入到家庭菜谱</view>
       <text class="hint">登录并创建或加入家庭后，可将本菜谱加入你的家庭。</text>
-      <button class="share-btn primary" bindtap="goLogin">去登录</button>
+      <view class="ft-btn ft-btn-primary ft-btn-block" bindtap="goLogin">去登录</view>
     </view>
 
     <block wx:else>
@@ -112,7 +112,7 @@
         <picker mode="selector" range="{{families}}" range-key="familyName" value="{{familyIndex}}" bindchange="onFamilyPick">
           <view class="family-picker">
             <text>{{selectedFamilyName}}</text>
-            <text class="chev">›</text>
+            <view class="chev ft-ico ft-ico-chev-down"></view>
           </view>
         </picker>
       </view>
@@ -120,13 +120,13 @@
       <view class="card family-card" wx:else>
         <view class="family-title">你还没有家庭</view>
         <text class="hint">请先创建或加入家庭，再导入分享菜谱。</text>
-        <button class="share-btn primary" bindtap="goFamily">去家庭页</button>
+        <view class="ft-btn ft-btn-primary ft-btn-block" bindtap="goFamily">去家庭页</view>
       </view>
 
       <view class="actions" wx:if="{{families.length}}">
-        <button class="share-btn primary" bindtap="onImport" disabled="{{importing}}">
+        <view class="ft-btn ft-btn-primary ft-btn-block {{importing ? 'disabled' : ''}}" bindtap="onImport">
           {{importing ? '导入中…' : '加入我的家庭菜谱'}}
-        </button>
+        </view>
       </view>
     </block>
   </block>

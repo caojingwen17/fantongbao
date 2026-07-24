@@ -2,16 +2,18 @@
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
-  <!-- Top bar -->
-  <view class="topbar">
-    <view class="top-left">
-      <view class="top-avatar" aria-hidden="true"></view>
-      <view class="brand">Fantongbao</view>
-    </view>
-    <view class="top-icon" aria-hidden="true">🔔</view>
-  </view>
+  <ft-topbar title="点菜单" show-back="{{false}}" />
 
-  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+  <scroll-view
+    scroll-y="true"
+    class="main"
+    show-scrollbar="false"
+    scrollbar-hidden="true"
+    enhanced="true"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
     <view class="main-inner">
       <view class="state-card">
         <view class="state-left">
@@ -42,15 +44,23 @@
                   <view class="tag tag-sub">进行中</view>
                 </view>
               </view>
-              <view class="dish-del" aria-hidden="true">🗑️</view>
+              <view class="dish-chev" aria-hidden="true">›</view>
             </view>
           </block>
-          <view wx:if="{{!orders || orders.length===0}}" class="empty">暂无点菜单</view>
+          <view wx:if="{{!orders || orders.length===0}}" class="ft-empty">
+            <view class="ft-ico ft-ico-list ft-ico-lg"></view>
+            <view class="ft-empty-title">暂无点菜单</view>
+            <view class="ft-empty-sub">先去首页挑选喜欢的菜谱吧</view>
+            <view class="ft-btn ft-btn-primary ft-btn-sm" bindtap="onGoPick">去点菜</view>
+          </view>
         </view>
       </view>
 
       <view class="collab-card">
-        <view class="collab-title">💬 协同规划</view>
+        <view class="collab-title">
+          <view class="ft-ico ft-ico-chat ft-ico-sm"></view>
+          <text>协同规划</text>
+        </view>
         <view class="collab-item">
           <view class="collab-avatar"></view>
           <view class="collab-text"><text class="collab-name">家庭成员</text> 刚刚更新了点菜单。</view>
@@ -58,10 +68,9 @@
       </view>
 
       <view class="actions">
-        <view class="btn btn-primary" bindtap="goFirstOrder">🛒 前往购物清单</view>
-        <view class="btn btn-secondary" bindtap="goRecipeList">➕ 继续添加菜品</view>
+        <view class="ft-btn ft-btn-primary" bindtap="goFirstOrder">前往购物清单</view>
+        <view class="ft-btn ft-btn-secondary" bindtap="goRecipeList">继续添加菜品</view>
       </view>
     </view>
   </scroll-view>
 </view>
-

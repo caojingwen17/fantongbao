@@ -1,0 +1,72 @@
+.ft-modal-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1200;
+  background: rgba(67, 41, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  box-sizing: border-box;
+}
+.ft-modal-card {
+  width: 100%;
+  max-width: 600rpx;
+  background: var(--ft-surface-container-lowest, #ffffff);
+  border-radius: 36rpx;
+  padding: 40rpx;
+  box-sizing: border-box;
+  box-shadow: 0 24rpx 64rpx rgba(67, 41, 0, 0.18);
+}
+.ft-modal-kicker {
+  font-size: 22rpx;
+  font-weight: 800;
+  color: var(--ft-primary, #874e00);
+  letter-spacing: 2rpx;
+  margin-bottom: 8rpx;
+}
+.ft-modal-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: var(--ft-on-surface, #432900);
+}
+.ft-modal-content {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--ft-on-surface-variant, #765524);
+}
+.ft-modal-actions {
+  margin-top: 32rpx;
+  display: flex;
+  gap: 20rpx;
+}
+.ft-modal-btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 9999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+.ft-modal-btn-hover {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+.ft-modal-btn-cancel {
+  color: var(--ft-on-surface-variant, #765524);
+  background: var(--ft-surface-container-low, #ffeedc);
+}
+.ft-modal-btn-ok {
+  color: var(--ft-on-primary, #fff0e5);
+  background: linear-gradient(135deg, var(--ft-primary, #874e00) 0%, var(--ft-primary-container, #ff9800) 100%);
+}
+.ft-modal-btn-danger {
+  color: var(--ft-error, #b02500);
+  background: var(--ft-error-bg, rgba(249, 86, 48, 0.16));
+}

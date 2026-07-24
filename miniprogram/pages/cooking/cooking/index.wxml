@@ -2,17 +2,18 @@
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
-  <view class="topbar">
-    <view class="top-left">
-      <view class="icon-btn" bindtap="goBack" aria-label="返回">
-        <text class="ico" aria-hidden="true">‹</text>
-      </view>
-      <view class="top-title">做菜清单</view>
-    </view>
-    <view class="top-spacer" aria-hidden="true"></view>
-  </view>
+  <ft-topbar title="做菜清单" custom-back bind:back="goBack" />
 
-  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+  <scroll-view
+    scroll-y="true"
+    class="main"
+    show-scrollbar="false"
+    scrollbar-hidden="true"
+    enhanced="true"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
     <view class="main-inner">
       <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
         <view class="ft-loading-spinner" />
@@ -26,7 +27,9 @@
             <view class="head-name">{{order.orderName || "未命名点菜单"}}</view>
             <view class="head-progress">进度：<text class="head-progress-v">{{progress.doneCount}}/{{progress.totalCount}}</text></view>
           </view>
-          <view class="head-icon">🍳</view>
+          <view class="head-icon">
+            <view class="ft-ico ft-ico-cook"></view>
+          </view>
         </view>
         <view class="head-tip">按菜分组勾选备菜/做菜步骤，全部完成后闭环</view>
       </view>
@@ -41,7 +44,8 @@
               </view>
               <view class="group-right">
                 <view class="group-count">{{item.doneCount}}/{{item.totalCount}}</view>
-                <view class="group-chev">{{item.open ? "⌃" : "⌄"}}</view>
+                <view class="group-chev ft-ico ft-ico-chev-up ft-ico-sm" wx:if="{{item.open}}"></view>
+                <view class="group-chev ft-ico ft-ico-chev-down ft-ico-sm" wx:else></view>
               </view>
             </view>
 
@@ -72,24 +76,18 @@
     </view>
   </scroll-view>
 
-  <view class="modal-mask" wx:if="{{showCompleteModal}}" bindtap="closeCompleteModal"></view>
-  <view class="complete-modal" wx:if="{{showCompleteModal}}">
-    <view class="modal-head">
-      <view>
-        <view class="modal-kicker">提示</view>
-        <view class="modal-title">确认已完成所有制作步骤吗？</view>
-      </view>
-      <view class="modal-x" bindtap="closeCompleteModal">×</view>
-    </view>
-    <view class="modal-desc">确认后将把点菜单状态更新为已完成，并回到首页。</view>
-    <view class="modal-actions">
-      <view class="modal-btn cancel" bindtap="closeCompleteModal">取消</view>
-      <view class="modal-btn ok" bindtap="confirmCompleteModal">确认完成</view>
-    </view>
-  </view>
+  <ft-modal
+    visible="{{showCompleteModal}}"
+    kicker="提示"
+    title="确认已完成所有制作步骤吗？"
+    content="确认后将把点菜单状态更新为已完成，并回到首页。"
+    confirm-text="确认完成"
+    bind:confirm="confirmCompleteModal"
+    bind:cancel="closeCompleteModal"
+  />
 
-  <view class="bottom-actions">
-    <view class="complete-btn {{actionBusy ? 'disabled' : ''}}" bindtap="onCompleteCooking">制作完成</view>
+  <view class="ft-bottom-bar">
+    <view class="ft-btn ft-btn-primary ft-btn-block {{actionBusy ? 'disabled' : ''}}" bindtap="onCompleteCooking">制作完成</view>
   </view>
 </view>
 

@@ -165,7 +165,7 @@ function redirectToPendingInviteIfAny() {
   return false;
 }
 
-/** 首页/落地：已登录则直接加入家庭并进点菜页，未登录则跳转邀请落地页 */
+/** 首页/落地：统一进入点餐邀请落地页，由用户主动确认后加入（不再静默加家庭） */
 async function handlePendingOrderInviteOnEntry() {
   let entryFromInvite = false;
   try {
@@ -179,25 +179,8 @@ async function handlePendingOrderInviteOnEntry() {
   const token = getPendingOrderInviteToken();
   if (!token) return false;
 
-  const auth = require("./auth");
-  const silent = await auth.trySilentLogin();
-  if (!silent.ok) {
-    wx.redirectTo({ url: buildOrderInvitePath(token) });
-    return true;
-  }
-
-  wx.showLoading({ title: "加入中…", mask: true });
-  try {
-    const { orderId } = await acceptOrderInvite(token);
-    wx.showToast({ title: "已加入，开始点菜", icon: "success", duration: 1500 });
-    wx.reLaunch({ url: `/pages/order/pick/index?orderId=${orderId}` });
-    return true;
-  } catch (e) {
-    wx.redirectTo({ url: buildOrderInvitePath(token) });
-    return true;
-  } finally {
-    wx.hideLoading();
-  }
+  wx.redirectTo({ url: buildOrderInvitePath(token) });
+  return true;
 }
 
 module.exports = {

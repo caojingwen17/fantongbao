@@ -11,7 +11,16 @@
       <view class="brand">FANTONGBABY</view>
       <view class="topbar-spacer" aria-hidden="true"></view>
     </view>
-    <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+    <scroll-view
+      scroll-y="true"
+      class="main"
+      show-scrollbar="false"
+      scrollbar-hidden="true"
+      enhanced="true"
+      refresher-enabled
+      refresher-triggered="{{refreshing}}"
+      bindrefresherrefresh="onRefresh"
+    >
       <view class="main-inner">
         <view class="need-family-hero ft-card-lowest">
           <view class="need-family-kicker">还差一步</view>
@@ -20,8 +29,9 @@
           <button class="ft-btn ft-btn-primary guest-login-btn" bindtap="goFamily">去家庭管理</button>
         </view>
         <view class="home-feedback-row">
-          <view class="home-feedback-link" bindtap="goFeedback" role="button" aria-label="吐槽与建议">
-            💬 吐槽与建议
+          <view class="home-feedback-link" bindtap="goFeedback">
+            <view class="ft-ico ft-ico-chat ft-ico-sm"></view>
+            <text>吐槽与建议</text>
           </view>
         </view>
       </view>
@@ -39,7 +49,16 @@
     <view class="topbar-spacer" aria-hidden="true"></view>
   </view>
 
-  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+  <scroll-view
+    scroll-y="true"
+    class="main"
+    show-scrollbar="false"
+    scrollbar-hidden="true"
+    enhanced="true"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
     <view class="main-inner">
     <view class="home-guest-banner ft-card-lowest" wx:if="{{homeGuest}}">
       <view class="home-guest-banner-inner">
@@ -63,18 +82,18 @@
           </view>
           <view class="meta-row">
             <view class="meta">
-              <text class="meta-ico">👥</text>
-              成员 {{membersCount}} 人
+              <view class="ft-ico ft-ico-users ft-ico-sm meta-ico"></view>
+              <text>成员 {{membersCount}} 人</text>
             </view>
             <view class="dot"></view>
             <view class="meta" wx:if="{{homeRefreshing}}">
-              <text class="meta-ico">🔄</text>
-              更新中…
+              <view class="ft-ico ft-ico-refresh ft-ico-sm meta-ico"></view>
+              <text>更新中…</text>
             </view>
           </view>
         </view>
-        <button class="family-settings" bindtap="goFamily" aria-label="家庭管理">
-          <text class="topbar-ico">⚙️</text>
+        <button class="family-settings" bindtap="goFamily">
+          <view class="ft-ico ft-ico-settings"></view>
         </button>
       </view>
 
@@ -138,7 +157,7 @@
                   <view class="order-sub">进行中</view>
                 </view>
                 <view class="order-name">{{item.orderName}}</view>
-                <view class="order-hint">{{item.recipeCount ? (item.statusText==='待买菜' ? "点击继续处理：买菜清单" : "点击继续处理：做菜清单") : "点击去点菜"}}</view>
+                <view class="order-hint">{{item.recipeCount ? (item.statusText==='待买菜' ? "去买菜 ›" : "去做菜 ›") : "去点菜 ›"}}</view>
               </view>
               <text class="chev">›</text>
             </view>
@@ -172,7 +191,7 @@
       <view class="empty" wx:if="{{!recipes || recipes.length===0}}">暂无菜谱</view>
 
       <view class="cta-row">
-        <button class="cta secondary" bindtap="goRecipeList" aria-label="查看全部">
+        <button class="cta ft-btn ft-btn-secondary" bindtap="goRecipeList">
           <view class="ico-apps" aria-hidden="true">
             <view class="ico-apps-dot"></view>
             <view class="ico-apps-dot"></view>
@@ -181,7 +200,7 @@
           </view>
           查看全部
         </button>
-        <button class="cta primary" bindtap="goRecipeAdd" aria-label="添加菜谱">
+        <button class="cta ft-btn ft-btn-primary" bindtap="goRecipeAdd">
           <view class="ico-add-circle" aria-hidden="true">
             <view class="ico-add-plus-h"></view>
             <view class="ico-add-plus-v"></view>
@@ -192,8 +211,9 @@
     </view>
 
       <view class="home-feedback-row">
-        <view class="home-feedback-link" bindtap="goFeedback" role="button" aria-label="吐槽与建议">
-          💬 吐槽与建议
+        <view class="home-feedback-link" bindtap="goFeedback">
+          <view class="ft-ico ft-ico-chat ft-ico-sm"></view>
+          <text>吐槽与建议</text>
         </view>
       </view>
     </view>
@@ -234,8 +254,8 @@
       </block>
     </view>
 
-    <button class="sheet-manage" bindtap="goFamily" aria-label="进入家庭管理">
-      <text class="sheet-manage-ico" aria-hidden="true">⚙️</text>
+    <button class="sheet-manage" bindtap="goFamily">
+      <view class="ft-ico ft-ico-settings"></view>
       家庭管理
     </button>
   </view>
