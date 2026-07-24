@@ -14,6 +14,25 @@ Component({
     /** 点击遮罩是否关闭（触发 cancel） */
     maskClosable: { type: Boolean, value: true },
   },
+  data: {
+    /** 内部挂载态：visible 关闭后保留 200ms 播放退出动画 */
+    inner: false,
+    closing: false,
+  },
+  observers: {
+    visible(v) {
+      if (v) {
+        this.setData({ inner: true, closing: false });
+        return;
+      }
+      if (this.data.inner) {
+        this.setData({ closing: true });
+        setTimeout(() => {
+          this.setData({ inner: false, closing: false });
+        }, 200);
+      }
+    },
+  },
   methods: {
     onMaskTap() {
       if (!this.data.maskClosable) return;

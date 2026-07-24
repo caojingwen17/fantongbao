@@ -56,7 +56,14 @@ async function fetchUncachedUrls(ids, options) {
         familyId,
         fileIds: ids,
       });
-      if (res && res.map && typeof res.map === "object") return res.map;
+      const map = res && res.map && typeof res.map === "object" ? res.map : null;
+      if (map) {
+        // 云函数换链可能缺项（过滤/部分失败），缺的部分再用客户端兜底补齐
+        const missing = ids.filter((id) => !map[id]);
+        if (!missing.length) return map;
+        const clientMap = await clientResolveBatch(missing);
+        return { ...map, ...clientMap };
+      }
     } catch (e) {
       /* 回退客户端 */
     }
@@ -95,6 +102,7 @@ async function resolveBatch(fileIds, options) {
 /**
  * @param {string} src
  * @param {{ familyId?: string }} [options]
+ * 解析失败返回 ""（不回退 cloud://——Android 直渲 cloud:// 极不稳定，会闪图后消失）
  */
 async function resolveForImage(src, options) {
   if (!src || typeof src !== "string") return "";
@@ -102,7 +110,7 @@ async function resolveForImage(src, options) {
   const cached = getCachedUrl(src);
   if (cached) return cached;
   const map = await resolveBatch([src], options);
-  return map[src] || src;
+  return map[src] || "";
 }
 
 /**
@@ -134,8 +142,8 @@ async function attachRecipeImgDisplay(recipes) {
       return { ...r, recipeImgDisplay: id };
     }
     const cached = getCachedUrl(id);
-    const display = cached || (map[id] ? map[id] : r.recipeImgDisplay || id);
-    return { ...r, recipeImgDisplay: display || id || "" };
+    const display = cached || map[id] || r.recipeImgDisplay || "";
+    return { ...r, recipeImgDisplay: display };
   });
 }
 

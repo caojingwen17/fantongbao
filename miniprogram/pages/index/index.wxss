@@ -102,7 +102,6 @@
   min-width: 0;
 }
 .kicker {
-  /* 原型 text-xs + font-black + tracking-widest：但视觉上不会这么小 */
   font-size: 24rpx;
   font-weight: 900;
   text-transform: uppercase;
@@ -113,7 +112,7 @@
   display: inline-flex;
   align-items: center;
   gap: 12rpx;
-  margin-top: 18rpx; /* 整体下移一些 */
+  margin-top: 18rpx;
   padding: 0;
   background: transparent;
 }
@@ -127,9 +126,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.1;
-  transform: none;
-  margin-top: 0;
-  display: block;
 }
 
 /* Family expand_more icon (drawn in WXSS, no icon font) */
@@ -140,9 +136,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  top: 6rpx; /* 箭头下移，和家庭名中心线对齐 */
-  margin-top: 0;
-  transform: none;
+  top: 6rpx;
   transition: transform 180ms ease;
 }
 .family-expand-up {
@@ -209,7 +203,7 @@
   width: 80rpx;
   height: 80rpx;
   border-radius: 9999rpx;
-  border: 8rpx solid var(--ft-surface-container-lowest); /* ring-4 */
+  border: 8rpx solid var(--ft-surface-container-lowest);
   box-sizing: border-box;
 }
 .avatar-fallback {
@@ -219,7 +213,7 @@
   margin-left: 0;
 }
 .avatar-b {
-  margin-left: -24rpx; /* -space-x-3 */
+  margin-left: -24rpx;
 }
 .avatar-more {
   width: 80rpx;
@@ -281,6 +275,29 @@
   background: var(--ft-surface-container-high);
   padding: 10rpx 20rpx;
   border-radius: 9999rpx;
+}
+.shop-together-btn {
+  font-size: 24rpx;
+  font-weight: 900;
+  color: var(--ft-on-primary);
+  background: linear-gradient(135deg, var(--ft-primary) 0%, var(--ft-primary-container) 100%);
+  padding: 10rpx 22rpx;
+  border-radius: 9999rpx;
+}
+.shop-together-btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+.shop-together-go.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.shop-together-go {
+  white-space: nowrap;
+  font-size: 30rpx;
+  letter-spacing: 0;
+  padding: 0 24rpx;
+  box-sizing: border-box;
 }
 
 .create-order-mask {
@@ -482,7 +499,7 @@
   margin-top: 22rpx;
   display: flex;
   gap: 18rpx;
-  padding-top: 6rpx; /* 对齐原型的 pt-1 */
+  padding-top: 6rpx;
 }
 .cta {
   flex: 1 1 0;
@@ -551,6 +568,48 @@
   text-align: center;
   color: rgba(118, 85, 36, 0.75);
   font-weight: 700;
+}
+
+/* 紧凑空态引导条（点菜单空态） */
+.order-empty-strip {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 32rpx;
+  border-radius: 40rpx;
+}
+.order-empty-strip-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 24rpx;
+  background: var(--ft-surface-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.order-empty-strip-text {
+  flex: 1;
+  min-width: 0;
+}
+.order-empty-strip-title {
+  font-size: 30rpx;
+  font-weight: 900;
+  color: var(--ft-on-surface);
+}
+.order-empty-strip-sub {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: var(--ft-on-surface-variant);
+}
+.order-empty-strip-btn {
+  flex-shrink: 0;
+  padding: 12rpx 28rpx;
+  border-radius: 9999rpx;
+  font-size: 24rpx;
+  font-weight: 900;
+  color: var(--ft-on-primary);
+  background: linear-gradient(135deg, var(--ft-primary) 0%, var(--ft-primary-container) 100%);
 }
 
 /* 新家庭空态大卡片 */

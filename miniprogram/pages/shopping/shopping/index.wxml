@@ -1,4 +1,5 @@
 <view class="ft-page shopping-page">
+  <ft-loading id="ft-loading" />
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
@@ -16,15 +17,21 @@
   >
     <view class="main-inner">
       <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
-        <view class="ft-loading-spinner" />
+        <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
+        <view class="ft-loading-dots">
+          <view class="ft-loading-dot"></view>
+          <view class="ft-loading-dot"></view>
+          <view class="ft-loading-dot"></view>
+        </view>
         <text class="ft-loading-text">加载采购清单…</text>
       </view>
 
       <view class="header-card" wx:if="{{!checklistLoading}}">
         <view class="header-row">
           <view>
-            <view class="head-kicker">点菜单</view>
-            <view class="head-name">{{order.orderName || "未命名点菜单"}}</view>
+            <view class="head-kicker">{{combined ? "一起买 · " + orders.length + " 单" : "点菜单"}}</view>
+            <view class="head-name" wx:if="{{combined}}">{{orders.length ? orders[0].orderName : order.orderName}} 等 {{orders.length}} 单</view>
+            <view class="head-name" wx:else>{{order.orderName || "未命名点菜单"}}</view>
             <view class="head-progress">采购进度：<text class="head-progress-v">{{progress.doneCount}}/{{progress.totalCount}}</text></view>
           </view>
           <view class="head-icon">
@@ -71,7 +78,15 @@
           </block>
         </view>
 
-        <view class="group-title" wx:if="{{viewItemsFood && viewItemsFood.length}}">食材</view>
+        <view class="group-title-row" wx:if="{{viewItemsFood && viewItemsFood.length}}">
+          <view class="group-title">食材</view>
+          <view
+            class="season-all-btn {{(order.status!=='pending_shopping' || actionBusy) ? 'hidden' : ''}}"
+            bindtap="onConfirmAllFood"
+          >
+            全部确认
+          </view>
+        </view>
         <view class="items" wx:if="{{viewItemsFood && viewItemsFood.length}}">
           <block wx:for="{{viewItemsFood}}" wx:key="key">
             <view class="item-card" bindtap="onCheckItem" data-itemids="{{item.itemIds}}" data-alldone="{{item.allDone}}">
@@ -104,8 +119,8 @@
     </view>
   </view>
 
-  <view class="expense-mask" wx:if="{{expenseDialogVisible}}" catchtap="closeExpenseDialog">
-    <view class="expense-sheet" catchtap="noop">
+  <view class="expense-mask ft-anim-mask" wx:if="{{expenseDialogVisible}}" catchtap="closeExpenseDialog">
+    <view class="expense-sheet ft-anim-sheet" catchtap="noop">
       <view class="expense-head">
         <view>
           <view class="expense-kicker">记录消费</view>
@@ -124,7 +139,9 @@
           focus="{{expenseDialogVisible}}"
         />
       </view>
-      <view class="expense-hint">填写后可在家族干饭日历中查看每日消费</view>
+      <view class="expense-hint" wx:if="{{combined}}">金额将平摊到 {{orderIds.length}} 个点菜单，并同步到家庭干饭日历</view>
+      <view class="expense-hint" wx:else>填写后可在家族干饭日历中查看每日消费</view>
+
       <view class="expense-actions">
         <view class="expense-btn skip" bindtap="onSkipExpense">跳过</view>
         <view class="expense-btn ok" bindtap="onConfirmExpense">确认</view>

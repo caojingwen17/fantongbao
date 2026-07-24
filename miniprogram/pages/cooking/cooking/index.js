@@ -1,6 +1,7 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
+const haptics = require("../../../utils/haptics");
 
 Page({
   data: {
@@ -84,6 +85,7 @@ Page({
     const done = !!e.currentTarget.dataset.done;
     if (!stepId) return;
     if (this.data.order.status !== "pending_cooking") return;
+    haptics.light();
 
     const groups = this.data.groups || [];
     let gi = -1;
@@ -196,6 +198,7 @@ Page({
         orderId,
       });
       this.setData({ actionBusy: false, showCompleteModal: false });
+      haptics.success();
       wx.reLaunch({ url: "/pages/index/index" });
     } catch (e) {
       this.setData({ actionBusy: false, showCompleteModal: false });

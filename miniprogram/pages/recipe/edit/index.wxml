@@ -1,4 +1,5 @@
 <view class="ft-page recipe-add-page">
+  <ft-loading id="ft-loading" />
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
@@ -27,12 +28,12 @@
           <view class="cover-upload {{!canImport ? 'disabled' : ''}}" wx:if="{{!recipeImg}}">
             <view class="cover-left">
               <view class="cover-title">上传展示图</view>
-              <view class="cover-sub">建议 1:1 或 16:10</view>
+              <view class="cover-sub">将按 4:3 比例裁切</view>
             </view>
             <view class="cover-btn {{!canImport ? 'disabled' : ''}}" bindtap="onChooseImage">上传</view>
           </view>
           <view class="cover-preview" wx:if="{{recipeImg}}">
-            <image class="cover-img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
+            <image class="cover-img" mode="aspectFill" src="{{recipeImgDisplay}}" />
             <view class="cover-grad" aria-hidden="true"></view>
             <view class="cover-bottom">
               <view class="cover-btm-left">
@@ -119,7 +120,7 @@
           <view class="acc-chev" aria-hidden="true">{{accordion.prep ? "˄" : "˅"}}</view>
         </view>
         <view class="acc-body" wx:if="{{accordion.prep}}">
-          <view class="step-drag-tip">按住左侧把手拖动可调整顺序</view>
+          <view class="step-drag-tip">长按左侧把手拖动可调整顺序</view>
           <block wx:for="{{prepareSteps}}" wx:key="id">
             <view
               class="step-row js-prep-step {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
@@ -127,7 +128,7 @@
             >
               <view
                 class="step-drag-handle"
-                catchtouchstart="onStepDragStart"
+                bindlongpress="onStepDragStart"
                 catchtouchmove="onStepDragMove"
                 catchtouchend="onStepDragEnd"
                 catchtouchcancel="onStepDragEnd"
@@ -158,7 +159,7 @@
           <view class="acc-chev" aria-hidden="true">{{accordion.cook ? "˄" : "˅"}}</view>
         </view>
         <view class="acc-body" wx:if="{{accordion.cook}}">
-          <view class="step-drag-tip">按住左侧把手拖动可调整顺序</view>
+          <view class="step-drag-tip">长按左侧把手拖动可调整顺序</view>
           <block wx:for="{{cookingSteps}}" wx:key="id">
             <view
               class="step-row js-cook-step {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
@@ -166,7 +167,7 @@
             >
               <view
                 class="step-drag-handle"
-                catchtouchstart="onStepDragStart"
+                bindlongpress="onStepDragStart"
                 catchtouchmove="onStepDragMove"
                 catchtouchend="onStepDragEnd"
                 catchtouchcancel="onStepDragEnd"
@@ -189,5 +190,7 @@
   <view class="ft-bottom-bar">
     <view class="ft-btn ft-btn-primary" bindtap="onSubmit">保存修改</view>
   </view>
+
+  <ft-image-cropper id="cropper" bind:confirm="onCropConfirm" bind:cancel="onCropCancel" />
 </view>
 

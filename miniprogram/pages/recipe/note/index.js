@@ -49,7 +49,7 @@ Page({
         this.setData({
           recipeName: recipeResult.recipe.recipeName || "",
           recipeImg,
-          recipeImgDisplay: recipeImgDisplay || recipeImg,
+          recipeImgDisplay,
         });
       }
 

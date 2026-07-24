@@ -1,6 +1,11 @@
 <view class="ft-page home-page">
   <view class="ft-loading-mask" wx:if="{{homeBootstrapping}}">
-    <view class="ft-loading-spinner"></view>
+    <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
+    <view class="ft-loading-dots">
+      <view class="ft-loading-dot"></view>
+      <view class="ft-loading-dot"></view>
+      <view class="ft-loading-dot"></view>
+    </view>
     <text class="ft-loading-text">加载中…</text>
   </view>
 
@@ -77,7 +82,7 @@
       <view class="family-top">
         <view class="family-left">
           <view class="kicker">当前家庭</view>
-          <view class="family-name-btn" bindtap="onToggleFamilyPicker" role="button" aria-label="切换家庭">
+          <view class="family-name-btn" bindtap="onToggleFamilyPicker">
             <view class="family-name">
               {{homeGuest ? "未登录" : ((currentFamily && currentFamily.familyName) ? currentFamily.familyName : "未选择家庭")}}
             </view>
@@ -98,8 +103,8 @@
             </view>
           </view>
         </view>
-        <button class="family-settings" bindtap="goFamily">
-          <view class="ft-ico ft-ico-settings"></view>
+        <button class="family-settings" catchtap="goFamily">
+          <view class="ft-ico ft-ico-home-gear"></view>
         </button>
       </view>
 
@@ -110,7 +115,6 @@
           wx:if="{{memberAvatarDisplays && memberAvatarDisplays[0]}}"
           mode="aspectFill"
           src="{{memberAvatarDisplays[0]}}"
-          aria-label="成员头像"
         />
         <view class="avatar-fallback avatar-a" wx:else aria-hidden="true"></view>
 
@@ -120,7 +124,6 @@
             wx:if="{{memberAvatarDisplays && memberAvatarDisplays[1]}}"
             mode="aspectFill"
             src="{{memberAvatarDisplays[1]}}"
-            aria-label="成员头像"
           />
           <view class="avatar-fallback avatar-b" wx:else aria-hidden="true"></view>
         </block>
@@ -148,6 +151,7 @@
       <view class="section-head">
         <view class="section-title">点菜单</view>
         <view class="section-head-right">
+          <view class="shop-together-btn" wx:if="{{shopTogetherCount >= 2}}" bindtap="onOpenShopTogether">一起买</view>
           <view class="count-pill" wx:if="{{pendingOrders && pendingOrders.length}}">{{pendingOrders.length}} 项</view>
           <view class="section-add-btn" bindtap="openCreateOrderModal" aria-label="新建点菜单">+</view>
         </view>
@@ -170,7 +174,16 @@
           </view>
         </block>
       </view>
-      <view class="empty" wx:if="{{!pendingOrders || pendingOrders.length===0}}">暂无点菜单</view>
+      <view class="order-empty-strip ft-card-lowest" wx:if="{{!pendingOrders || pendingOrders.length===0}}" bindtap="openCreateOrderModal">
+        <view class="order-empty-strip-icon">
+          <view class="ft-ico ft-ico-basket"></view>
+        </view>
+        <view class="order-empty-strip-text">
+          <view class="order-empty-strip-title">今天吃什么？</view>
+          <view class="order-empty-strip-sub">创建点菜单，和家人安排这一餐</view>
+        </view>
+        <view class="order-empty-strip-btn">创建</view>
+      </view>
     </view>
 
     <!-- 常用菜谱 -->
@@ -184,7 +197,7 @@
         <block wx:for="{{recipes}}" wx:key="id">
           <view class="recipe-tile ft-card-lowest" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
             <view class="recipe-media">
-              <image class="recipe-img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
+              <image class="recipe-img" wx:if="{{item.recipeImgDisplay}}" mode="aspectFill" src="{{item.recipeImgDisplay}}" />
               <view class="recipe-grad"></view>
               <view class="recipe-meta">
                 <view class="recipe-tag">常用</view>
@@ -226,8 +239,8 @@
   </scroll-view>
 
   <!-- 家庭切换浮层（遮罩 + 底部面板） -->
-  <view class="sheet-mask" wx:if="{{showFamilyPicker}}" catchtap="onCloseFamilyPicker"></view>
-  <view class="sheet" wx:if="{{showFamilyPicker}}" catchtap="noop" aria-label="家庭切换面板">
+  <view class="sheet-mask ft-anim-mask" wx:if="{{showFamilyPicker}}" catchtap="onCloseFamilyPicker"></view>
+  <view class="sheet ft-anim-sheet" wx:if="{{showFamilyPicker}}" catchtap="noop">
     <view class="sheet-head">
       <view class="sheet-head-left">
         <view class="sheet-kicker">当前家庭邀请码</view>
@@ -261,14 +274,51 @@
     </view>
 
     <button class="sheet-manage" bindtap="goFamily">
-      <view class="ft-ico ft-ico-settings"></view>
+      <view class="ft-ico ft-ico-home-gear"></view>
       家庭管理
     </button>
   </view>
 
+  <!-- 一起买：选择要合并采购的点菜单 -->
+  <view class="sheet-mask ft-anim-mask" wx:if="{{showShopTogetherSheet}}" catchtap="onCloseShopTogether"></view>
+  <view class="sheet ft-anim-sheet" wx:if="{{showShopTogetherSheet}}" catchtap="noop">
+    <view class="sheet-head">
+      <view class="sheet-head-left">
+        <view class="sheet-kicker">一起买</view>
+        <view class="sheet-title">选择要一起买的点菜单</view>
+      </view>
+      <button class="sheet-close" bindtap="onCloseShopTogether" hover-class="none">
+        <text class="sheet-close-x" aria-hidden="true">✕</text>
+      </button>
+    </view>
+
+    <view class="sheet-list">
+      <block wx:for="{{shopTogetherOptions}}" wx:key="_id">
+        <view
+          class="sheet-item ft-card-lowest {{item.checked ? 'sheet-item-active' : ''}}"
+          data-index="{{index}}"
+          bindtap="onToggleShopTogetherOrder"
+        >
+          <view class="sheet-item-left">
+            <view class="sheet-item-name">{{item.orderName}}</view>
+            <view class="sheet-item-sub">{{item.recipeCount}} 道菜</view>
+          </view>
+          <view class="sheet-item-right" aria-hidden="true">{{item.checked ? "✔" : ""}}</view>
+        </view>
+      </block>
+    </view>
+
+    <button
+      class="sheet-manage shop-together-go {{shopTogetherCheckedCount < 2 ? 'disabled' : ''}}"
+      bindtap="confirmShopTogether"
+    >
+      开始一起买（{{shopTogetherCheckedCount}} 单）
+    </button>
+  </view>
+
   <!-- 新手三步（创建/加入家庭后进首页） -->
-  <view class="onboard-mask" wx:if="{{onboardSheetVisible}}" catchtap="closeOnboardSheet"></view>
-  <view class="onboard-sheet" wx:if="{{onboardSheetVisible}}" catchtap="noop">
+  <view class="onboard-mask ft-anim-mask" wx:if="{{onboardSheetVisible}}" catchtap="closeOnboardSheet"></view>
+  <view class="onboard-sheet ft-anim-card-c" wx:if="{{onboardSheetVisible}}" catchtap="noop">
     <view class="onboard-kicker">欢迎</view>
     <view class="onboard-title">接下来可以这样做</view>
     <view class="onboard-steps">
@@ -298,8 +348,8 @@
   </view>
 
   <!-- 新建点菜单 -->
-  <view class="create-order-mask" wx:if="{{showCreateOrderModal}}" catchtap="closeCreateOrderModal"></view>
-  <view class="create-order-modal" wx:if="{{showCreateOrderModal}}" catchtap="noop">
+  <view class="create-order-mask ft-anim-mask" wx:if="{{showCreateOrderModal}}" catchtap="closeCreateOrderModal"></view>
+  <view class="create-order-modal ft-anim-card-c" wx:if="{{showCreateOrderModal}}" catchtap="noop">
     <view class="create-order-kicker">新建点菜单</view>
     <view class="create-order-label">点菜单名称</view>
     <input

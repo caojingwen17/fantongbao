@@ -1,6 +1,7 @@
 const auth = require("../../../utils/auth");
 const invite = require("../../../utils/invite");
 const share = require("../../../utils/share");
+const ui = require("../../../utils/ui");
 
 Page({
   data: {
@@ -77,18 +78,18 @@ Page({
     }
 
     this.setData({ joining: true, needLogin: false });
-    wx.showLoading({ title: "加入家庭中…", mask: true });
+    ui.showLoading("加入家庭中…", true);
     try {
       await invite.joinFamilyByInviteCode(this.data.inviteCode);
       this._joinHandled = true;
       invite.clearPendingInviteCode();
-      wx.hideLoading();
+      ui.hideLoading();
       this.setData({ joined: true });
       setTimeout(() => {
         wx.reLaunch({ url: "/pages/index/index?onboard=1" });
       }, 600);
     } catch (e) {
-      wx.hideLoading();
+      ui.hideLoading();
       this.setData({ joining: false, needLogin: !auth.isLoggedIn() });
       wx.showToast({
         title: (e && e.message) || "加入失败，请重试",

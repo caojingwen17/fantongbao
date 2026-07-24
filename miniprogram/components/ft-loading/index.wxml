@@ -1,0 +1,10 @@
+<view
+  class="ft-pl-wrap {{mask ? '' : 'ft-pl-through'}} {{closing ? 'ft-pl-closing' : ''}}"
+  wx:if="{{visible}}"
+  catchtouchmove="noop"
+>
+  <view class="ft-pl-card">
+    <view class="ft-pl-ring"></view>
+    <view class="ft-pl-text" wx:if="{{title}}">{{title}}</view>
+  </view>
+</view>

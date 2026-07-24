@@ -3,6 +3,7 @@ const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 const { uploadRecipeDisplayImage, notifyPublishSecError } = require("../../../utils/sec");
+const haptics = require("../../../utils/haptics");
 const {
   createStepItem,
   normalizeStepItems,
@@ -72,7 +73,7 @@ Page({
         this.setData({
           recipeName: r.recipeName || "",
           recipeImg,
-          recipeImgDisplay: recipeImgDisplay || recipeImg,
+          recipeImgDisplay,
           xiaohongshuUrl: r.xiaohongshuUrl || "",
           canImport: !!String(r.recipeName || "").trim(),
           ingredients: r.ingredients && r.ingredients.length ? r.ingredients : [{ name: "", amount: "" }],
@@ -109,28 +110,37 @@ Page({
   onChooseImage() {
     wx.chooseImage({
       count: 1,
-      success: async (res) => {
+      success: (res) => {
         const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : "";
         if (!filePath) return;
-        if (!this.data.familyId) {
-          wx.showToast({ title: "请先选择家庭", icon: "none" });
-          return;
-        }
-        ui.showLoading("检测中…", true);
-        try {
-          const fid = await uploadRecipeDisplayImage(filePath, this.data.familyId);
-          const recipeImgDisplay = await resolveForImage(fid, {
-            familyId: this.data.familyId,
-          });
-          this.setData({ recipeImg: fid, recipeImgDisplay: recipeImgDisplay || fid });
-          ui.hideLoading();
-          wx.showToast({ title: "图片上传成功", icon: "none" });
-        } catch (e) {
-          notifyPublishSecError(e);
-        }
+        const cropper = this.selectComponent("#cropper");
+        if (cropper) cropper.open({ src: filePath });
       },
     });
   },
+
+  async onCropConfirm(e) {
+    const filePath = e && e.detail && e.detail.tempFilePath ? e.detail.tempFilePath : "";
+    if (!filePath) return;
+    if (!this.data.familyId) {
+      wx.showToast({ title: "请先选择家庭", icon: "none" });
+      return;
+    }
+    ui.showLoading("检测中…", true);
+    try {
+      const fid = await uploadRecipeDisplayImage(filePath, this.data.familyId);
+      const recipeImgDisplay = await resolveForImage(fid, {
+        familyId: this.data.familyId,
+      });
+      this.setData({ recipeImg: fid, recipeImgDisplay });
+      ui.hideLoading();
+      wx.showToast({ title: "图片上传成功", icon: "none" });
+    } catch (err) {
+      notifyPublishSecError(err);
+    }
+  },
+
+  onCropCancel() {},
 
   // 食材
   onIngredientNameInput(e) {
@@ -242,6 +252,7 @@ Page({
           startY: touch.clientY,
           rects,
         };
+        haptics.light();
         this.setData({
           stepDrag: {
             active: true,
@@ -345,6 +356,7 @@ Page({
       });
     }, "保存中…");
 
+    haptics.success();
     wx.showToast({ title: "保存成功", icon: "none" });
     wx.navigateBack();
   },

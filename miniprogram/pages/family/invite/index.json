@@ -1,4 +1,6 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "ft-loading": "/components/ft-loading/index"
+  },
   "navigationBarTitleText": "加入家庭"
 }

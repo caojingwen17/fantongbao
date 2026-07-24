@@ -1,6 +1,7 @@
 /**app.wxss**/
 @import "styles/apricot.wxss";
 @import "styles/icons.wxss";
+@import "styles/motion.wxss";
 .container {
   display: flex;
   flex-direction: column;
@@ -28,7 +29,7 @@ page {
   justify-content: flex-start;
 }
 
-/* 全局：列表/页面内联 loading（与 wx.showLoading 配合使用，避免重复） */
+/* 全局：整页加载（品牌瓷片 + 跳动小点） */
 .ft-loading-mask {
   position: fixed;
   left: 0;
@@ -36,18 +37,64 @@ page {
   top: 0;
   bottom: 0;
   z-index: 900;
-  background: rgba(246, 246, 246, 0.85);
+  background: rgba(255, 245, 236, 0.92);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20rpx;
+  gap: 24rpx;
+  animation: ft-fade-in 0.2s ease-out both;
 }
+.ft-loading-mark {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 32rpx;
+  background: var(--ft-surface-container-lowest, #ffffff);
+  box-shadow: 0 16rpx 40rpx rgba(135, 78, 0, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ft-loading-float 1.6s ease-in-out infinite;
+}
+.ft-loading-mark .ft-ico {
+  width: 56rpx;
+  height: 56rpx;
+}
+@keyframes ft-loading-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10rpx); }
+}
+.ft-loading-dots {
+  display: flex;
+  gap: 14rpx;
+}
+.ft-loading-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 9999rpx;
+  background: linear-gradient(135deg, var(--ft-primary, #874e00), var(--ft-primary-container, #ff9800));
+  animation: ft-loading-bounce 1s ease-in-out infinite;
+}
+.ft-loading-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ft-loading-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes ft-loading-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(-12rpx); opacity: 1; }
+}
+.ft-loading-text {
+  font-size: 26rpx;
+  color: var(--ft-on-surface-variant, #765524);
+}
+/* 旧 spinner 兼容（逐步淘汰） */
 .ft-loading-spinner {
   width: 44rpx;
   height: 44rpx;
-  border: 4rpx solid rgba(0, 0, 0, 0.08);
-  border-top-color: #07c160;
+  border: 4rpx solid rgba(135, 78, 0, 0.12);
+  border-top-color: var(--ft-primary, #874e00);
   border-radius: 50%;
   animation: ft-spin 0.75s linear infinite;
 }
@@ -55,10 +102,6 @@ page {
   to {
     transform: rotate(360deg);
   }
-}
-.ft-loading-text {
-  font-size: 26rpx;
-  color: rgba(0, 0, 0, 0.45);
 }
 .ft-list-dim {
   opacity: 0.45;

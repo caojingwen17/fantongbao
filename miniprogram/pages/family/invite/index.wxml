@@ -1,4 +1,5 @@
 <view class="invite-page">
+  <ft-loading id="ft-loading" />
   <view class="invite-loading" wx:if="{{loading}}">
     <view class="invite-spinner"></view>
     <text>正在加载邀请…</text>

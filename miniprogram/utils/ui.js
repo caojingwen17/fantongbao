@@ -1,12 +1,34 @@
 /**
- * 统一 loading，避免各页重复写 wx.showLoading / hideLoading 与异常分支遗漏。
+ * 统一 loading：优先使用页面内挂载的 <ft-loading id="ft-loading" /> 品牌弹层，
+ * 页面未挂载组件时回退原生 wx.showLoading，保证任何页面调用都不报错。
  */
 
+function getPageLoading() {
+  try {
+    const pages = getCurrentPages();
+    const page = pages && pages.length ? pages[pages.length - 1] : null;
+    if (!page || typeof page.selectComponent !== "function") return null;
+    return page.selectComponent("#ft-loading");
+  } catch (e) {
+    return null;
+  }
+}
+
 function showLoading(title = "加载中…", mask = true) {
+  const comp = getPageLoading();
+  if (comp && typeof comp.show === "function") {
+    comp.show({ title, mask });
+    return;
+  }
   wx.showLoading({ title, mask });
 }
 
 function hideLoading() {
+  const comp = getPageLoading();
+  if (comp && typeof comp.hide === "function") {
+    comp.hide();
+    return;
+  }
   if (typeof wx.hideLoading !== "function") return;
   try {
     wx.hideLoading({ noConflict: true });

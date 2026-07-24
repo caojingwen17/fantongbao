@@ -2,6 +2,7 @@ const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
 const share = require("../../../utils/share");
+const haptics = require("../../../utils/haptics");
 
 Page({
   data: {
@@ -24,6 +25,60 @@ Page({
       confirmText: "确认",
       danger: false,
     },
+    /** 买菜消费修改弹窗 */
+    expenseDialogVisible: false,
+    expenseInput: "",
+  },
+
+  openExpenseDialog() {
+    if (this.data.actionBusy) return;
+    const cur = this.data.order && this.data.order.shoppingExpense;
+    this.setData({
+      expenseDialogVisible: true,
+      expenseInput: cur ? String(cur) : "",
+    });
+  },
+
+  closeExpenseDialog() {
+    this.setData({
+      expenseDialogVisible: false,
+      expenseInput: "",
+    });
+  },
+
+  onExpenseInput(e) {
+    this.setData({ expenseInput: (e && e.detail && e.detail.value) || "" });
+  },
+
+  async onConfirmExpense() {
+    const raw = (this.data.expenseInput || "").trim();
+    if (!raw) {
+      wx.showToast({ title: "请输入金额", icon: "none" });
+      return;
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) {
+      wx.showToast({ title: "请输入有效金额", icon: "none" });
+      return;
+    }
+    const orderId = this.data.orderId;
+    if (!orderId || this.data.actionBusy) return;
+    this.setData({ actionBusy: true });
+    try {
+      await ui.withLoading(async () => {
+        await cloud.callFunctionWithErrorToast("checklistFunctions", {
+          type: "setShoppingExpense",
+          orderId,
+          shoppingExpense: n,
+        });
+      }, "提交中…");
+      this.closeExpenseDialog();
+      haptics.medium();
+      wx.showToast({ title: "已更新金额", icon: "none" });
+      await this.refreshOrder();
+    } finally {
+      this.setData({ actionBusy: false });
+    }
   },
 
   openConfirm(opts, action) {
@@ -204,11 +259,13 @@ Page({
                     orderId: this.data.orderId,
                   });
                 }, "删除中…");
+                haptics.medium();
                 wx.showToast({ title: "已删除", icon: "none" });
                 wx.navigateTo({ url: "/pages/order/list/index" });
               }
             );
           } else {
+            haptics.medium();
             wx.showToast({ title: "已删除", icon: "none" });
           }
         } finally {
@@ -302,6 +359,7 @@ Page({
               orderId: this.data.orderId,
             });
           }, "删除中…");
+          haptics.medium();
           wx.showToast({ title: "已删除", icon: "none" });
           wx.reLaunch({ url: "/pages/index/index" });
         } finally {

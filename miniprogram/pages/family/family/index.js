@@ -3,6 +3,8 @@ const auth = require("../../../utils/auth");
 const share = require("../../../utils/share");
 const invite = require("../../../utils/invite");
 const { resolveBatch, attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
+const haptics = require("../../../utils/haptics");
+const ui = require("../../../utils/ui");
 
 /** cloud:// 不能直接作 image src（开发者工具会拼成页面相对路径）；仅使用解析后的 https 或原 http(s) */
 function avatarUrlForDisplay(raw, fileIdToHttps) {
@@ -522,7 +524,7 @@ Page({
     }
     if (this.data.actionBusy) return;
     this.setData({ actionBusy: true });
-    wx.showLoading({ title: "创建中…", mask: true });
+    ui.showLoading("创建中…", true);
     try {
       const resp = await cloud.callFunctionWithErrorToast("familyFunctions", {
         type: "createFamily",
@@ -534,12 +536,13 @@ Page({
       }
       this.setData({ familyName: "" });
       await this.refreshFamiliesList();
+      haptics.success();
       wx.showToast({ title: "已创建家庭", icon: "success" });
       setTimeout(() => {
         wx.reLaunch({ url: "/pages/index/index?onboard=1" });
       }, 500);
     } finally {
-      wx.hideLoading();
+      ui.hideLoading();
       this.setData({ actionBusy: false });
     }
   },
@@ -551,7 +554,7 @@ Page({
     }
     if (this.data.actionBusy) return;
     this.setData({ actionBusy: true });
-    wx.showLoading({ title: "加入中…", mask: true });
+    ui.showLoading("加入中…", true);
     try {
       const resp = await cloud.callFunctionWithErrorToast("familyFunctions", {
         type: "joinFamily",
@@ -563,12 +566,13 @@ Page({
       }
       this.setData({ inviteCode: "" });
       await this.refreshFamiliesList();
+      haptics.success();
       wx.showToast({ title: "已加入家庭", icon: "success" });
       setTimeout(() => {
         wx.reLaunch({ url: "/pages/index/index?onboard=1" });
       }, 500);
     } finally {
-      wx.hideLoading();
+      ui.hideLoading();
       this.setData({ actionBusy: false });
     }
   },
@@ -651,18 +655,19 @@ Page({
       },
       async () => {
         this.setData({ actionBusy: true });
-        wx.showLoading({ title: "移除中…", mask: true });
+        ui.showLoading("移除中…", true);
         try {
           await cloud.callFunctionWithErrorToast("familyFunctions", {
             type: "kickMember",
             familyId: currentFamily._id,
             memberId,
           });
+          haptics.medium();
           wx.showToast({ title: "已移除成员", icon: "success" });
           await this.refreshFamiliesList();
           await this.fetchFamilyDetail(currentFamily._id);
         } finally {
-          wx.hideLoading();
+          ui.hideLoading();
           this.setData({ actionBusy: false });
         }
       }
@@ -676,7 +681,7 @@ Page({
     if (!currentFamily) return;
     if (this.data.actionBusy) return;
     this.setData({ actionBusy: true });
-    wx.showLoading({ title: "退出中…", mask: true });
+    ui.showLoading("退出中…", true);
     try {
       await cloud.callFunctionWithErrorToast("familyFunctions", {
         type: "exitFamily",
@@ -685,7 +690,7 @@ Page({
       await this.refreshFamiliesList();
       this.setData({ viewMode: "list" });
     } finally {
-      wx.hideLoading();
+      ui.hideLoading();
       this.setData({ actionBusy: false });
     }
   },

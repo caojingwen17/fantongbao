@@ -69,6 +69,7 @@
 
 /* buttons */
 .ft-btn {
+  box-sizing: border-box;
   border-radius: var(--ft-r-full);
   padding: 0 28rpx;
   height: 84rpx;

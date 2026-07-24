@@ -1,0 +1,78 @@
+/* Motion tokens — iOS 风格缓动与进出场动画 */
+
+:root,
+page {
+  /* iOS 标准缓出曲线 */
+  --ft-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ft-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ft-dur-fast: 0.18s;
+  --ft-dur: 0.26s;
+  --ft-dur-slow: 0.36s;
+}
+
+@keyframes ft-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ft-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes ft-fade-up {
+  from { opacity: 0; transform: translateY(32rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ft-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes ft-scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.94); }
+}
+@keyframes ft-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes ft-scale-in-c {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes ft-slide-up-x {
+  from { transform: translateX(-50%) translateY(100%); }
+  to { transform: translateX(-50%) translateY(0); }
+}
+@keyframes ft-pop {
+  0% { transform: scale(0.55); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* 遮罩淡入（挂载即播放） */
+.ft-anim-mask {
+  animation: ft-fade-in var(--ft-dur-fast) var(--ft-ease) both;
+}
+/* 居中卡片弹入 */
+.ft-anim-card {
+  animation: ft-scale-in var(--ft-dur) var(--ft-ease-spring) both;
+}
+/* 底部面板滑入 */
+.ft-anim-sheet {
+  animation: ft-slide-up var(--ft-dur) var(--ft-ease) both;
+}
+/* 居中弹窗（元素自身用 translate(-50%,-50%) 定位时） */
+.ft-anim-card-c {
+  animation: ft-scale-in-c var(--ft-dur) var(--ft-ease-spring) both;
+}
+/* 底部面板滑入（元素自身用 translateX(-50%) 水平居中时） */
+.ft-anim-sheet-x {
+  animation: ft-slide-up-x var(--ft-dur) var(--ft-ease) both;
+}
+/* 列表/内容块入场 */
+.ft-anim-fade-up {
+  animation: ft-fade-up var(--ft-dur-slow) var(--ft-ease) both;
+}
+/* 勾选/小元素回弹 */
+.ft-anim-pop {
+  animation: ft-pop var(--ft-dur-fast) var(--ft-ease-spring) both;
+}

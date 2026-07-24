@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#874e00"/><stop offset="1" stop-color="#ff9800"/>
+</linearGradient></defs><rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect x="212" y="212" width="600" height="600" rx="150" fill="#fff5ec"/>
+  <text x="512" y="640" font-size="360" font-weight="900" font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="#874e00" text-anchor="middle">饭</text>
+</svg>

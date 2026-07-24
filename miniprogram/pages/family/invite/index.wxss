@@ -24,8 +24,8 @@
 .invite-spinner {
   width: 56rpx;
   height: 56rpx;
-  border: 4rpx solid rgba(0, 0, 0, 0.08);
-  border-top-color: #07c160;
+  border: 4rpx solid rgba(135, 78, 0, 0.12);
+  border-top-color: var(--ft-primary, #874e00);
   border-radius: 50%;
   animation: invite-spin 0.8s linear infinite;
 }

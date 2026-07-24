@@ -1,4 +1,5 @@
 <view class="ft-page cooking-page">
+  <ft-loading id="ft-loading" />
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
@@ -16,7 +17,12 @@
   >
     <view class="main-inner">
       <view class="ft-loading-mask" wx:if="{{checklistLoading}}">
-        <view class="ft-loading-spinner" />
+        <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
+        <view class="ft-loading-dots">
+          <view class="ft-loading-dot"></view>
+          <view class="ft-loading-dot"></view>
+          <view class="ft-loading-dot"></view>
+        </view>
         <text class="ft-loading-text">加载制作步骤…</text>
       </view>
 

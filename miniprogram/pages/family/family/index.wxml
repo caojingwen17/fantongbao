@@ -1,9 +1,15 @@
-<view class="page-boot" wx:if="{{pageBooting}}">
-  <view class="boot-spinner" />
-  <text class="boot-text">加载家庭数据…</text>
+<view class="ft-loading-mask" wx:if="{{pageBooting}}">
+  <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
+  <view class="ft-loading-dots">
+    <view class="ft-loading-dot"></view>
+    <view class="ft-loading-dot"></view>
+    <view class="ft-loading-dot"></view>
+  </view>
+  <text class="ft-loading-text">加载家庭数据…</text>
 </view>
 
 <view class="ft-page family-page" wx:else>
+  <ft-loading id="ft-loading" />
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
@@ -108,7 +114,7 @@
           <view class="recipe-grid" wx:if="{{!recipesLoading && recipes && recipes.length}}">
             <block wx:for="{{recipes}}" wx:key="id">
               <view class="recipe-thumb">
-                <image class="recipe-img" mode="aspectFill" src="{{item.recipeImgDisplay || item.recipeImg}}" />
+                <image class="recipe-img" wx:if="{{item.recipeImgDisplay}}" mode="aspectFill" src="{{item.recipeImgDisplay}}" />
               </view>
             </block>
             <view class="recipe-thumb more" wx:if="{{recipeTotalCount > 7}}"><text>…</text></view>
@@ -178,8 +184,8 @@
     <view class="ft-btn ft-btn-primary" bindtap="openCreateDialog">创建家庭</view>
   </view>
 
-  <view class="meal-cal-modal-mask" wx:if="{{mealCalModalVisible}}" catchtap="closeMealCalModal">
-    <view class="meal-cal-modal-sheet" catchtap="noop">
+  <view class="meal-cal-modal-mask ft-anim-mask" wx:if="{{mealCalModalVisible}}" catchtap="closeMealCalModal">
+    <view class="meal-cal-modal-sheet ft-anim-card" catchtap="noop">
       <view class="meal-cal-modal-hero">
         <view class="meal-cal-modal-kicker">当天消费明细</view>
         <view class="meal-cal-modal-title">{{mealCalModalTitle}}</view>
@@ -219,8 +225,8 @@
     </view>
   </view>
 
-  <view class="dialog-mask" wx:if="{{dialogVisible}}" catchtap="closeDialog">
-    <view class="sheet" catchtap="noop">
+  <view class="dialog-mask ft-anim-mask" wx:if="{{dialogVisible}}" catchtap="closeDialog">
+    <view class="sheet ft-anim-sheet-x" catchtap="noop">
       <view class="sheet-head">
         <view>
           <view class="sheet-kicker">{{dialogMode==='create' ? "创建家庭" : "加入家庭"}}</view>

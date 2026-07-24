@@ -1,6 +1,7 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
+const haptics = require("../../../utils/haptics");
 const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 const KEYWORD_DEBOUNCE_MS = 320;
@@ -231,6 +232,7 @@ Page({
         });
       }, "提交中…");
       getApp().globalData.homeDirty = true;
+      haptics.medium();
       wx.showToast({ title: "已提交", icon: "success" });
       setTimeout(() => this.goBackFromPick(), 400);
     } catch (err) {
@@ -243,7 +245,11 @@ Page({
   onTapAdd(e) {
     const recipeId = e.currentTarget.dataset.recipeid;
     const inOrder = e.currentTarget.dataset.inorder;
-    if (inOrder === true || inOrder === "true") return;
+    // 已点状态下按钮为「−」，点击取消点这道菜
+    if (inOrder === true || inOrder === "true") {
+      this.onPickedRemove(e);
+      return;
+    }
     const { order, localPicked } = this.data;
     if (!recipeId || !order) return;
     if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {
@@ -252,6 +258,7 @@ Page({
     }
     const ids = new Set((localPicked || []).map((r) => r.recipeId));
     if (ids.has(recipeId)) return;
+    haptics.light();
     const raw = (this.data.recipesRaw || []).find((r) => r.id === recipeId);
     const recipeName = raw && raw.recipeName ? raw.recipeName : "";
     const next = [
@@ -270,6 +277,7 @@ Page({
   onPickedRemove(e) {
     const recipeId = e.currentTarget.dataset.recipeid;
     if (!recipeId) return;
+    haptics.light();
     const { order, localPicked } = this.data;
     if (!order) return;
     if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {

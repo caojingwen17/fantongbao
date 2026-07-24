@@ -2,7 +2,9 @@
   "navigationBarTitleText": "编辑菜谱",
   "navigationStyle": "custom",
   "usingComponents": {
-    "ft-topbar": "/components/ft-topbar/index"
+    "ft-topbar": "/components/ft-topbar/index",
+    "ft-loading": "/components/ft-loading/index",
+    "ft-image-cropper": "/components/ft-image-cropper/index"
   }
 }
 

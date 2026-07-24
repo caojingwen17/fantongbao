@@ -1,0 +1,70 @@
+.ft-cropper-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1300;
+  background: rgba(20, 12, 4, 0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.ft-cropper-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ft-cropper-frame {
+  position: relative;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+.ft-cropper-area {
+  display: block;
+}
+.ft-cropper-view {
+  display: block;
+}
+.ft-cropper-img {
+  display: block;
+}
+.ft-cropper-border {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 24rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.9);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.ft-cropper-tip {
+  margin-top: 28rpx;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.6);
+}
+.ft-cropper-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 24rpx;
+  padding: 24rpx 48rpx calc(40rpx + constant(safe-area-inset-bottom));
+  padding: 24rpx 48rpx calc(40rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.ft-cropper-btn {
+  flex: 1;
+  height: 88rpx;
+  font-size: 30rpx;
+}
+.ft-cropper-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+}

@@ -1,11 +1,16 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
+const haptics = require("../../../utils/haptics");
 
 Page({
   data: {
     orderId: "",
+    /** 多单一起买：全部订单 id（单参时也为 1 个） */
+    orderIds: [],
+    combined: false,
     order: {},
+    orders: [],
     mergedItems: [],
     viewItems: [],
     viewItemsSeasoning: [],
@@ -68,7 +73,11 @@ Page({
       const displaySource = amountText ? `${rawSource}（${amountText}）` : rawSource;
       const name = m && m.name ? String(m.name) : "";
       const isManual = !!(m && m.manualItemIds && m.manualItemIds.length);
-      const isSeasoning = /(酱|油|盐|醋|糖|料酒|耗油|胡椒|花椒|孜然|辣椒|豆瓣|味精)/.test(name);
+      // 优先用后端按 itemSource 给的分类；旧数据缺字段时退回名称正则
+      const isSeasoning =
+        typeof (m && m.isSeasoning) === "boolean"
+          ? m.isSeasoning
+          : /(酱|油|盐|醋|糖|料酒|耗油|蚝油|生抽|老抽|胡椒|花椒|孜然|辣椒|豆瓣|味精|鸡精|豉油)/.test(name);
       return {
         ...m,
         displayName: name,
@@ -106,8 +115,14 @@ Page({
   async onLoad(options) {
     const ok = await auth.requireLoggedInOrBack({ content: "使用买菜清单需要先登录。" });
     if (!ok) return;
-    const orderId = options && options.orderId ? options.orderId : "";
-    this.setData({ orderId });
+    // 多单一起买：orderIds=逗号分隔；单点菜单：orderId
+    const rawIds = options && options.orderIds ? String(options.orderIds) : "";
+    const orderIds = rawIds
+      ? rawIds.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    const orderId = orderIds.length ? orderIds[0] : (options && options.orderId) || "";
+    if (!orderIds.length && orderId) orderIds.push(orderId);
+    this.setData({ orderId, orderIds, combined: orderIds.length > 1 });
     this._skipShowFetchOnce = true;
     await this.fetchChecklist();
   },
@@ -132,25 +147,31 @@ Page({
   },
 
   async _doFetchChecklist() {
-    const { orderId } = this.data;
+    const { orderId, orderIds, combined } = this.data;
     if (!orderId) return;
     this.setData({ checklistLoading: true });
     try {
-      const result = await cloud.callFunction("checklistFunctions", {
-        type: "getShoppingChecklist",
-        orderId,
-      });
+      // orderId 一并传上：新版后端优先用 orderIds，旧版可退化为单参，避免升级期全空
+      const payload = { type: "getShoppingChecklist", orderId };
+      if (combined) payload.orderIds = orderIds;
+      const result = await cloud.callFunction("checklistFunctions", payload);
       if (result) {
         const totalCount = result.totalCount || 0;
         const doneCount = result.doneCount || 0;
         const mergedItems = result.mergedItems || [];
         this.setData({
           order: result.order || {},
+          orders: Array.isArray(result.orders) ? result.orders : [],
           groups: result.groups || [],
           progress: { totalCount, doneCount },
         });
         this.applyMergedItemsToView(mergedItems, { totalCount, doneCount });
       }
+    } catch (e) {
+      wx.showToast({
+        title: (e && e.message ? e.message : "清单加载失败").slice(0, 30),
+        icon: "none",
+      });
     } finally {
       this.setData({ checklistLoading: false });
     }
@@ -207,6 +228,7 @@ Page({
     const wasDone = !!e.currentTarget.dataset.alldone;
     const targetDone = !wasDone;
     if (!itemIds || !itemIds.length) return;
+    haptics.light();
     const prevMergedItems = JSON.parse(JSON.stringify(this.data.mergedItems || []));
     const prevProgress = { ...(this.data.progress || { totalCount: 0, doneCount: 0 }) };
 
@@ -296,6 +318,56 @@ Page({
     }
   },
 
+  /** 食材一键全部确认（逻辑同调料） */
+  async onConfirmAllFood() {
+    if (!this.data.order || this.data.order.status !== "pending_shopping") return;
+    if (this.data.actionBusy) return;
+    const undoneGroups = (this.data.viewItemsFood || []).filter((x) => !x.allDone);
+    if (!undoneGroups.length) {
+      wx.showToast({ title: "食材已全部确认", icon: "none" });
+      return;
+    }
+    const itemIds = [];
+    undoneGroups.forEach((g) => {
+      (g.itemIds || []).forEach((id) => itemIds.push(id));
+    });
+    const uniqueItemIds = [...new Set(itemIds)];
+    if (!uniqueItemIds.length) return;
+
+    const prevMergedItems = JSON.parse(JSON.stringify(this.data.mergedItems || []));
+    const prevProgress = { ...(this.data.progress || { totalCount: 0, doneCount: 0 }) };
+
+    const nextMergedItems = (this.data.mergedItems || []).map((m) => {
+      const ids = (m && m.itemIds) || [];
+      const hit = ids.some((id) => uniqueItemIds.includes(id));
+      return hit ? { ...m, allDone: true } : m;
+    });
+    const optimisticDoneCount = Math.max(
+      0,
+      Math.min(prevProgress.totalCount || 0, (prevProgress.doneCount || 0) + uniqueItemIds.length)
+    );
+    this.applyMergedItemsToView(nextMergedItems, {
+      totalCount: prevProgress.totalCount || 0,
+      doneCount: optimisticDoneCount,
+    });
+
+    this.setData({ pendingToggleCount: (this.data.pendingToggleCount || 0) + 1 });
+    try {
+      await cloud.callFunctionWithErrorToast("checklistFunctions", {
+        type: "markMergedItemsDone",
+        orderId: this.data.orderId,
+        itemIds: uniqueItemIds,
+      });
+      wx.showToast({ title: "食材已全部确认", icon: "none" });
+    } catch (err) {
+      this.applyMergedItemsToView(prevMergedItems, prevProgress);
+      wx.showToast({ title: "更新失败，请重试", icon: "none" });
+    } finally {
+      const nextPending = Math.max(0, (this.data.pendingToggleCount || 1) - 1);
+      this.setData({ pendingToggleCount: nextPending });
+    }
+  },
+
   async onCompleteShopping() {
     const { orderId, order } = this.data;
     if (!orderId || !order || order.status !== "pending_shopping" || this.data.actionBusy) return;
@@ -354,25 +426,36 @@ Page({
   async _submitCompleteShopping(shoppingExpense) {
     const orderId = this.data.pendingCompleteOrderId || this.data.orderId;
     if (!orderId || this.data.actionBusy) return;
+    const { orderIds, combined } = this.data;
     this.setData({ actionBusy: true });
     try {
       await ui.withLoading(async () => {
-        await cloud.callFunctionWithErrorToast("checklistFunctions", {
-          type: "completeShoppingOrder",
-          orderId,
-        });
+        await cloud.callFunctionWithErrorToast(
+          "checklistFunctions",
+          Object.assign(
+            { type: "completeShoppingOrder", orderId },
+            combined ? { orderIds } : {}
+          )
+        );
         const expense = shoppingExpense != null && shoppingExpense !== "" ? Number(shoppingExpense) : null;
         if (expense != null && Number.isFinite(expense) && expense > 0) {
           await cloud.callFunctionWithErrorToast("checklistFunctions", {
             type: "setShoppingExpense",
             orderId,
             shoppingExpense: expense,
+            // 一起买：金额自动平摊到全部点菜单
+            sharedOrderIds: combined ? orderIds : null,
           });
         }
       }, "提交中…");
       this.closeExpenseDialog();
+      haptics.success();
       wx.showToast({ title: "已完成买菜", icon: "none" });
-      wx.redirectTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+      if (combined) {
+        wx.reLaunch({ url: "/pages/index/index" });
+      } else {
+        wx.redirectTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
+      }
     } finally {
       this.setData({ actionBusy: false });
     }

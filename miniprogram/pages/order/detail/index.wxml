@@ -1,11 +1,17 @@
 <view class="ft-page order-detail-page">
+  <ft-loading id="ft-loading" />
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
   <ft-topbar title="点菜单详情" custom-back bind:back="onBack" />
 
   <view class="ft-loading-mask" wx:if="{{pageLoading}}">
-    <view class="ft-loading-spinner" />
+    <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
+    <view class="ft-loading-dots">
+      <view class="ft-loading-dot"></view>
+      <view class="ft-loading-dot"></view>
+      <view class="ft-loading-dot"></view>
+    </view>
     <text class="ft-loading-text">加载点菜单…</text>
   </view>
 
@@ -54,6 +60,20 @@
         </view>
       </view>
 
+      <view class="expense-card" wx:if="{{order.status==='pending_cooking' || order.status==='completed'}}">
+        <view class="expense-card-left">
+          <view class="expense-card-kicker">买菜消费</view>
+          <view class="expense-card-value" wx:if="{{order.shoppingExpense}}">¥{{order.shoppingExpense}}</view>
+          <view class="expense-card-value is-empty" wx:else>未记录</view>
+          <view class="expense-card-split" wx:if="{{order.expenseSplitInfo && order.expenseSplitInfo.count > 1}}">
+            分摊 · 共 {{order.expenseSplitInfo.count}} 单（合计 ¥{{order.expenseSplitInfo.total}}）
+          </view>
+        </view>
+        <view class="ft-btn ft-btn-sm expense-edit-btn" bindtap="openExpenseDialog">
+          {{order.shoppingExpense ? "修改" : "补记金额"}}
+        </view>
+      </view>
+
       <view class="invite-order-panel" wx:if="{{canInviteOrder}}">
         <view class="invite-order-hint">邀请好友一起点餐时，对方将默认加入本家庭</view>
         <view class="invite-order-actions">
@@ -61,8 +81,8 @@
         </view>
       </view>
 
-      <view class="share-confirm-mask" wx:if="{{shareConfirmVisible}}" catchtap="onCloseShareConfirm">
-        <view class="share-confirm-card" catchtap="">
+      <view class="share-confirm-mask ft-anim-mask" wx:if="{{shareConfirmVisible}}" catchtap="onCloseShareConfirm">
+        <view class="share-confirm-card ft-anim-card" catchtap="">
           <view class="share-confirm-title">邀请点餐</view>
           <view class="share-confirm-text">转发后，好友点击链接将默认加入你的家庭，并进入本点菜单一起点菜。</view>
           <button
@@ -95,6 +115,35 @@
       <view class="ft-btn ft-btn-secondary" bindtap="goContinueAdd">继续加菜</view>
       <view class="ft-btn ft-btn-primary" bindtap="goCooking">去做菜</view>
     </block>
+  </view>
+
+  <view class="expense-mask ft-anim-mask" wx:if="{{expenseDialogVisible}}" catchtap="closeExpenseDialog">
+    <view class="expense-sheet ft-anim-sheet" catchtap="noop">
+      <view class="expense-head">
+        <view>
+          <view class="expense-kicker">买菜消费</view>
+          <view class="expense-title">这次买菜花了多少钱？</view>
+        </view>
+        <view class="expense-close" bindtap="closeExpenseDialog">×</view>
+      </view>
+      <view class="expense-input-wrap">
+        <text class="expense-yen">¥</text>
+        <input
+          class="expense-input"
+          type="digit"
+          placeholder="0.00"
+          value="{{expenseInput}}"
+          bindinput="onExpenseInput"
+          focus="{{expenseDialogVisible}}"
+        />
+      </view>
+      <view class="expense-hint">修改后会同步更新家庭干饭日历的消费统计</view>
+
+      <view class="expense-actions">
+        <view class="expense-btn skip" bindtap="closeExpenseDialog">取消</view>
+        <view class="expense-btn ok" bindtap="onConfirmExpense">确认</view>
+      </view>
+    </view>
   </view>
 
   <ft-modal

@@ -3,6 +3,7 @@ const { resolveBatch, getCachedUrl } = require("../../utils/cloudDisplay");
 const auth = require("../../utils/auth");
 const invite = require("../../utils/invite");
 const orderInvite = require("../../utils/orderInvite");
+const haptics = require("../../utils/haptics");
 
 function getDefaultNewOrderName() {
   const d = new Date();
@@ -28,6 +29,12 @@ Page({
     pendingShopping: null,
     pendingCooking: null,
     pendingOrders: [],
+    /** 待买菜点菜单数（≥2 时展示「一起买」入口） */
+    shopTogetherCount: 0,
+    /** 「一起买」底部弹层 */
+    showShopTogetherSheet: false,
+    shopTogetherOptions: [],
+    shopTogetherCheckedCount: 0,
     recipes: [],
     /** 家庭菜谱总数（列表接口全量；首页只展示前 6 个卡片） */
     recipeTotalCount: 0,
@@ -393,7 +400,7 @@ Page({
           .callFunction("recipeFunctions", {
             type: "listRecipesForHome",
             familyId,
-            limit: 6,
+            limit: 4,
           })
           .catch(() => ({})),
       ]);
@@ -415,6 +422,9 @@ Page({
         pendingOrders.find((x) => x.status === "pending_shopping") || null;
       const pendingCooking =
         pendingOrders.find((x) => x.status === "pending_cooking") || null;
+      const shopTogetherCount = pendingOrders.filter(
+        (x) => x.status === "pending_shopping"
+      ).length;
 
       const list = (recipeResp && recipeResp.recipes) || [];
       const recipeTotalCount =
@@ -429,6 +439,7 @@ Page({
         pendingShopping,
         pendingCooking,
         pendingOrders,
+        shopTogetherCount,
         recipes: list,
         recipeTotalCount,
         homeEmptyHero,
@@ -453,7 +464,7 @@ Page({
           const id = (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "";
           if (!id) return "";
           if (typeof id === "string" && id.indexOf("cloud://") === 0) {
-            return urlMap[id] || getCachedUrl(id) || id;
+            return urlMap[id] || getCachedUrl(id) || "";
           }
           return id;
         })
@@ -466,7 +477,7 @@ Page({
         if (typeof id !== "string" || id.indexOf("cloud://") !== 0) {
           return { ...r, recipeImgDisplay: id };
         }
-        const display = urlMap[id] || getCachedUrl(id) || r.recipeImgDisplay || id;
+        const display = urlMap[id] || getCachedUrl(id) || r.recipeImgDisplay || "";
         return { ...r, recipeImgDisplay: display };
       });
 
@@ -508,6 +519,9 @@ Page({
     if (this.data.showFamilyPicker) {
       this.setData({ showFamilyPicker: false });
     }
+    if (this.data.showShopTogetherSheet) {
+      this.setData({ showShopTogetherSheet: false });
+    }
   },
 
   async onToggleFamilyPicker() {
@@ -531,6 +545,7 @@ Page({
     if (!(await this.guardGuestAction("切换家庭需要先登录。"))) return;
     const app = getApp();
     app.globalData.currentFamilyId = familyId;
+    haptics.light();
     const families = this.data.families || app.globalData.families || [];
     const currentFamily = families.find((f) => f._id === familyId) || null;
     this.setData({
@@ -552,6 +567,54 @@ Page({
   },
 
   noop() {},
+
+  /** 一起买：打开点菜单选择弹层（默认全选待买菜单） */
+  async onOpenShopTogether() {
+    if (!(await this.guardGuestAction("一起买需要先登录。"))) return;
+    const options = (this.data.pendingOrders || [])
+      .filter((o) => o.status === "pending_shopping")
+      .map((o) => ({
+        _id: o._id,
+        orderName: o.orderName || "点菜单",
+        recipeCount: o.recipeCount || 0,
+        checked: true,
+      }));
+    if (options.length < 2) return;
+    haptics.light();
+    this.setData({
+      showShopTogetherSheet: true,
+      shopTogetherOptions: options,
+      shopTogetherCheckedCount: options.length,
+    });
+  },
+
+  onCloseShopTogether() {
+    this.setData({ showShopTogetherSheet: false });
+  },
+
+  onToggleShopTogetherOrder(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const options = (this.data.shopTogetherOptions || []).map((o, i) =>
+      i === index ? { ...o, checked: !o.checked } : o
+    );
+    this.setData({
+      shopTogetherOptions: options,
+      shopTogetherCheckedCount: options.filter((o) => o.checked).length,
+    });
+  },
+
+  confirmShopTogether() {
+    const ids = (this.data.shopTogetherOptions || [])
+      .filter((o) => o.checked)
+      .map((o) => o._id);
+    if (ids.length < 2) {
+      wx.showToast({ title: "至少选择 2 个点菜单", icon: "none" });
+      return;
+    }
+    haptics.medium();
+    this.setData({ showShopTogetherSheet: false });
+    wx.navigateTo({ url: `/pages/shopping/shopping/index?orderIds=${ids.join(",")}` });
+  },
 
   closeOnboardSheet() {
     this.setData({ onboardSheetVisible: false });
@@ -605,6 +668,7 @@ Page({
       const orderId = res && res.orderId;
       this.setData({ showCreateOrderModal: false, newOrderName: "" });
       if (orderId) {
+        haptics.medium();
         getApp().globalData.homeDirty = true;
         wx.navigateTo({ url: `/pages/order/detail/index?orderId=${orderId}` });
       }

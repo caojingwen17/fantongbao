@@ -3,6 +3,7 @@ const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
 const { resolveForImage } = require("../../../utils/cloudDisplay");
 const { uploadRecipeDisplayImage, notifyPublishSecError } = require("../../../utils/sec");
+const haptics = require("../../../utils/haptics");
 const {
   createStepItem,
   normalizeStepItems,
@@ -44,6 +45,16 @@ Page({
   },
 
   _stepDrag: null,
+
+  showAiLoading() {
+    const c = this.selectComponent("#aiLoading");
+    if (c && typeof c.show === "function") c.show();
+  },
+
+  hideAiLoading() {
+    const c = this.selectComponent("#aiLoading");
+    if (c && typeof c.hide === "function") c.hide();
+  },
 
   async onLoad() {
     const ok = await auth.requireLoggedInOrBack({ content: "添加菜谱需要先登录。" });
@@ -87,28 +98,37 @@ Page({
   onChooseImage() {
     wx.chooseImage({
       count: 1,
-      success: async (res) => {
-        const app = getApp();
-        const familyId = this.data.familyId || app.globalData.currentFamilyId;
+      success: (res) => {
         const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : "";
         if (!filePath) return;
-        if (!familyId) {
-          wx.showToast({ title: "请先选择家庭", icon: "none" });
-          return;
-        }
-        ui.showLoading("检测中…", true);
-        try {
-          const fid = await uploadRecipeDisplayImage(filePath, familyId);
-          const recipeImgDisplay = await resolveForImage(fid, { familyId });
-          this.setData({ recipeImg: fid, recipeImgDisplay: recipeImgDisplay || fid });
-          ui.hideLoading();
-          wx.showToast({ title: "图片上传成功", icon: "none" });
-        } catch (e) {
-          notifyPublishSecError(e);
-        }
+        const cropper = this.selectComponent("#cropper");
+        if (cropper) cropper.open({ src: filePath });
       },
     });
   },
+
+  async onCropConfirm(e) {
+    const filePath = e && e.detail && e.detail.tempFilePath ? e.detail.tempFilePath : "";
+    if (!filePath) return;
+    const app = getApp();
+    const familyId = this.data.familyId || app.globalData.currentFamilyId;
+    if (!familyId) {
+      wx.showToast({ title: "请先选择家庭", icon: "none" });
+      return;
+    }
+    ui.showLoading("检测中…", true);
+    try {
+      const fid = await uploadRecipeDisplayImage(filePath, familyId);
+      const recipeImgDisplay = await resolveForImage(fid, { familyId });
+      this.setData({ recipeImg: fid, recipeImgDisplay });
+      ui.hideLoading();
+      wx.showToast({ title: "图片上传成功", icon: "none" });
+    } catch (err) {
+      notifyPublishSecError(err);
+    }
+  },
+
+  onCropCancel() {},
 
   async onExtractFromPastedText() {
     if (!this.data.familyId) {
@@ -126,7 +146,7 @@ Page({
     }
     if (this.data.isExtractingFromText) return;
     this.setData({ isExtractingFromText: true });
-    ui.showLoading("正在提炼…");
+    this.showAiLoading();
     try {
       const result = await cloud.callFunction("aiFunctions", {
         type: "extractRecipeFromText",
@@ -142,6 +162,7 @@ Page({
           prepareSteps: normalizeStepItems(result.prepareSteps || []),
           cookingSteps: normalizeStepItems(result.cookingSteps || []),
         });
+        haptics.medium();
         wx.showToast({
           title: result.tip || "已填充，可继续编辑",
           icon: "none",
@@ -156,7 +177,7 @@ Page({
         "提炼失败，请稍后重试";
       wx.showToast({ title: String(msg).slice(0, 32), icon: "none" });
     } finally {
-      ui.hideLoading();
+      this.hideAiLoading();
       this.setData({ isExtractingFromText: false });
     }
   },
@@ -207,7 +228,7 @@ Page({
           wx.showToast({ title: "最多选择 6 张以加快识别", icon: "none" });
         }
         this.setData({ isImportingImage: true });
-        wx.showLoading({ title: "压缩图片…", mask: true });
+        this.showAiLoading();
         try {
           const sizeChecks = await Promise.all(
             paths.map(
@@ -230,7 +251,6 @@ Page({
           }
           const okPaths = await Promise.all(validPaths.map((p) => this.compressImagePath(p)));
 
-          wx.showLoading({ title: "上传图片…", mask: true });
           const familyId = this.data.familyId || "unknown";
           const stamp = Date.now();
           const fileIds = (
@@ -248,7 +268,6 @@ Page({
           ).filter(Boolean);
           if (!fileIds.length) throw new Error("上传失败");
 
-          wx.showLoading({ title: "识别图片中…", mask: true });
           const result = await cloud.callFunction("aiFunctions", {
             type: "extractRecipeFromImage",
             recipeName: this.data.recipeName,
@@ -266,6 +285,7 @@ Page({
             const tip =
               result.tip ||
               (result.mock ? "识别未完全成功，请核对后编辑" : "已导入内容，可继续编辑");
+            haptics.medium();
             wx.showToast({
               title: tip.length > 28 ? tip.slice(0, 28) + "…" : tip,
               icon: "none",
@@ -290,7 +310,7 @@ Page({
           wx.showToast({ title: String(msg).slice(0, 36), icon: "none", duration: 4000 });
           console.error("[recipe/add] import image failed:", e);
         } finally {
-          wx.hideLoading();
+          this.hideAiLoading();
           this.setData({ isImportingImage: false });
         }
       },
@@ -311,7 +331,7 @@ Page({
     }
     if (this.data.isGeneratingCommon) return;
     this.setData({ isGeneratingCommon: true });
-    wx.showLoading({ title: "请耐心等待", mask: true });
+    this.showAiLoading();
     try {
       // 先尝试走云端生成；若云端暂未实现则回退本地模板，保证按钮可用。
       const result = await cloud
@@ -330,6 +350,7 @@ Page({
           prepareSteps: normalizeStepItems(payload.prepareSteps || []),
           cookingSteps: normalizeStepItems(payload.cookingSteps || []),
         });
+        haptics.medium();
         wx.showToast({ title: payload.tip || "已生成常规菜谱", icon: "none" });
         return;
       }
@@ -348,7 +369,7 @@ Page({
       });
       wx.showToast({ title: "已生成家常菜模板，可继续编辑", icon: "none" });
     } finally {
-      wx.hideLoading();
+      this.hideAiLoading();
       this.setData({ isGeneratingCommon: false });
     }
   },
@@ -462,6 +483,7 @@ Page({
           startY: touch.clientY,
           rects,
         };
+        haptics.light();
         this.setData({
           stepDrag: {
             active: true,
@@ -564,6 +586,7 @@ Page({
       });
     }, "提交中…");
 
+    haptics.success();
     wx.showToast({ title: "提交成功", icon: "none" });
     wx.navigateBack();
   },

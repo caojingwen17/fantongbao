@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#874e00"/><stop offset="1" stop-color="#ff9800"/>
+</linearGradient></defs><rect width="1024" height="1024" fill="url(#bg)"/>
+  <path d="M472 300 q-18 -36 0 -68 q18 -32 0 -64" stroke="#fff0e5" stroke-width="24" fill="none" stroke-linecap="round" opacity="0.85"/>
+  <path d="M552 300 q-18 -36 0 -68 q18 -32 0 -64" stroke="#fff0e5" stroke-width="24" fill="none" stroke-linecap="round"/>
+  <rect x="332" y="336" width="360" height="52" rx="26" fill="#fff0e5"/>
+  <path d="M352 388 h320 v78 a96 96 0 0 1 -96 96 h-128 a96 96 0 0 1 -96 -96 z" fill="#ffffff"/>
+  <text x="512" y="760" font-size="190" font-weight="900" font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="#fff5ec" text-anchor="middle">饭桶宝</text>
+</svg>

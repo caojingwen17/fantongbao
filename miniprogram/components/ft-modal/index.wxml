@@ -1,5 +1,5 @@
-<view class="ft-modal-mask" wx:if="{{visible}}" catchtap="onMaskTap">
-  <view class="ft-modal-card" catchtap="onContentTap">
+<view class="ft-modal-mask {{closing ? 'ft-modal-closing' : ''}}" wx:if="{{inner}}" catchtap="onMaskTap">
+  <view class="ft-modal-card {{closing ? 'ft-modal-card-closing' : ''}}" catchtap="onContentTap">
     <view class="ft-modal-kicker" wx:if="{{kicker}}">{{kicker}}</view>
     <view class="ft-modal-title" wx:if="{{title}}">{{title}}</view>
     <view class="ft-modal-content" wx:if="{{content}}">{{content}}</view>

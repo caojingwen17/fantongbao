@@ -1,4 +1,5 @@
 <view class="ft-page login-page">
+  <ft-loading id="ft-loading" />
   <!-- Decorative blobs -->
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>

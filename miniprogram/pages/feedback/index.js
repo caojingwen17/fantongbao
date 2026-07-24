@@ -1,5 +1,6 @@
 const cloud = require("../../utils/cloud");
 const auth = require("../../utils/auth");
+const haptics = require("../../utils/haptics");
 
 Page({
   data: {
@@ -41,6 +42,7 @@ Page({
         familyId,
       });
       wx.showToast({ title: "已收到，感谢！", icon: "success" });
+      haptics.success();
       this.setData({ content: "", contentLen: 0 });
       setTimeout(() => wx.navigateBack(), 1200);
     } catch (e) {

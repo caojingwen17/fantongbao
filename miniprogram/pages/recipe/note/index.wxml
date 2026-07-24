@@ -1,15 +1,21 @@
 <view class="ft-page note-page">
+  <ft-loading id="ft-loading" />
   <ft-topbar title="点菜备注" />
 
   <view class="ft-loading-mask" wx:if="{{pageLoading}}">
-    <view class="ft-loading-spinner" />
+    <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
+    <view class="ft-loading-dots">
+      <view class="ft-loading-dot"></view>
+      <view class="ft-loading-dot"></view>
+      <view class="ft-loading-dot"></view>
+    </view>
     <text class="ft-loading-text">加载中…</text>
   </view>
 
   <scroll-view scroll-y="true" class="main" wx:else show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
     <view class="main-inner">
       <view class="dish ft-card ft-card-low p-card">
-        <image class="img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" />
+        <image class="img" wx:if="{{recipeImgDisplay}}" mode="aspectFill" src="{{recipeImgDisplay}}" />
         <view class="dish-meta">
           <view class="dish-name ft-title">{{recipeName}}</view>
           <view class="dish-sub ft-subtle">添加到点菜单前，可写备注</view>

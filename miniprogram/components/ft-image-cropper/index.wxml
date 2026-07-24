@@ -1,0 +1,37 @@
+<view class="ft-cropper-mask ft-anim-mask" wx:if="{{visible}}" catchtouchmove="noop">
+  <view class="ft-cropper-stage ft-anim-fade-up">
+    <view class="ft-cropper-frame" style="width: {{frameW}}px; height: {{frameH}}px;">
+      <movable-area class="ft-cropper-area" style="width: {{frameW}}px; height: {{frameH}}px;">
+        <movable-view
+          class="ft-cropper-view"
+          style="width: {{imgW}}px; height: {{imgH}}px;"
+          x="{{viewX}}"
+          y="{{viewY}}"
+          direction="all"
+          scale
+          scale-min="{{scaleMin}}"
+          scale-max="{{scaleMax}}"
+          scale-value="{{scaleValue}}"
+          bindchange="onViewChange"
+          bindscale="onViewScale"
+        >
+          <image class="ft-cropper-img" src="{{src}}" mode="scaleToFill" style="width: {{imgW}}px; height: {{imgH}}px;" />
+        </movable-view>
+      </movable-area>
+      <view class="ft-cropper-border" aria-hidden="true"></view>
+    </view>
+    <view class="ft-cropper-tip">拖动调整位置，双指缩放，按 4:3 裁切</view>
+  </view>
+
+  <view class="ft-cropper-actions">
+    <view class="ft-btn ft-btn-secondary ft-cropper-btn" bindtap="onCancel">取消</view>
+    <view class="ft-btn ft-btn-primary ft-cropper-btn" bindtap="onConfirm">确定</view>
+  </view>
+
+  <canvas
+    type="2d"
+    id="ftCropCanvas"
+    class="ft-cropper-canvas"
+    style="width: {{canvasW}}px; height: {{canvasH}}px;"
+  />
+</view>

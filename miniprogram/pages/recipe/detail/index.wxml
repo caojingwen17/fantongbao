@@ -1,8 +1,14 @@
 <view class="ft-loading-mask" wx:if="{{pageLoading}}">
-  <view class="ft-loading-spinner" />
+  <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
+  <view class="ft-loading-dots">
+    <view class="ft-loading-dot"></view>
+    <view class="ft-loading-dot"></view>
+    <view class="ft-loading-dot"></view>
+  </view>
   <text class="ft-loading-text">加载菜谱…</text>
 </view>
 <view class="ft-page recipe-detail-page" wx:else>
+  <ft-loading id="ft-loading" />
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
 
@@ -14,7 +20,7 @@
       <!-- Hero -->
       <view class="card hero-card">
         <view class="hero-media">
-          <image class="hero-img" mode="aspectFill" src="{{recipeImgDisplay || recipeImg}}" aria-label="菜谱图片" />
+          <image class="hero-img" wx:if="{{recipeImgDisplay}}" mode="aspectFill" src="{{recipeImgDisplay}}" />
           <view class="hero-grad" aria-hidden="true"></view>
           <view class="hero-edit-btn ft-btn ft-btn-sm" bindtap="goEdit">修改</view>
           <view class="hero-bottom">

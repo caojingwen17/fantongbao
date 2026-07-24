@@ -2,6 +2,7 @@
   "navigationBarTitleText": "点菜备注",
   "navigationStyle": "custom",
   "usingComponents": {
-    "ft-topbar": "/components/ft-topbar/index"
+    "ft-topbar": "/components/ft-topbar/index",
+    "ft-loading": "/components/ft-loading/index"
   }
 }

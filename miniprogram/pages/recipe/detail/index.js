@@ -109,7 +109,7 @@ Page({
         familyId: recipe.familyId || "",
         recipeName: recipe.recipeName || "",
         recipeImg,
-        recipeImgDisplay: recipeImgDisplay || recipeImg,
+        recipeImgDisplay,
         ingredients: recipe.ingredients || [],
         seasonings: recipe.seasonings || [],
         prepareSteps: recipe.prepareSteps || [],

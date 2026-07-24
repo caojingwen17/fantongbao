@@ -9,7 +9,7 @@
 .blob-a { width: 520rpx; height: 520rpx; right: -200rpx; top: -220rpx; background: var(--ft-secondary-fixed, #f9e534); opacity: 0.18; }
 .blob-b { width: 520rpx; height: 520rpx; left: -240rpx; top: 420rpx; background: var(--ft-tertiary-fixed, #91f78e); opacity: 0.12; }
 
-.main { position: relative; z-index: 1; flex: 1; height: auto; }
+.main { position: relative; z-index: 1; flex: 1; min-height: 0; }
 .main::-webkit-scrollbar { display: none; }
 .main-inner {
   padding: 20rpx 40rpx 0;

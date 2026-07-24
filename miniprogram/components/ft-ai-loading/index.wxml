@@ -1,0 +1,24 @@
+<view class="ft-ai-mask {{finishing ? 'ft-ai-finishing' : ''}}" wx:if="{{visible}}" catchtouchmove="noop">
+  <view class="ft-ai-card">
+    <view class="ft-ai-pot {{finishing ? 'ft-ai-pot-done' : ''}}">
+      <view class="ft-ai-steam ft-ai-steam-1"></view>
+      <view class="ft-ai-steam ft-ai-steam-2"></view>
+      <view class="ft-ai-steam ft-ai-steam-3"></view>
+      <view class="ft-ai-lid"></view>
+      <view class="ft-ai-body"></view>
+      <view class="ft-ai-flames">
+        <view class="ft-ai-flame ft-ai-flame-1"></view>
+        <view class="ft-ai-flame ft-ai-flame-2"></view>
+        <view class="ft-ai-flame ft-ai-flame-3"></view>
+      </view>
+    </view>
+
+    <view class="ft-ai-stage">{{stageText}}</view>
+    <view class="ft-ai-sub">AI 大厨正在为你整理菜谱</view>
+
+    <view class="ft-ai-progress">
+      <view class="ft-ai-progress-bar" style="width: {{progress}}%"></view>
+    </view>
+    <view class="ft-ai-time">已等待 {{elapsed}}s · 通常需要 10-30 秒</view>
+  </view>
+</view>

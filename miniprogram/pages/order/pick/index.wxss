@@ -33,7 +33,7 @@
   position: relative;
   z-index: 1;
   flex: 1;
-  height: auto;
+  min-height: 0;
   box-sizing: border-box;
 }
 .main-inner {
@@ -170,6 +170,13 @@
   color: #888;
   box-shadow: none;
   pointer-events: none;
+}
+.recipe-add-on {
+  background: var(--ft-surface-container-lowest);
+  color: var(--ft-error);
+  box-shadow: none;
+  border: 2rpx solid var(--ft-outline-variant);
+  box-sizing: border-box;
 }
 
 .pick-bottom {

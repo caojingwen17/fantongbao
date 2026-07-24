@@ -37,6 +37,30 @@ async function getOrder({ orderId }) {
   return res && res.data && res.data[0] ? res.data[0] : null;
 }
 
+/**
+ * 解析多单参数：orderIds（数组）优先，退化到 orderId 单参。
+ * 逐个校验订单存在、同一家庭，并对家庭做成员权限校验。
+ */
+async function getOrdersForEvent({ event, openid }) {
+  const rawIds =
+    Array.isArray(event.orderIds) && event.orderIds.length
+      ? event.orderIds
+      : event.orderId
+      ? [event.orderId]
+      : [];
+  const orderIds = [...new Set(rawIds.filter(Boolean))];
+  if (!orderIds.length) throw new Error("缺少 orderId");
+  const orders = [];
+  for (const id of orderIds) {
+    const o = await getOrder({ orderId: id });
+    if (!o) throw new Error("点菜单不存在");
+    if (orders.length && o.familyId !== orders[0].familyId) throw new Error("点菜单不在同一家庭");
+    orders.push(o);
+  }
+  await assertFamilyMember({ openid, familyId: orders[0].familyId });
+  return { orderIds, orders };
+}
+
 function normalizeName(name) {
   return String(name || "")
     .trim()
@@ -69,7 +93,7 @@ function parseAmountToQtyUnit(amount) {
   return { qty, unit };
 }
 
-function buildMergedItems({ items, recipeNameMap }) {
+function buildMergedItems({ items, recipeNameMap, sourceNameMap }) {
   const map = {};
   for (const it of items || []) {
     if (!it) continue;
@@ -89,6 +113,7 @@ function buildMergedItems({ items, recipeNameMap }) {
         itemIds: [],
         manualItemIds: [],
         allDone: true,
+        hasSeasoningSource: false,
         sourcesSet: {},
         sourcesText: "",
       };
@@ -96,6 +121,7 @@ function buildMergedItems({ items, recipeNameMap }) {
     const g = map[key];
     g.itemIds.push(it._id);
     if (it.itemSource === "manual") g.manualItemIds.push(it._id);
+    if (it.itemSource === "seasoning") g.hasSeasoningSource = true;
     g.allDone = g.allDone && !!it.done;
 
     if (parsed) {
@@ -108,7 +134,9 @@ function buildMergedItems({ items, recipeNameMap }) {
     if (it.itemSource === "manual" || !it.recipeId) {
       g.sourcesSet.__manual__ = "手动添加";
     } else if (it.recipeId) {
-      const rn = recipeNameMap && recipeNameMap[it.recipeId] ? recipeNameMap[it.recipeId] : "";
+      // sourceNameMap：多单合并时来源名带「×N单」；未传时退回菜谱名
+      const labelMap = sourceNameMap || recipeNameMap;
+      const rn = labelMap && labelMap[it.recipeId] ? labelMap[it.recipeId] : "";
       g.sourcesSet[it.recipeId] = rn || it.recipeId;
     }
   }
@@ -129,6 +157,9 @@ function buildMergedItems({ items, recipeNameMap }) {
     g.totalAmountText = amountParts.join(" + ");
     const sources = Object.values(g.sourcesSet).filter(Boolean);
     g.sourcesText = sources.length ? `来自：${sources.join("、")}` : "";
+    // 分类以菜谱录入的 itemSource 为准（生抽/老抽等名称正则猜不准）
+    g.isSeasoning = !!g.hasSeasoningSource;
+    delete g.hasSeasoningSource;
   }
 
   // 让展示更稳定：按 name 排序
@@ -152,28 +183,50 @@ exports.main = async (event) => {
 
   switch (event.type) {
     case "getShoppingChecklist": {
-      const { orderId } = event;
-      if (!orderId) throw new Error("缺少 orderId");
+      const { orderIds, orders } = await getOrdersForEvent({ event, openid });
+      const order = orders[0];
+      const familyId = order.familyId;
 
-      const order = await getOrder({ orderId });
-      if (!order) throw new Error("点菜单不存在");
-      await assertFamilyMember({ openid, familyId: order.familyId });
-
-      const itemsRes = await db.collection("order_shopping_items").where({ orderId, familyId: order.familyId }).get();
+      const itemsRes = await db
+        .collection("order_shopping_items")
+        .where({ orderId: db.command.in(orderIds), familyId })
+        .get();
       const items = itemsRes.data || [];
 
-      const recipes = Array.isArray(order.recipes) ? order.recipes : [];
-      const recipeIds = recipes.map((r) => r.recipeId);
+      // 合并所有选中订单的菜谱，构建菜谱名映射
+      const allRecipes = [];
+      for (const o of orders) {
+        const rs = Array.isArray(o.recipes) ? o.recipes : [];
+        for (const r of rs) allRecipes.push(r);
+      }
+      const recipeIds = [...new Set(allRecipes.map((r) => r.recipeId).filter(Boolean))];
       let recipeNameMap = {};
       if (recipeIds.length) {
         const recipeRes = await db.collection("recipes").where({ _id: db.command.in(recipeIds) }).get();
         for (const r of recipeRes.data || []) recipeNameMap[r._id] = r.recipeName;
       }
 
-      const recipeToNote = {};
-      for (const r of recipes) recipeToNote[r.recipeId] = r.note || "";
+      // 统计每个菜谱出现在几个选中订单里，来源名追加「 ×N单」（N≥2 时）
+      const recipeOrderCount = {};
+      for (const o of orders) {
+        const rs = Array.isArray(o.recipes) ? o.recipes : [];
+        const seen = {};
+        for (const r of rs) {
+          if (!r.recipeId || seen[r.recipeId]) continue;
+          seen[r.recipeId] = true;
+          recipeOrderCount[r.recipeId] = (recipeOrderCount[r.recipeId] || 0) + 1;
+        }
+      }
+      const sourceNameMap = {};
+      for (const rid of Object.keys(recipeNameMap)) {
+        const cnt = recipeOrderCount[rid] || 1;
+        sourceNameMap[rid] = cnt >= 2 ? `${recipeNameMap[rid]} ×${cnt}单` : recipeNameMap[rid];
+      }
 
-      const mergedItems = buildMergedItems({ items, recipeNameMap });
+      const recipeToNote = {};
+      for (const r of allRecipes) recipeToNote[r.recipeId] = r.note || "";
+
+      const mergedItems = buildMergedItems({ items, recipeNameMap, sourceNameMap });
 
       // groups：按 recipeId 聚合，manual extra（recipeId=null）放到一个“额外采购”组
       const groupsMap = {};
@@ -209,7 +262,9 @@ exports.main = async (event) => {
           _id: order._id,
           orderName: order.orderName,
           status: order.status,
+          familyId: order.familyId,
         },
+        orders: orders.map((o) => ({ _id: o._id, orderName: o.orderName, status: o.status })),
         mergedItems,
         groups,
         totalCount,
@@ -218,21 +273,21 @@ exports.main = async (event) => {
     }
 
     case "markMergedItemsDone": {
-      const { orderId, itemIds } = event;
-      if (!orderId) throw new Error("缺少 orderId");
+      const { itemIds } = event;
       const ids = Array.isArray(itemIds) ? itemIds.filter(Boolean) : [];
       if (!ids.length) return { success: true };
 
-      const order = await getOrder({ orderId });
-      if (!order) throw new Error("点菜单不存在");
-      await assertFamilyMember({ openid, familyId: order.familyId });
-      if (order.status !== "pending_shopping") {
-        return { success: true, newOrderStatus: order.status };
+      const { orders } = await getOrdersForEvent({ event, openid });
+      const familyId = orders[0].familyId;
+      // 仅对仍处于 pending_shopping 的单更新（其他状态跳过不报错）
+      const activeIds = orders.filter((o) => o.status === "pending_shopping").map((o) => o._id);
+      if (!activeIds.length) {
+        return { success: true, newOrderStatus: orders[0].status };
       }
 
       await db
         .collection("order_shopping_items")
-        .where({ _id: db.command.in(ids), orderId, familyId: order.familyId })
+        .where({ _id: db.command.in(ids), orderId: db.command.in(activeIds), familyId })
         .update({
           data: {
             done: true,
@@ -244,21 +299,20 @@ exports.main = async (event) => {
     }
 
     case "markMergedItemsUndone": {
-      const { orderId, itemIds } = event;
-      if (!orderId) throw new Error("缺少 orderId");
+      const { itemIds } = event;
       const ids = Array.isArray(itemIds) ? itemIds.filter(Boolean) : [];
       if (!ids.length) return { success: true };
 
-      const order = await getOrder({ orderId });
-      if (!order) throw new Error("点菜单不存在");
-      await assertFamilyMember({ openid, familyId: order.familyId });
-      if (order.status !== "pending_shopping") {
-        return { success: true, newOrderStatus: order.status };
+      const { orders } = await getOrdersForEvent({ event, openid });
+      const familyId = orders[0].familyId;
+      const activeIds = orders.filter((o) => o.status === "pending_shopping").map((o) => o._id);
+      if (!activeIds.length) {
+        return { success: true, newOrderStatus: orders[0].status };
       }
 
       await db
         .collection("order_shopping_items")
-        .where({ _id: db.command.in(ids), orderId, familyId: order.familyId })
+        .where({ _id: db.command.in(ids), orderId: db.command.in(activeIds), familyId })
         .update({
           data: {
             done: false,
@@ -326,30 +380,28 @@ exports.main = async (event) => {
     }
 
     case "completeShoppingOrder": {
-      const { orderId } = event;
-      if (!orderId) throw new Error("缺少 orderId");
-
-      const order = await getOrder({ orderId });
-      if (!order) throw new Error("点菜单不存在");
-      await assertFamilyMember({ openid, familyId: order.familyId });
-
-      if (order.status !== "pending_shopping") {
-        return { success: true, newOrderStatus: order.status };
-      }
+      const { orders } = await getOrdersForEvent({ event, openid });
 
       const newOrderStatus = "pending_cooking";
-      await db.collection("orders").doc(orderId).update({
-        data: {
-          status: newOrderStatus,
-          shoppingCompletedAt: now(),
-        },
-      });
+      for (const o of orders) {
+        if (o.status !== "pending_shopping") continue;
+        await db.collection("orders").doc(o._id).update({
+          data: {
+            status: newOrderStatus,
+            shoppingCompletedAt: now(),
+          },
+        });
+      }
 
+      // 首单不在待买菜状态时，沿用原行为返回其当前状态
+      if (orders[0].status !== "pending_shopping") {
+        return { success: true, newOrderStatus: orders[0].status };
+      }
       return { success: true, newOrderStatus };
     }
 
     case "setShoppingExpense": {
-      const { orderId, shoppingExpense } = event;
+      const { orderId, shoppingExpense, sharedOrderIds } = event;
       if (!orderId) throw new Error("缺少 orderId");
 
       const expense = parseShoppingExpense(shoppingExpense);
@@ -363,8 +415,33 @@ exports.main = async (event) => {
         throw new Error("当前订单不可记录买菜消费");
       }
 
+      // 分摊到多个已有点菜单：金额平均写入各点菜单（余数归当前单）
+      const ids = [...new Set([orderId, ...(Array.isArray(sharedOrderIds) ? sharedOrderIds : [])])];
+      if (ids.length >= 2) {
+        const sharedOrders = [];
+        for (const id of ids) {
+          const o = id === orderId ? order : await getOrder({ orderId: id });
+          if (!o) throw new Error("分摊的点菜单不存在");
+          if (o.familyId !== order.familyId) throw new Error("分摊的点菜单不在同一家庭");
+          sharedOrders.push(o);
+        }
+        const cents = Math.round(expense * 100);
+        const per = Math.floor(cents / ids.length);
+        for (let i = 0; i < ids.length; i++) {
+          const share = i === 0 ? (cents - per * (ids.length - 1)) / 100 : per / 100;
+          await db.collection("orders").doc(ids[i]).update({
+            data: {
+              shoppingExpense: share,
+              expenseSplits: null,
+              expenseSplitInfo: { total: expense, count: ids.length, orderIds: ids },
+            },
+          });
+        }
+        return { success: true, shoppingExpense: expense, sharedOrderIds: ids };
+      }
+
       await db.collection("orders").doc(orderId).update({
-        data: { shoppingExpense: expense },
+        data: { shoppingExpense: expense, expenseSplits: null, expenseSplitInfo: null },
       });
 
       return { success: true, shoppingExpense: expense };

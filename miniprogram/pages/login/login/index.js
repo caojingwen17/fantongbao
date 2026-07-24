@@ -1,5 +1,7 @@
 const auth = require("../../../utils/auth");
 const cloudDisplay = require("../../../utils/cloudDisplay");
+const haptics = require("../../../utils/haptics");
+const ui = require("../../../utils/ui");
 
 const { isPlaceholderNickName, formatLoginError, completeLoginFlow } = auth;
 
@@ -44,7 +46,7 @@ Page({
     if (avatarUrl.indexOf("cloud://") !== 0) return avatarUrl;
     try {
       const map = await cloudDisplay.resolveBatch([avatarUrl]);
-      return (map && map[avatarUrl]) || avatarUrl;
+      return (map && map[avatarUrl]) || "";
     } catch (e) {
       return avatarUrl;
     }
@@ -105,20 +107,20 @@ Page({
       if (this.data.isLoading) return;
       this.setData({ isLoading: true, loginError: "" });
       try {
-        wx.showLoading({ title: "上传头像…", mask: true });
+        ui.showLoading("上传头像…", true);
         const cloudPath = `avatars/login/${Date.now()}-${Math.random().toString(16).slice(2)}.png`;
         const up = await wx.cloud.uploadFile({
           cloudPath,
           filePath: this.data.avatarTempPath,
         });
-        wx.hideLoading();
+        ui.hideLoading();
         avatarUrl = up && up.fileID ? up.fileID : "";
         if (!avatarUrl) {
           wx.showToast({ title: "头像上传失败", icon: "none" });
           return;
         }
       } catch (uploadErr) {
-        wx.hideLoading();
+        ui.hideLoading();
         const msg = formatLoginError(uploadErr);
         this.setData({ loginError: msg });
         wx.showToast({ title: msg, icon: "none", duration: 3500 });
@@ -154,6 +156,7 @@ Page({
   },
 
   async afterLoginNavigate(ctx) {
+    haptics.success();
     wx.showToast({ title: "登录成功", icon: "none" });
 
     const app = getApp();

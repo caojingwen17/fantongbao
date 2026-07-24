@@ -842,8 +842,15 @@ exports.main = async (event) => {
           _id: order._id,
           orderName: order.orderName,
           status: order.status,
+          familyId: order.familyId,
           createTime: order.createTime,
           recipes,
+          shoppingExpense: parseShoppingExpense(order.shoppingExpense),
+          expenseSplitInfo:
+            order.expenseSplitInfo && order.expenseSplitInfo.count > 1
+              ? order.expenseSplitInfo
+              : null,
+          shoppingCompletedAt: order.shoppingCompletedAt || null,
         },
       };
     }
@@ -867,7 +874,7 @@ exports.main = async (event) => {
       return { success: true, counts };
     }
 
-    /** 某月内已买菜的点菜单（用于家庭页干饭日历消费统计） */
+    /** 某月内已买菜的点菜单（用于家庭页干饭日历消费统计；分摊金额已写入各点菜单） */
     case "listCompletedOrdersInMonth": {
       const { familyId, year, month } = event;
       if (!familyId) throw new Error("缺少 familyId");

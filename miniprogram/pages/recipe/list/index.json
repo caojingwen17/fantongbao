@@ -3,7 +3,8 @@
   "navigationStyle": "custom",
   "usingComponents": {
     "ft-topbar": "/components/ft-topbar/index",
-    "ft-modal": "/components/ft-modal/index"
+    "ft-modal": "/components/ft-modal/index",
+    "ft-loading": "/components/ft-loading/index"
   }
 }
 
