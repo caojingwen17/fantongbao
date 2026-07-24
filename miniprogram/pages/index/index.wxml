@@ -7,13 +7,16 @@
   <block wx:if="{{homeNeedFamily}}">
     <view class="blob blob-a"></view>
     <view class="blob blob-b"></view>
-    <view class="topbar">
-      <view class="brand">FANTONGBABY</view>
-      <view class="topbar-spacer" aria-hidden="true"></view>
+    <view class="topbar" style="padding-top: {{statusBarHeightPx}}px;">
+      <view class="topbar-row" style="margin-top: {{capsuleGapPx}}px; height: {{capsuleHeightPx}}px;">
+        <view class="brand">FANTONGBABY</view>
+        <view class="topbar-spacer" aria-hidden="true"></view>
+      </view>
     </view>
     <scroll-view
       scroll-y="true"
       class="main"
+      style="padding-top: {{mainPadPx}}px;"
       show-scrollbar="false"
       scrollbar-hidden="true"
       enhanced="true"
@@ -44,14 +47,17 @@
   <view class="blob blob-b"></view>
 
   <!-- Top App Bar (custom nav) -->
-  <view class="topbar">
-    <view class="brand">FANTONGBABY</view>
-    <view class="topbar-spacer" aria-hidden="true"></view>
+  <view class="topbar" style="padding-top: {{statusBarHeightPx}}px;">
+    <view class="topbar-row" style="margin-top: {{capsuleGapPx}}px; height: {{capsuleHeightPx}}px;">
+      <view class="brand">FANTONGBABY</view>
+      <view class="topbar-spacer" aria-hidden="true"></view>
+    </view>
   </view>
 
   <scroll-view
     scroll-y="true"
     class="main"
+    style="padding-top: {{mainPadPx}}px;"
     show-scrollbar="false"
     scrollbar-hidden="true"
     enhanced="true"

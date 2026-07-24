@@ -49,6 +49,42 @@ Page({
     homeNeedFamily: false,
     /** 下拉刷新 */
     refreshing: false,
+    /** 自定义顶栏/内容区顶部留白（statusBarHeight + 胶囊按钮位置注入，与 ft-topbar 同基准） */
+    statusBarHeightPx: 20,
+    capsuleGapPx: 6,
+    capsuleHeightPx: 32,
+    mainPadPx: 90,
+  },
+
+  /** 用真实状态栏高度 + 胶囊按钮位置计算顶栏与内容区留白，保证与 ft-topbar 对齐 */
+  applyStatusBarPadding() {
+    try {
+      const info =
+        typeof wx.getWindowInfo === "function" ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      const statusBarHeight = info.statusBarHeight || 0;
+      const scale = (info.windowWidth || 375) / 750;
+      const menu =
+        typeof wx.getMenuButtonBoundingClientRect === "function"
+          ? wx.getMenuButtonBoundingClientRect()
+          : null;
+      if (menu && menu.top != null) {
+        const gap = Math.max(0, menu.top - statusBarHeight);
+        this.setData({
+          statusBarHeightPx: statusBarHeight,
+          capsuleGapPx: gap,
+          capsuleHeightPx: menu.height || 32,
+          // 内容区从胶囊底部 + 32rpx 间距开始
+          mainPadPx: Math.round((menu.bottom || statusBarHeight + gap + 32) + 32 * scale),
+        });
+      } else {
+        this.setData({
+          statusBarHeightPx: statusBarHeight,
+          mainPadPx: Math.round(statusBarHeight + 6 + 32 + 32 * scale),
+        });
+      }
+    } catch (e) {
+      /* 用默认值 */
+    }
   },
 
   async onRefresh() {
@@ -167,6 +203,7 @@ Page({
 
   async onLoad(options) {
     this._mainEntryReady = false;
+    this.applyStatusBarPadding();
     const app = getApp();
     const launch =
       typeof wx.getLaunchOptionsSync === "function" ? wx.getLaunchOptionsSync() : {};
@@ -578,7 +615,7 @@ Page({
 
   async goRecipeList() {
     if (!(await this.guardGuestAction("查看菜谱需要先登录。"))) return;
-    wx.switchTab({ url: "/pages/recipe/list/index" });
+    wx.navigateTo({ url: "/pages/recipe/list/index" });
   },
 
   async goRecipeAdd() {

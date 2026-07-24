@@ -205,7 +205,7 @@ Page({
                   });
                 }, "删除中…");
                 wx.showToast({ title: "已删除", icon: "none" });
-                wx.switchTab({ url: "/pages/order/list/index" });
+                wx.navigateTo({ url: "/pages/order/list/index" });
               }
             );
           } else {

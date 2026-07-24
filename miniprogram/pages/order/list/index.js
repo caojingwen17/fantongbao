@@ -85,11 +85,11 @@ Page({
   },
 
   goRecipeList() {
-    wx.switchTab({ url: "/pages/recipe/list/index" });
+    wx.navigateTo({ url: "/pages/recipe/list/index" });
   },
 
   onGoPick() {
-    wx.switchTab({ url: "/pages/index/index" });
+    wx.reLaunch({ url: "/pages/index/index" });
   },
 });
 

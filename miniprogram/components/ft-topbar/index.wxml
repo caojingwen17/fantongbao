@@ -1,5 +1,5 @@
-<view class="ft-topbar" style="padding-top: {{paddingTopPx}}px;">
-  <view class="ft-topbar-left">
+<view class="ft-topbar" style="padding-top: {{statusBarHeightPx}}px;">
+  <view class="ft-topbar-row" style="margin-top: {{capsuleGapPx}}px; height: {{capsuleHeightPx}}px;">
     <view
       wx:if="{{showBack}}"
       class="ft-topbar-back"
@@ -9,7 +9,7 @@
       <view class="ft-topbar-back-ico"></view>
     </view>
     <view class="ft-topbar-title">{{title}}</view>
+    <view class="ft-topbar-spacer"></view>
+    <slot></slot>
   </view>
-  <view class="ft-topbar-spacer"></view>
-  <slot></slot>
 </view>

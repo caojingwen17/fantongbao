@@ -10,8 +10,12 @@ Component({
     customBack: { type: Boolean, value: false },
   },
   data: {
-    /** 状态栏高度 + 顶部留白（px），与首页 FANTONGBABY 品牌栏底部对齐 */
-    paddingTopPx: 26,
+    /** 状态栏高度（px） */
+    statusBarHeightPx: 20,
+    /** 胶囊按钮距状态栏的间距（px） */
+    capsuleGapPx: 6,
+    /** 胶囊按钮高度（px），顶栏内容行与之等高 */
+    capsuleHeightPx: 32,
   },
   lifetimes: {
     attached() {
@@ -19,11 +23,19 @@ Component({
         const info =
           typeof wx.getWindowInfo === "function" ? wx.getWindowInfo() : wx.getSystemInfoSync();
         const statusBarHeight = info.statusBarHeight || 0;
-        const pxPerRpx = (info.windowWidth || 375) / 750;
-        // 与首页 .topbar 视觉对齐：52rpx 顶部留白，内容 80rpx，底部 30rpx
-        this.setData({
-          paddingTopPx: Math.round(statusBarHeight + 52 * pxPerRpx),
-        });
+        const menu =
+          typeof wx.getMenuButtonBoundingClientRect === "function"
+            ? wx.getMenuButtonBoundingClientRect()
+            : null;
+        if (menu && menu.top != null) {
+          this.setData({
+            statusBarHeightPx: statusBarHeight,
+            capsuleGapPx: Math.max(0, menu.top - statusBarHeight),
+            capsuleHeightPx: menu.height || 32,
+          });
+        } else {
+          this.setData({ statusBarHeightPx: statusBarHeight });
+        }
       } catch (e) {
         /* 用默认值 */
       }
@@ -45,10 +57,7 @@ Component({
       this._goHome();
     },
     _goHome() {
-      wx.switchTab({
-        url: "/pages/index/index",
-        fail: () => wx.reLaunch({ url: "/pages/index/index" }),
-      });
+      wx.reLaunch({ url: "/pages/index/index" });
     },
   },
 });

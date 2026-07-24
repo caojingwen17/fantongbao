@@ -60,7 +60,9 @@ Page({
   },
 
   onBack() {
-    wx.switchTab({ url: "/pages/index/index" });
+    wx.navigateBack({
+      fail: () => wx.reLaunch({ url: "/pages/index/index" }),
+    });
   },
 
   async onRefresh() {

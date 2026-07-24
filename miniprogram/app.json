@@ -27,17 +27,6 @@
     "navigationBarTitleText": "饭桶宝",
     "navigationBarTextStyle": "black"
   },
-  "tabBar": {
-    "color": "#765524",
-    "selectedColor": "#874E00",
-    "backgroundColor": "#FFF5EC",
-    "borderStyle": "white",
-    "list": [
-      { "pagePath": "pages/index/index", "text": "首页" },
-      { "pagePath": "pages/recipe/list/index", "text": "菜谱" },
-      { "pagePath": "pages/order/list/index", "text": "点菜单" }
-    ]
-  },
   "sitemapLocation": "sitemap.json",
   "style": "v2",
   "lazyCodeLoading": "requiredComponents"

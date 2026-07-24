@@ -1,42 +1,41 @@
 .ft-topbar {
   position: relative;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  /* padding-top 由组件 JS 按 statusBarHeight + 52rpx 注入 */
-  padding: 26px 32rpx 30rpx;
+  /* padding-top 由组件 JS 按 statusBarHeight 注入；行高与胶囊按钮一致 */
+  padding: 0 32rpx;
 }
-.ft-topbar-left {
+.ft-topbar-row {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  height: 80rpx;
 }
 .ft-topbar-back {
-  width: 80rpx;
-  height: 80rpx;
-  margin-left: -16rpx;
+  width: 64rpx;
+  height: 64rpx;
+  margin-left: -8rpx;
   border-radius: 9999rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
 }
 .ft-topbar-back-hover {
-  transform: scale(0.96);
+  transform: scale(0.94);
   opacity: 0.85;
 }
 .ft-topbar-back-ico {
-  width: 18rpx;
-  height: 18rpx;
+  width: 16rpx;
+  height: 16rpx;
   border-left: 4rpx solid var(--ft-primary, #874e00);
   border-bottom: 4rpx solid var(--ft-primary, #874e00);
   transform: rotate(45deg);
-  margin-left: 8rpx;
+  margin-left: 6rpx;
 }
 .ft-topbar-title {
   font-size: 36rpx;
   font-weight: 900;
+  line-height: 1.2;
   color: var(--ft-on-surface, #432900);
 }
 .ft-topbar-spacer {
