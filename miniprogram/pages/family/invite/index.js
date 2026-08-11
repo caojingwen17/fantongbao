@@ -31,6 +31,9 @@ Page({
     invite.rememberPendingInviteCode(code);
     this.setData({ inviteCode: code });
 
+    // 预览与静默登录互不依赖：登录态探测并行发出，只更新按钮文案
+    this.refreshLoginState();
+
     try {
       const preview = await invite.previewFamilyInvite(code);
       this.setData({
@@ -45,9 +48,6 @@ Page({
       });
       return;
     }
-
-    // 静默登录成功后只更新按钮文案，不自动加入；由用户主动确认
-    this.refreshLoginState();
   },
 
   async onShow() {
@@ -109,6 +109,7 @@ Page({
     return {
       title: `邀请你加入「${name}」一起玩饭桶宝`,
       path: invite.buildFamilyInvitePath(inviteCode),
+      imageUrl: share.FAMILY_INVITE_SHARE_IMAGE,
     };
   },
 });

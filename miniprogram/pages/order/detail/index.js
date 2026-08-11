@@ -28,6 +28,112 @@ Page({
     /** 买菜消费修改弹窗 */
     expenseDialogVisible: false,
     expenseInput: "",
+    /** 随机一道抽卡层 */
+    randomSheetVisible: false,
+    randomRecipe: null,
+    randomBusy: false,
+    randomAnimFlip: false,
+    /** 换菜时当前卡片先飞出 */
+    randomCardOut: false,
+  },
+
+  /** 打开随机一道：首次加载家庭菜谱（含图片解析） */
+  async onOpenRandom() {
+    const { order } = this.data;
+    if (!order || !order._id) return;
+    if (order.status !== "pending_shopping" && order.status !== "pending_cooking") return;
+    haptics.light();
+    this.setData({ randomSheetVisible: true });
+    if (!this._randomRecipes) {
+      this.setData({ randomBusy: true });
+      try {
+        const app = getApp();
+        const familyId =
+          order.familyId || (app.globalData && app.globalData.currentFamilyId) || "";
+        const res = await cloud.callFunction("recipeFunctions", {
+          type: "listRecipes",
+          familyId,
+          keyword: "",
+        });
+        const raw = (res && res.recipes) || [];
+        this._randomRecipes = raw;
+      } catch (e) {
+        this._randomRecipes = [];
+      } finally {
+        this.setData({ randomBusy: false });
+      }
+    }
+    this._pickRandom("");
+  },
+
+  onCloseRandom() {
+    this.setData({ randomSheetVisible: false });
+  },
+
+  /** 从未点过的菜谱里随机抽一道（avoidId 用于「换一个」时避开当前这道） */
+  _pickRandom(avoidId) {
+    const inOrder = new Set(
+      ((this.data.order && this.data.order.recipes) || []).map((r) => r && r.recipeId)
+    );
+    let candidates = (this._randomRecipes || []).filter(
+      (r) => r && r._id && !inOrder.has(r._id) && r._id !== avoidId
+    );
+    if (!candidates.length && avoidId) {
+      // 只剩当前这道时允许重复展示
+      candidates = (this._randomRecipes || []).filter((r) => r && r._id && !inOrder.has(r._id));
+    }
+    if (!candidates.length) {
+      this.setData({ randomRecipe: null });
+      return;
+    }
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    const steps =
+      (Array.isArray(pick.prepareSteps) ? pick.prepareSteps.length : 0) +
+      (Array.isArray(pick.cookingSteps) ? pick.cookingSteps.length : 0);
+    this.setData({
+      randomRecipe: {
+        recipeId: pick._id,
+        recipeName: pick.recipeName || "未命名菜谱",
+        recipeImg: pick.recipeImg || "",
+        ingredientCount: Array.isArray(pick.ingredients) ? pick.ingredients.length : 0,
+        stepCount: steps,
+      },
+      randomAnimFlip: !this.data.randomAnimFlip,
+    });
+  },
+
+  onReroll() {
+    if (this.data.randomBusy || this.data.randomCardOut) return;
+    haptics.light();
+    // 当前卡片向左飞出，再让新卡片从右侧飞入
+    this.setData({ randomCardOut: true });
+    setTimeout(() => {
+      this._pickRandom((this.data.randomRecipe && this.data.randomRecipe.recipeId) || "");
+      this.setData({ randomCardOut: false });
+    }, 180);
+  },
+
+  /** 就它了：加入当前点菜单 */
+  async onAddRandom() {
+    const { orderId, randomRecipe, randomBusy } = this.data;
+    if (!orderId || !randomRecipe || randomBusy) return;
+    this.setData({ randomBusy: true });
+    try {
+      await ui.withLoading(async () => {
+        await cloud.callFunctionWithErrorToast("orderFunctions", {
+          type: "addRecipeToOrder",
+          orderId,
+          recipeId: randomRecipe.recipeId,
+        });
+      }, "加菜中…");
+      haptics.medium();
+      wx.showToast({ title: `已加入「${randomRecipe.recipeName}」`, icon: "none" });
+      this.setData({ randomSheetVisible: false, randomRecipe: null });
+      getApp().globalData.homeDirty = true;
+      await this.refreshOrder();
+    } finally {
+      this.setData({ randomBusy: false });
+    }
   },
 
   openExpenseDialog() {
@@ -127,6 +233,7 @@ Page({
       return {
         title: share.ORDER_INVITE_SHARE_TITLE,
         path: `/pages/order/detail/index?orderId=${orderId}`,
+        imageUrl: "/images/share/share-order-invite.png",
       };
     }
     return share.defaultShareAppMessage();

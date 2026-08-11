@@ -1,0 +1,30 @@
+/* 容器尺寸由页面通过 imgClass 传入（支持固定高与 padding-bottom 比例两种写法）。
+ * 定位默认 relative；页面 imgClass 自身为 absolute 布局时（如 hero-img），
+ * 在该类里声明 --ft-ci-pos: absolute 覆盖（组件 wxss 优先级高于页面，不能直接对撞 position）。 */
+.ft-cloud-image {
+  position: var(--ft-ci-pos, relative);
+  overflow: hidden;
+  display: block;
+}
+
+.ft-cloud-image-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ft-cloud-image-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ft-cloud-image-loading {
+  background: var(--ft-surface-container-low, #ffeedc);
+  border-radius: inherit;
+}

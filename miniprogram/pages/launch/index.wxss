@@ -1,6 +1,8 @@
 .launch-page {
   min-height: 100vh;
-  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(165deg, #fff5ec 0%, #ffe4c4 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -8,20 +10,57 @@
   box-sizing: border-box;
 }
 
+.blob {
+  position: absolute;
+  border-radius: 9999rpx;
+  pointer-events: none;
+  filter: blur(60rpx);
+}
+.blob-a {
+  width: 520rpx;
+  height: 520rpx;
+  right: -200rpx;
+  top: -220rpx;
+  background: #f9e534;
+  opacity: 0.16;
+}
+.blob-b {
+  width: 520rpx;
+  height: 520rpx;
+  left: -240rpx;
+  bottom: -160rpx;
+  background: #91f78e;
+  opacity: 0.12;
+}
+
 .launch-center {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 560rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: launch-fade-up 0.5s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes launch-fade-up {
+  from { opacity: 0; transform: translateY(32rpx); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .launch-logo-wrap {
-  width: 168rpx;
-  height: 168rpx;
-  border-radius: 40rpx;
+  width: 176rpx;
+  height: 176rpx;
+  border-radius: 48rpx;
   overflow: hidden;
-  box-shadow: 0 16rpx 48rpx rgba(135, 78, 0, 0.12);
+  box-shadow: 0 20rpx 56rpx rgba(135, 78, 0, 0.2);
+  animation: launch-logo-float 2.4s ease-in-out infinite;
+}
+
+@keyframes launch-logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10rpx); }
 }
 
 .launch-logo {
@@ -30,29 +69,38 @@
 }
 
 .launch-name {
-  margin-top: 28rpx;
-  font-size: 34rpx;
+  margin-top: 32rpx;
+  font-size: 44rpx;
   font-weight: 900;
-  letter-spacing: 4rpx;
+  letter-spacing: 8rpx;
   color: #432900;
 }
 
+.launch-slogan {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: #765524;
+  opacity: 0.85;
+}
+
 .launch-progress-wrap {
-  width: 100%;
-  margin-top: 56rpx;
+  width: 72%;
+  margin-top: 64rpx;
 }
 
 .launch-progress-track {
   width: 100%;
-  height: 8rpx;
+  height: 12rpx;
   border-radius: 9999rpx;
-  background: rgba(208, 166, 109, 0.18);
+  background: rgba(135, 78, 0, 0.1);
   overflow: hidden;
 }
 
 .launch-progress-bar {
   height: 100%;
   border-radius: 9999rpx;
-  background: linear-gradient(90deg, #ffb347 0%, #ff9800 100%);
-  transition: width 0.28s ease;
+  background: linear-gradient(90deg, #874e00 0%, #ff9800 100%);
+  transition: width 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }

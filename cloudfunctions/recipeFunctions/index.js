@@ -30,6 +30,27 @@ async function assertFamilyMember({ openid, familyId }) {
   return fam;
 }
 
+/** 点餐邀请 token 校验：返回 token 记录（含 orderId/familyId），无效返回 null */
+async function getOrderInviteRow(token) {
+  const t = String(token || "").trim();
+  if (!t) return null;
+  const tr = await db.collection("order_invite_tokens").where({ token: t }).limit(1).get();
+  return tr && tr.data && tr.data[0] ? tr.data[0] : null;
+}
+
+/** 客人凭邀请 token 访问家庭菜谱时的环节校验：进入买菜环节或已结束后不可再点菜 */
+async function assertGuestOrderPickable(inviteRow) {
+  const orderRes = await db.collection("orders").where({ _id: inviteRow.orderId }).get();
+  const order = orderRes && orderRes.data && orderRes.data[0] ? orderRes.data[0] : null;
+  if (!order) throw new Error("点菜单不存在");
+  if (order.status !== "pending_shopping" && order.status !== "pending_cooking") {
+    throw new Error("点菜单已结束，无法继续点餐");
+  }
+  if (order.shoppingStartedAt) {
+    throw new Error("该点菜单已开始买菜，不能继续点菜啦");
+  }
+}
+
 function randomShareToken(len) {
   const n = typeof len === "number" ? len : 10;
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -164,46 +185,62 @@ async function filterFamilyFileIds({ familyId, fileIds }) {
   if (!remaining.length) return [...allowed];
 
   const _ = db.command;
-  const remSet = new Set(remaining);
-
-  const recipeRes = await db
-    .collection("recipes")
-    .where({ familyId })
-    .field({ recipeImg: true, _id: true })
-    .get();
-  for (const r of recipeRes.data || []) {
-    const img = r && r.recipeImg;
-    if (img && remSet.has(img)) allowed.add(img);
-  }
+  const remArr = [...new Set(remaining)];
 
   const famRes = await db.collection("families").where({ _id: familyId }).get();
   const memberIds = (famRes.data && famRes.data[0] && famRes.data[0].memberIds) || [];
-  for (let i = 0; i < memberIds.length; i += 30) {
-    const slice = memberIds.slice(i, i + 30);
-    const usersRes = await db
-      .collection("users")
-      .where({ _id: _.in(slice) })
-      .field({ avatarUrl: true })
-      .get();
-    for (const u of usersRes.data || []) {
-      const av = u && u.avatarUrl;
-      if (av && remSet.has(av)) allowed.add(av);
-    }
+
+  // 按候选 id 反查，查询次数固定、与家庭数据量脱钩
+  // 防御性分批（_.in 上限 100），remaining 通常只有几个
+  const chunks = [];
+  for (let i = 0; i < remArr.length; i += 100) {
+    chunks.push(remArr.slice(i, i + 100));
+  }
+  const queryByCandidate = (collection, extraWhere, fieldSpec, key) =>
+    Promise.all(
+      chunks.map((c) =>
+        db
+          .collection(collection)
+          .where({ ...extraWhere, [key]: _.in(c) })
+          .field(fieldSpec)
+          .get()
+      )
+    ).then((ress) => ress.reduce((acc, r) => acc.concat(r.data || []), []));
+
+  const [recipeHits, userHits, tokenHits] = await Promise.all([
+    queryByCandidate("recipes", { familyId }, { recipeImg: true }, "recipeImg"),
+    queryByCandidate("users", { _id: _.in(memberIds) }, { avatarUrl: true }, "avatarUrl"),
+    queryByCandidate(
+      "recipe_share_tokens",
+      {},
+      { qrFileId: true, recipeId: true },
+      "qrFileId"
+    ),
+  ]);
+
+  for (const r of recipeHits) {
+    const img = r && r.recipeImg;
+    if (img) allowed.add(img);
+  }
+  for (const u of userHits) {
+    const av = u && u.avatarUrl;
+    if (av) allowed.add(av);
   }
 
-  const familyRecipeIds = (recipeRes.data || []).map((r) => r._id).filter(Boolean);
-  if (familyRecipeIds.length) {
-    for (let i = 0; i < familyRecipeIds.length; i += 30) {
-      const slice = familyRecipeIds.slice(i, i + 30);
-      const tokenRes = await db
-        .collection("recipe_share_tokens")
-        .where({ recipeId: _.in(slice) })
-        .field({ qrFileId: true })
-        .get();
-      for (const t of tokenRes.data || []) {
-        const qr = t && t.qrFileId;
-        if (qr && remSet.has(qr)) allowed.add(qr);
-      }
+  // 二维码 token 需确认其 recipeId 属于本家庭后才能放行
+  const tokenRecipeIds = [
+    ...new Set(tokenHits.map((t) => t && t.recipeId).filter(Boolean)),
+  ];
+  if (tokenRecipeIds.length) {
+    const confirmRes = await db
+      .collection("recipes")
+      .where({ _id: _.in(tokenRecipeIds), familyId })
+      .field({ _id: true })
+      .get();
+    const familyRecipeIds = new Set((confirmRes.data || []).map((r) => r._id));
+    for (const t of tokenHits) {
+      const qr = t && t.qrFileId;
+      if (qr && familyRecipeIds.has(t.recipeId)) allowed.add(qr);
     }
   }
 
@@ -249,32 +286,50 @@ exports.main = async (event) => {
     }
 
     case "listRecipes": {
-      const { familyId, keyword } = event;
-      if (!familyId) throw new Error("缺少 familyId");
+      const { familyId, keyword, inviteToken } = event;
+      let famId = familyId;
 
-      await assertFamilyMember({ openid, familyId });
+      // 客人凭点餐邀请 token 访问：familyId 以 token 记录为准，且仅限开始买菜前
+      if (inviteToken) {
+        const inviteRow = await getOrderInviteRow(inviteToken);
+        if (!inviteRow) throw new Error("邀请已失效，请重新打开链接");
+        await assertGuestOrderPickable(inviteRow);
+        famId = inviteRow.familyId;
+      }
+      if (!famId) throw new Error("缺少 familyId");
+      if (!inviteToken) await assertFamilyMember({ openid, familyId: famId });
+
+      const lite = event.lite === true;
+      const liteField = { recipeName: true, recipeImg: true, createTime: true };
+      // 分页：skip/limit（不传时维持旧行为上限 100 条；列表页传 30）；多取 1 条判断 hasMore
+      const skip = Math.max(0, parseInt(event.skip, 10) || 0);
+      const limit = Math.min(100, Math.max(1, parseInt(event.limit, 10) || 100));
+
+      const runPagedQuery = async (where) => {
+        let query = db
+          .collection("recipes")
+          .where(where)
+          .orderBy("createTime", "desc");
+        if (lite) query = query.field(liteField);
+        const res = await query
+          .skip(skip)
+          .limit(limit + 1)
+          .get();
+        const rows = res.data || [];
+        const hasMore = rows.length > limit;
+        const recipes = rows.slice(0, limit).map((r) => ({ ...r, id: r._id }));
+        return { success: true, recipes, hasMore };
+      };
 
       if (keyword) {
         // 尝试使用正则检索；若云库不支持该正则语法，可先在前端过滤
         const reg = db.RegExp ? db.RegExp({ regexp: keyword, options: "i" }) : null;
         if (reg) {
-          const res = await db
-            .collection("recipes")
-            .where({ familyId, recipeName: reg })
-            .orderBy("createTime", "desc")
-            .get();
-          const recipes = (res.data || []).map((r) => ({ ...r, id: r._id }));
-          return { success: true, recipes };
+          return runPagedQuery({ familyId: famId, recipeName: reg });
         }
       }
 
-      const res = await db
-        .collection("recipes")
-        .where({ familyId })
-        .orderBy("createTime", "desc")
-        .get();
-      const recipes = (res.data || []).map((r) => ({ ...r, id: r._id }));
-      return { success: true, recipes };
+      return runPagedQuery({ familyId: famId });
     }
 
     /** 首页：总数 + 最新若干条，避免拉全表菜谱 */
@@ -419,7 +474,9 @@ exports.main = async (event) => {
           cookingSteps: nextCooking,
         }),
       });
-      if (nextImg) {
+      // 仅当展示图发生变化时校验路径与内容安全：
+      // 早期分享导入的菜谱沿用了原家庭的图片路径（recipes/{原家庭}/），未换图时不应被拦
+      if (nextImg && nextImg !== recipe.recipeImg) {
         if (
           !isCloudPathForFamily(nextImg, recipe.familyId) ||
           !String(nextImg).includes(`/recipes/${recipe.familyId}/`)
@@ -467,18 +524,32 @@ exports.main = async (event) => {
      * 云函数侧换链不受该限制，供家庭成员查看同一家庭内的菜谱图、头像等。
      */
     case "getTempFileURLs": {
-      const { familyId, fileIds } = event;
-      if (!familyId) throw new Error("缺少 familyId");
-      await assertFamilyMember({ openid, familyId });
-      const ids = await filterFamilyFileIds({ familyId, fileIds });
+      const { familyId, fileIds, inviteToken } = event;
+      let famId = familyId;
+      // 客人凭点餐邀请 token 换链：familyId 以 token 记录为准
+      if (inviteToken) {
+        const inviteRow = await getOrderInviteRow(inviteToken);
+        if (!inviteRow) throw new Error("邀请已失效，请重新打开链接");
+        famId = inviteRow.familyId;
+      }
+      if (!famId) throw new Error("缺少 familyId");
+      if (!inviteToken) await assertFamilyMember({ openid, familyId: famId });
+      const ids = await filterFamilyFileIds({ familyId: famId, fileIds });
       if (!ids.length) return { success: true, map: {} };
-      const tmp = await cloud.getTempFileURL({ fileList: ids });
+      // getTempFileURL 单次上限 50 个 fileID，超出必须分批，否则整批失败
+      const fileItems = [];
+      for (let i = 0; i < ids.length; i += 50) {
+        const tmp = await cloud.getTempFileURL({ fileList: ids.slice(i, i + 50) });
+        (tmp.fileList || []).forEach((item) => fileItems.push(item));
+      }
       const map = {};
-      (tmp.fileList || []).forEach((item) => {
-        if (item && item.fileID) {
-          map[item.fileID] = item.tempFileURL || item.fileID;
+      fileItems.forEach((item) => {
+        // tempFileURL 缺失时不回退 cloud:// 原样值（客户端会视为成功结果缓存，而 cloud:// 不能直渲）
+        if (item && item.fileID && item.tempFileURL) {
+          map[item.fileID] = item.tempFileURL;
         }
       });
+      console.log(`[recipeFunctions] getTempFileURLs family=${famId} req=${ids.length} ok=${Object.keys(map).length}`);
       return { success: true, map };
     }
 
@@ -541,7 +612,17 @@ exports.main = async (event) => {
           const tmp = await cloud.getTempFileURL({ fileList: [img] });
           const item = tmp && tmp.fileList && tmp.fileList[0];
           recipeImgDisplay = (item && item.tempFileURL) || "";
-        } catch (e) {}
+          if (!recipeImgDisplay) {
+            console.warn(
+              "[recipeFunctions] getRecipeSharePreview 换链无结果:",
+              img,
+              JSON.stringify(item || tmp || {})
+            );
+          }
+        } catch (e) {
+          // 换链失败时 recipeImgDisplay 回落为 cloud:// fileID，扫码用户可能无权限直读，需记录排查
+          console.warn("[recipeFunctions] getRecipeSharePreview 换链失败:", img, (e && e.message) || String(e));
+        }
       } else if (img && /^https?:\/\//i.test(String(img))) {
         recipeImgDisplay = img;
       }
@@ -580,14 +661,38 @@ exports.main = async (event) => {
       if (!ings.length) throw new Error("原菜谱无食材，无法导入");
       if (!prep.length) throw new Error("原菜谱无备菜步骤，无法导入");
 
-      const baseName = recipe.recipeName || "菜谱";
-      const name = `${baseName}（分享）`;
+      const name = recipe.recipeName || "菜谱";
+
+      // 展示图复制一份到当前家庭路径：导入菜谱自包含，
+      // 原图被删/原家庭路径校验（updateRecipe）都不受影响
+      const srcImg = String(recipe.recipeImg || "");
+      let recipeImg = srcImg;
+      if (srcImg.indexOf("cloud://") === 0) {
+        try {
+          const dl = await cloud.downloadFile({ fileID: srcImg });
+          if (dl && dl.fileContent) {
+            const m = srcImg.match(/\.(jpe?g|png|webp|gif)(?:$|\?)/i);
+            const ext = m ? m[1].toLowerCase().replace("jpeg", "jpg") : "jpg";
+            const cloudPath = `recipes/${familyId}/${Date.now()}-${Math.random()
+              .toString(16)
+              .slice(2)}.${ext}`;
+            const up = await cloud.uploadFile({ cloudPath, fileContent: dl.fileContent });
+            if (up && up.fileID) recipeImg = up.fileID;
+          }
+        } catch (e) {
+          // 复制失败沿用原图引用，不阻断导入
+          console.warn(
+            "[recipeFunctions] importSharedRecipe 复制展示图失败，沿用原图:",
+            (e && e.message) || String(e)
+          );
+        }
+      }
 
       const created = await db.collection("recipes").add({
         data: {
           familyId,
           recipeName: name,
-          recipeImg: recipe.recipeImg || "",
+          recipeImg,
           xiaohongshuUrl: recipe.xiaohongshuUrl || "",
           ingredients: ings,
           seasonings: Array.isArray(recipe.seasonings) ? recipe.seasonings : [],

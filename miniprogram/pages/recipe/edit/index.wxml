@@ -1,3 +1,22 @@
+<wxs module="m">
+  function nonEmpty(s) {
+    if (!s) return false;
+    for (var j = 0; j < s.length; j++) {
+      var c = s.charAt(j);
+      if (c !== " " && c !== "\n" && c !== "\t" && c !== "\r") return true;
+    }
+    return false;
+  }
+  function filled(list) {
+    var n = 0;
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i];
+      if (nonEmpty(it.name) || nonEmpty(it.text)) n++;
+    }
+    return n;
+  }
+  module.exports = { filled: filled };
+</wxs>
 <view class="ft-page recipe-add-page">
   <ft-loading id="ft-loading" />
   <view class="blob blob-a"></view>
@@ -5,7 +24,7 @@
 
   <ft-topbar title="编辑菜谱" />
 
-  <scroll-view scroll-y="{{!stepDrag.active}}" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true">
+  <scroll-view scroll-y="{{!stepDrag.active}}" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true" scroll-top="{{stepScrollTop}}" scroll-with-animation="{{true}}">
     <view class="main-inner">
       <view class="card base-card">
         <view class="card-head">
@@ -25,20 +44,22 @@
           <view class="field-head">
             <view class="field-label">菜品展示图</view>
           </view>
-          <view class="cover-upload {{!canImport ? 'disabled' : ''}}" wx:if="{{!recipeImg}}">
+          <view class="cover-upload {{!canImport ? 'disabled' : ''}}" wx:if="{{!recipeImg}}" bindtap="onTapCoverUpload">
+            <view class="cover-upload-ico">
+              <view class="ft-ico ft-ico-upload"></view>
+            </view>
             <view class="cover-left">
               <view class="cover-title">上传展示图</view>
-              <view class="cover-sub">将按 4:3 比例裁切</view>
+              <view class="cover-sub">将按 4:3 比例裁切，建议真实菜品照片</view>
             </view>
-            <view class="cover-btn {{!canImport ? 'disabled' : ''}}" bindtap="onChooseImage">上传</view>
           </view>
           <view class="cover-preview" wx:if="{{recipeImg}}">
-            <image class="cover-img" mode="aspectFill" src="{{recipeImgDisplay}}" />
+            <ft-cloud-image imgClass="cover-img" src="{{recipeImgDisplay || recipeImg}}" familyId="{{familyId}}" />
             <view class="cover-grad" aria-hidden="true"></view>
             <view class="cover-bottom">
               <view class="cover-btm-left">
-                <view class="cover-state">已上传</view>
-                <view class="cover-tip">可重新上传替换图片</view>
+                <view class="cover-state">{{coverDirty ? "待保存" : "已上传"}}</view>
+                <view class="cover-tip">{{coverDirty ? "新展示图将在保存后生效" : "可重新上传替换图片"}}</view>
               </view>
               <view class="reupload-btn" bindtap="onChooseImage">
                 <view class="ft-ico ft-ico-upload ft-ico-sm"></view>
@@ -49,21 +70,21 @@
         </view>
       </view>
 
-      <view class="acc card">
+      <view class="acc card" id="acc-ingredients">
         <view class="acc-head" bindtap="toggleAccordion" data-key="ingredients">
           <view class="acc-left">
             <view class="acc-ico acc-ico-warn"><view class="ft-ico ft-ico-basket"></view></view>
             <view class="acc-meta">
               <view class="acc-title-row">
                 <view class="acc-title">食材</view>
-                <view class="pill pill-warn" aria-hidden="true">至少 1</view>
+                <view class="pill {{m.filled(ingredients) ? 'pill-ok' : 'pill-warn'}}">{{m.filled(ingredients) ? "已填 " + m.filled(ingredients) + " 项" : "至少 1"}}</view>
               </view>
               <view class="acc-sub">已填 {{ingredients.length}} 项</view>
             </view>
           </view>
-          <view class="acc-chev" aria-hidden="true">{{accordion.ingredients ? "˄" : "˅"}}</view>
+          <view class="acc-chev ft-ico ft-ico-chev-down ft-ico-sm {{accordion.ingredients ? 'acc-chev-up' : ''}}"></view>
         </view>
-        <view class="acc-body" wx:if="{{accordion.ingredients}}">
+        <view class="acc-body {{accordion.ingredients ? 'acc-body-open' : ''}}">
           <block wx:for="{{ingredients}}" wx:key="index">
             <view class="pair-row">
               <view class="pair-left">
@@ -89,9 +110,9 @@
               <view class="acc-sub">已填 {{seasonings.length}} 项</view>
             </view>
           </view>
-          <view class="acc-chev" aria-hidden="true">{{accordion.seasonings ? "˄" : "˅"}}</view>
+          <view class="acc-chev ft-ico ft-ico-chev-down ft-ico-sm {{accordion.seasonings ? 'acc-chev-up' : ''}}"></view>
         </view>
-        <view class="acc-body" wx:if="{{accordion.seasonings}}">
+        <view class="acc-body {{accordion.seasonings ? 'acc-body-open' : ''}}">
           <block wx:for="{{seasonings}}" wx:key="index">
             <view class="pair-row">
               <view class="pair-left">
@@ -105,38 +126,58 @@
         </view>
       </view>
 
-      <view class="acc card">
+      <view class="acc card" id="acc-prep">
         <view class="acc-head" bindtap="toggleAccordion" data-key="prep">
           <view class="acc-left">
             <view class="acc-ico acc-ico-neutral"><view class="ft-ico ft-ico-list"></view></view>
             <view class="acc-meta">
               <view class="acc-title-row">
                 <view class="acc-title">备菜步骤</view>
-                <view class="pill pill-warn" aria-hidden="true">至少 1</view>
+                <view class="pill {{m.filled(prepareSteps) ? 'pill-ok' : 'pill-warn'}}">{{m.filled(prepareSteps) ? "已填 " + m.filled(prepareSteps) + " 步" : "至少 1"}}</view>
               </view>
               <view class="acc-sub">已填 {{prepareSteps.length}} 步</view>
             </view>
           </view>
-          <view class="acc-chev" aria-hidden="true">{{accordion.prep ? "˄" : "˅"}}</view>
+          <view class="acc-chev ft-ico ft-ico-chev-down ft-ico-sm {{accordion.prep ? 'acc-chev-up' : ''}}"></view>
         </view>
-        <view class="acc-body" wx:if="{{accordion.prep}}">
-          <view class="step-drag-tip">长按左侧把手拖动可调整顺序</view>
+        <view class="acc-body {{accordion.prep ? 'acc-body-open' : ''}}">
+          <view class="step-drag-tip">长按步骤卡片拖动可调整顺序</view>
           <block wx:for="{{prepareSteps}}" wx:key="id">
             <view
-              class="step-row js-prep-step {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
-              style="{{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px);' : ''}}"
+              id="step-row-prepareSteps-{{index}}"
+              class="step-row js-prep-step {{stepDrag.active && stepDrag.listKey === 'prepareSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}}"
+              style="{{stepDrag.active && stepDrag.listKey === 'prepareSteps' ? (stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px) scale(1.02);' : 'transform: translateY(' + ((stepDrag.shiftY && stepDrag.shiftY[index]) || 0) + 'px);') : ''}}"
+              bindlongpress="onStepDragStart"
+              bindtouchmove="onStepDragMove"
+              bindtouchend="onStepDragEnd"
+              bindtouchcancel="onStepDragEnd"
+              data-list="prepareSteps"
+              data-index="{{index}}"
             >
               <view
-                class="step-drag-handle"
-                bindlongpress="onStepDragStart"
-                catchtouchmove="onStepDragMove"
-                catchtouchend="onStepDragEnd"
-                catchtouchcancel="onStepDragEnd"
+                wx:if="{{stepFocusKey !== 'prepareSteps-' + index}}"
+                class="step-input step-input-view {{item.text ? '' : 'is-placeholder'}}"
                 data-list="prepareSteps"
                 data-index="{{index}}"
-                aria-label="拖动排序"
-              >⋮⋮</view>
-              <input class="step-input" placeholder="输入备菜步骤" data-index="{{index}}" value="{{item.text}}" bindinput="onPrepareStepInput" />
+                bindtap="onStepFocus"
+              >
+                <text class="step-num">{{index + 1}}</text>
+                <text class="step-text">{{item.text || "输入备菜步骤"}}</text>
+              </view>
+              <view class="step-input-wrap" wx:else>
+                <textarea
+                  class="step-input step-input-open"
+                  style="height: {{stepFocusHeight}}px; width: 100%;"
+                  focus="{{true}}"
+                  adjust-position="{{false}}"
+                  show-confirm-bar="{{false}}"
+                  cursor-spacing="24"
+                  data-index="{{index}}"
+                  value="{{item.text}}"
+                  bindinput="onPrepareStepInput"
+                  bindblur="onStepBlur"
+                />
+              </view>
               <view class="remove-btn" bindtap="removePrepareStep" data-index="{{index}}">－</view>
             </view>
           </block>
@@ -144,38 +185,58 @@
         </view>
       </view>
 
-      <view class="acc card">
+      <view class="acc card" id="acc-cook">
         <view class="acc-head" bindtap="toggleAccordion" data-key="cook">
           <view class="acc-left">
             <view class="acc-ico acc-ico-neutral"><view class="ft-ico ft-ico-cook"></view></view>
             <view class="acc-meta">
               <view class="acc-title-row">
                 <view class="acc-title">做菜步骤</view>
-                <view class="pill pill-warn" aria-hidden="true">至少 1</view>
+                <view class="pill {{m.filled(cookingSteps) ? 'pill-ok' : 'pill-warn'}}">{{m.filled(cookingSteps) ? "已填 " + m.filled(cookingSteps) + " 步" : "至少 1"}}</view>
               </view>
               <view class="acc-sub">已填 {{cookingSteps.length}} 步</view>
             </view>
           </view>
-          <view class="acc-chev" aria-hidden="true">{{accordion.cook ? "˄" : "˅"}}</view>
+          <view class="acc-chev ft-ico ft-ico-chev-down ft-ico-sm {{accordion.cook ? 'acc-chev-up' : ''}}"></view>
         </view>
-        <view class="acc-body" wx:if="{{accordion.cook}}">
-          <view class="step-drag-tip">长按左侧把手拖动可调整顺序</view>
+        <view class="acc-body {{accordion.cook ? 'acc-body-open' : ''}}">
+          <view class="step-drag-tip">长按步骤卡片拖动可调整顺序</view>
           <block wx:for="{{cookingSteps}}" wx:key="id">
             <view
-              class="step-row js-cook-step {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}} {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.targetIndex === index && stepDrag.index !== index ? 'step-row-target' : ''}}"
-              style="{{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px);' : ''}}"
+              id="step-row-cookingSteps-{{index}}"
+              class="step-row js-cook-step {{stepDrag.active && stepDrag.listKey === 'cookingSteps' && stepDrag.index === index ? 'step-row-dragging' : ''}}"
+              style="{{stepDrag.active && stepDrag.listKey === 'cookingSteps' ? (stepDrag.index === index ? 'transform: translateY(' + stepDrag.offsetY + 'px) scale(1.02);' : 'transform: translateY(' + ((stepDrag.shiftY && stepDrag.shiftY[index]) || 0) + 'px);') : ''}}"
+              bindlongpress="onStepDragStart"
+              bindtouchmove="onStepDragMove"
+              bindtouchend="onStepDragEnd"
+              bindtouchcancel="onStepDragEnd"
+              data-list="cookingSteps"
+              data-index="{{index}}"
             >
               <view
-                class="step-drag-handle"
-                bindlongpress="onStepDragStart"
-                catchtouchmove="onStepDragMove"
-                catchtouchend="onStepDragEnd"
-                catchtouchcancel="onStepDragEnd"
+                wx:if="{{stepFocusKey !== 'cookingSteps-' + index}}"
+                class="step-input step-input-view {{item.text ? '' : 'is-placeholder'}}"
                 data-list="cookingSteps"
                 data-index="{{index}}"
-                aria-label="拖动排序"
-              >⋮⋮</view>
-              <input class="step-input" placeholder="输入做菜步骤" data-index="{{index}}" value="{{item.text}}" bindinput="onCookingStepInput" />
+                bindtap="onStepFocus"
+              >
+                <text class="step-num">{{index + 1}}</text>
+                <text class="step-text">{{item.text || "输入做菜步骤"}}</text>
+              </view>
+              <view class="step-input-wrap" wx:else>
+                <textarea
+                  class="step-input step-input-open"
+                  style="height: {{stepFocusHeight}}px; width: 100%;"
+                  focus="{{true}}"
+                  adjust-position="{{false}}"
+                  show-confirm-bar="{{false}}"
+                  cursor-spacing="24"
+                  data-index="{{index}}"
+                  value="{{item.text}}"
+                  bindinput="onCookingStepInput"
+                  bindblur="onStepBlur"
+                />
+              </view>
               <view class="remove-btn" bindtap="removeCookingStep" data-index="{{index}}">－</view>
             </view>
           </block>
@@ -183,7 +244,8 @@
         </view>
       </view>
 
-      <view class="bottom-spacer" aria-hidden="true"></view>
+      <!-- 键盘弹出时撑开底部，保证最后几步能滚动到键盘上方 -->
+      <view class="bottom-spacer" style="{{keyboardHeight > 0 ? 'height: ' + keyboardHeight + 'px;' : ''}}" aria-hidden="true"></view>
     </view>
   </scroll-view>
 

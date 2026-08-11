@@ -1,9 +1,13 @@
 const cloud = require("../../utils/cloud");
-const { resolveBatch, getCachedUrl } = require("../../utils/cloudDisplay");
 const auth = require("../../utils/auth");
 const invite = require("../../utils/invite");
 const orderInvite = require("../../utils/orderInvite");
 const haptics = require("../../utils/haptics");
+
+/** 聚合接口 getHomeData 调用失败（如旧版云函数未部署）后，本会话内固定走三路回退 */
+let _homeAggBroken = false;
+/** 启动页预取结果的有效期：过期则弃用，改走实时请求 */
+const HOME_PREFETCH_TTL_MS = 60000;
 
 function getDefaultNewOrderName() {
   const d = new Date();
@@ -24,6 +28,7 @@ Page({
   data: {
     currentFamily: null,
     families: [],
+    familyId: "",
     membersCount: 0,
     memberAvatarDisplays: [],
     pendingShopping: null,
@@ -194,10 +199,10 @@ Page({
     const familyId = app.globalData.currentFamilyId;
     const families = app.globalData.families || [];
     const currentFamily = families.find((f) => f._id === familyId) || null;
+    // 保持 homeBootstrapping 为 true：骨架屏持续展示，直到 refreshHome 首拉数据完成后再撤下
     this.setData({
       homeGuest: false,
       homeNeedFamily: false,
-      homeBootstrapping: false,
       currentFamily,
       families,
     });
@@ -375,6 +380,83 @@ Page({
     return this._refreshPromise;
   },
 
+  /** 优先消费启动页预取的聚合结果；其次实时调聚合接口；失败回退原三路并行请求 */
+  async fetchHomeData(familyId) {
+    const app = getApp();
+    const prefetch = app.globalData.homePrefetch;
+    app.globalData.homePrefetch = null;
+
+    if (
+      prefetch &&
+      prefetch.familyId === familyId &&
+      prefetch.promise &&
+      Date.now() - prefetch.ts < HOME_PREFETCH_TTL_MS
+    ) {
+      const r = await prefetch.promise;
+      if (r && r.ok && r.data) return this.normalizeHomeData(r.data);
+    }
+
+    if (!_homeAggBroken) {
+      try {
+        const data = await cloud.callFunction("familyFunctions", {
+          type: "getHomeData",
+          familyId,
+          limit: 4,
+        });
+        return this.normalizeHomeData(data || {});
+      } catch (e) {
+        _homeAggBroken = true;
+        console.warn("[home] getHomeData 不可用，回退三路请求:", (e && e.message) || e);
+      }
+    }
+
+    return this.fetchHomeDataLegacy(familyId);
+  },
+
+  /** 统一三种来源的返回结构 */
+  normalizeHomeData(data) {
+    const recipes = (data && data.recipes) || [];
+    return {
+      members: (data && data.members) || [],
+      orders: (data && data.orders) || [],
+      recipes,
+      totalCount:
+        data && typeof data.totalCount === "number" ? data.totalCount : recipes.length,
+    };
+  },
+
+  /** 原三路并行请求（聚合接口不可用时的回退路径） */
+  async fetchHomeDataLegacy(familyId) {
+    const [membersResp, ordersResp, recipeResp] = await Promise.all([
+      cloud
+        .callFunction("familyFunctions", {
+          type: "getFamilyMembers",
+          familyId,
+        })
+        .catch(() => ({})),
+      cloud
+        .callFunction("orderFunctions", {
+          type: "listActiveOrders",
+          familyId,
+        })
+        .catch(() => ({})),
+      cloud
+        .callFunction("recipeFunctions", {
+          type: "listRecipesForHome",
+          familyId,
+          limit: 4,
+        })
+        .catch(() => ({})),
+    ]);
+
+    return this.normalizeHomeData({
+      members: membersResp && membersResp.members,
+      orders: ordersResp && ordersResp.orders,
+      recipes: recipeResp && recipeResp.recipes,
+      totalCount: recipeResp && recipeResp.totalCount,
+    });
+  },
+
   async _doRefreshHome() {
     const app = getApp();
     const familyId = app.globalData.currentFamilyId;
@@ -383,34 +465,11 @@ Page({
     this.setData({ homeRefreshing: true });
     wx.showNavigationBarLoading();
     try {
-      const [membersResp, ordersResp, recipeResp] = await Promise.all([
-        cloud
-          .callFunction("familyFunctions", {
-            type: "getFamilyMembers",
-            familyId,
-          })
-          .catch(() => ({})),
-        cloud
-          .callFunction("orderFunctions", {
-            type: "listActiveOrders",
-            familyId,
-          })
-          .catch(() => ({})),
-        cloud
-          .callFunction("recipeFunctions", {
-            type: "listRecipesForHome",
-            familyId,
-            limit: 4,
-          })
-          .catch(() => ({})),
-      ]);
+      const home = await this.fetchHomeData(familyId);
 
-      const members = (membersResp && membersResp.members) || [];
-      const avatarIds = members
-        .map((m) => (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "")
-        .filter(Boolean);
+      const members = home.members;
 
-      const rawOrders = (ordersResp && ordersResp.orders) || [];
+      const rawOrders = home.orders;
       const pendingOrders = rawOrders.map((o) => {
         const rc = o.recipeCount || 0;
         let statusText = o.status === "pending_cooking" ? "待制作" : "待买菜";
@@ -426,16 +485,22 @@ Page({
         (x) => x.status === "pending_shopping"
       ).length;
 
-      const list = (recipeResp && recipeResp.recipes) || [];
-      const recipeTotalCount =
-        typeof recipeResp.totalCount === "number" ? recipeResp.totalCount : list.length;
+      const list = home.recipes;
+      const recipeTotalCount = home.totalCount;
       const homeEmptyHero =
         (!pendingOrders || pendingOrders.length === 0) && recipeTotalCount === 0;
 
-      // 先渲染文字/结构，去掉全屏 loading，图片稍后补齐
+      // 图片（菜谱图/成员头像）由 ft-cloud-image 组件按 fileID 自行换链，页面不再预解析
+      const AVATAR_MAX = 7;
+      const memberAvatarDisplays = members.slice(0, AVATAR_MAX).map((m) => {
+        const id = (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "";
+        return { url: id, ph: !id, fid: id };
+      });
+
       this.setData({
+        familyId,
         membersCount: members.length,
-        memberAvatarDisplays: [],
+        memberAvatarDisplays,
         pendingShopping,
         pendingCooking,
         pendingOrders,
@@ -445,43 +510,6 @@ Page({
         homeEmptyHero,
         homeBootstrapping: false,
       });
-
-      const recipeImgIds = list
-        .map((r) => (r && r.recipeImg) || "")
-        .filter((id) => id && String(id).indexOf("cloud://") === 0);
-      const cloudIds = [
-        ...new Set([
-          ...avatarIds.filter((id) => String(id).indexOf("cloud://") === 0),
-          ...recipeImgIds,
-        ]),
-      ];
-
-      if (!cloudIds.length) return;
-
-      const urlMap = await resolveBatch(cloudIds, { familyId });
-      const memberAvatarDisplays = members
-        .map((m) => {
-          const id = (m && (m.avatarUrl || m.avatar || m.userAvatar || m.avatarFileId)) || "";
-          if (!id) return "";
-          if (typeof id === "string" && id.indexOf("cloud://") === 0) {
-            return urlMap[id] || getCachedUrl(id) || "";
-          }
-          return id;
-        })
-        .filter(Boolean)
-        .slice(0, 2);
-
-      const recipes = list.map((r) => {
-        const id = r && r.recipeImg;
-        if (!id) return { ...r, recipeImgDisplay: r.recipeImgDisplay || "" };
-        if (typeof id !== "string" || id.indexOf("cloud://") !== 0) {
-          return { ...r, recipeImgDisplay: id };
-        }
-        const display = urlMap[id] || getCachedUrl(id) || r.recipeImgDisplay || "";
-        return { ...r, recipeImgDisplay: display };
-      });
-
-      this.setData({ memberAvatarDisplays, recipes });
     } catch (e) {
       this.setData({
         membersCount: 0,

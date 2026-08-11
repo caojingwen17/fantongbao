@@ -1,5 +1,4 @@
 const auth = require("../../../utils/auth");
-const cloudDisplay = require("../../../utils/cloudDisplay");
 const haptics = require("../../../utils/haptics");
 const ui = require("../../../utils/ui");
 
@@ -39,17 +38,6 @@ Page({
     }
 
     this.trySilentLogin();
-  },
-
-  async resolveAvatarPreview(avatarUrl) {
-    if (!avatarUrl) return "";
-    if (avatarUrl.indexOf("cloud://") !== 0) return avatarUrl;
-    try {
-      const map = await cloudDisplay.resolveBatch([avatarUrl]);
-      return (map && map[avatarUrl]) || "";
-    } catch (e) {
-      return avatarUrl;
-    }
   },
 
   async trySilentLogin() {

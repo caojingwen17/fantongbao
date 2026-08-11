@@ -1,9 +1,14 @@
 <view class="launch-page">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+
   <view class="launch-center">
     <view class="launch-logo-wrap">
-      <image class="launch-logo" mode="aspectFill" src="/images/icons/fantongbao.png" aria-label="饭桶宝" />
+      <image class="launch-logo" mode="aspectFill" src="/images/icons/launch-logo.png" />
     </view>
     <view class="launch-name">饭桶宝</view>
+    <view class="launch-slogan">家庭菜谱 · 点菜 · 买菜 · 做菜</view>
+
     <view class="launch-progress-wrap">
       <view class="launch-progress-track">
         <view class="launch-progress-bar" style="width: {{progress}}%;"></view>

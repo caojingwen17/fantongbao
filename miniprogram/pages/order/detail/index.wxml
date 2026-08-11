@@ -30,13 +30,19 @@
 
       <view class="order-empty-cta" wx:if="{{recipeCount===0 && order.status!=='completed'}}">
         <view class="order-empty-cta-hint">还没有点菜</view>
-        <view class="ft-btn ft-btn-primary order-empty-cta-btn" bindtap="goOrder">点菜</view>
+        <view class="order-empty-cta-btns">
+          <view class="ft-btn ft-btn-primary order-empty-cta-btn" bindtap="goOrder">点菜</view>
+          <view class="ft-btn ft-btn-secondary order-empty-cta-btn" bindtap="onOpenRandom">随机一道</view>
+        </view>
       </view>
 
       <view class="dish-section" wx:if="{{recipeCount > 0}}">
         <view class="dish-head">
           <view class="dish-title">已点菜品</view>
-          <view class="dish-count">{{recipeCount}} 道</view>
+          <view class="dish-head-right">
+            <view class="dish-random" wx:if="{{order.status==='pending_shopping' || order.status==='pending_cooking'}}" bindtap="onOpenRandom">随机</view>
+            <view class="dish-count">{{recipeCount}} 道</view>
+          </view>
         </view>
 
         <view class="dish-list" wx:if="{{order.recipes && order.recipes.length}}">
@@ -143,6 +149,32 @@
         <view class="expense-btn skip" bindtap="closeExpenseDialog">取消</view>
         <view class="expense-btn ok" bindtap="onConfirmExpense">确认</view>
       </view>
+    </view>
+  </view>
+
+  <!-- 随机一道：抽卡弹层 -->
+  <view class="random-mask ft-anim-mask" wx:if="{{randomSheetVisible}}" catchtap="onCloseRandom"></view>
+  <view class="random-sheet ft-anim-sheet" wx:if="{{randomSheetVisible}}" catchtap="noop">
+    <view class="random-head">
+      <view>
+        <view class="random-kicker">不知道吃什么？</view>
+        <view class="random-title">随机来一道</view>
+      </view>
+      <view class="random-close" bindtap="onCloseRandom">×</view>
+    </view>
+
+    <view class="random-card {{randomCardOut ? 'is-out' : (randomAnimFlip ? 'random-in-a' : 'random-in-b')}}" wx:if="{{randomRecipe}}">
+      <view class="random-media">
+        <ft-cloud-image imgClass="random-img" src="{{randomRecipe.recipeImg}}" />
+      </view>
+      <view class="random-name">{{randomRecipe.recipeName}}</view>
+      <view class="random-meta">{{randomRecipe.ingredientCount}} 种食材 · {{randomRecipe.stepCount}} 个步骤</view>
+    </view>
+    <view class="random-empty" wx:if="{{!randomRecipe && !randomBusy}}">家庭菜谱都被点完啦</view>
+
+    <view class="random-actions">
+      <view class="ft-btn ft-btn-secondary" bindtap="onReroll">换一个</view>
+      <view class="ft-btn ft-btn-primary {{(!randomRecipe || randomBusy) ? 'disabled' : ''}}" bindtap="onAddRandom">就它了，加菜</view>
     </view>
   </view>
 

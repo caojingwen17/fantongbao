@@ -11,11 +11,15 @@ function enableShareMenu() {
 }
 
 const ORDER_INVITE_SHARE_TITLE = "邀请您一起点菜";
+const BRAND_SHARE_IMAGE = "/images/share/share-brand.png";
+const ORDER_INVITE_SHARE_IMAGE = "/images/share/share-order-invite.png";
+const FAMILY_INVITE_SHARE_IMAGE = "/images/share/share-family-invite.png";
 
 function defaultShareAppMessage() {
   return {
     title: "饭桶宝 · 家庭菜谱协作",
     path: "/pages/index/index",
+    imageUrl: BRAND_SHARE_IMAGE,
   };
 }
 
@@ -70,7 +74,7 @@ async function prepareOrderInviteShareOnPage(page, cloud, orderId) {
   const prep = await prepareOrderInviteToken(cloud, orderId);
   const token = prep.token;
   const path = buildOrderInvitePath(token);
-  const payload = { title: ORDER_INVITE_SHARE_TITLE, path, token };
+  const payload = { title: ORDER_INVITE_SHARE_TITLE, path, token, imageUrl: ORDER_INVITE_SHARE_IMAGE };
   try {
     const app = getApp();
     if (app && app.globalData) {
@@ -102,6 +106,7 @@ function getOrderInviteShareFromPage(page) {
   return {
     title: ORDER_INVITE_SHARE_TITLE,
     path: buildOrderInvitePath(token),
+    imageUrl: ORDER_INVITE_SHARE_IMAGE,
   };
 }
 
@@ -142,6 +147,7 @@ function enhancePageConfig(pageConfig) {
 
 module.exports = {
   ORDER_INVITE_SHARE_TITLE,
+  FAMILY_INVITE_SHARE_IMAGE,
   enableShareMenu,
   defaultShareAppMessage,
   defaultShareTimeline,

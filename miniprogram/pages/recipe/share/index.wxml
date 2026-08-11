@@ -10,13 +10,7 @@
 
   <block wx:else>
     <view class="card preview-card">
-      <image
-        class="preview-img"
-        mode="aspectFill"
-        src="{{preview.recipeImgDisplay || preview.recipeImg}}"
-        wx:if="{{preview.recipeImgDisplay || preview.recipeImg}}"
-      />
-      <view class="preview-img ph" wx:else>暂无配图</view>
+      <ft-cloud-image imgClass="preview-img" src="{{preview.recipeImgDisplay || preview.recipeImg}}" />
       <view class="preview-name">{{preview.recipeName}}</view>
       <view class="preview-hint">以下为分享内容，点击区块标题可展开</view>
     </view>

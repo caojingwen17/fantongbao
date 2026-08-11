@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#fff5ec"/>
+  <g transform="translate(0,-40) scale(0.92) translate(-44,0)">
+  <path d="M472 300 q-18 -36 0 -68 q18 -32 0 -64" stroke="#874e00" stroke-width="26" fill="none" stroke-linecap="round" opacity="0.55"/>
+  <path d="M552 300 q-18 -36 0 -68 q18 -32 0 -64" stroke="#874e00" stroke-width="26" fill="none" stroke-linecap="round" opacity="0.75"/>
+  <rect x="332" y="336" width="360" height="52" rx="26" fill="#874e00"/>
+  <path d="M352 388 h320 v78 a96 96 0 0 1 -96 96 h-128 a96 96 0 0 1 -96 -96 z" fill="#ff9800"/></g>
+  <text x="512" y="800" font-size="190" font-weight="900" font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="#874e00" text-anchor="middle">饭桶宝</text>
+</svg>

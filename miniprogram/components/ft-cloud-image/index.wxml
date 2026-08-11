@@ -1,0 +1,18 @@
+<view class="ft-cloud-image {{imgClass}}">
+  <image
+    wx:if="{{status === 'ok'}}"
+    class="ft-cloud-image-img"
+    mode="{{mode}}"
+    src="{{displayUrl}}"
+    binderror="onImgError"
+  />
+  <view wx:elif="{{status === 'failed'}}" class="ft-img-placeholder ft-cloud-image-fill">
+    <view class="ft-ico ft-ico-dish ft-ico-sm"></view>
+    <view class="ft-img-placeholder-text">图片加载失败</view>
+  </view>
+  <view wx:elif="{{status === 'idle'}}" class="ft-img-placeholder ft-cloud-image-fill">
+    <view class="ft-ico ft-ico-dish ft-ico-sm"></view>
+    <view class="ft-img-placeholder-text">暂无图片</view>
+  </view>
+  <view wx:else class="ft-cloud-image-loading ft-cloud-image-fill"></view>
+</view>

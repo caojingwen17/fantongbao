@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
+  
+  <defs>
+    <linearGradient id="bgB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff7ee"/>
+      <stop offset="1" stop-color="#ffe3c2"/>
+    </linearGradient>
+    <filter id="softB" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <rect width="500" height="400" fill="url(#bgB)"/>
+  <circle cx="70" cy="60" r="90" fill="#ffd9ad" opacity="0.45"/>
+  <circle cx="445" cy="345" r="110" fill="#ffcf9a" opacity="0.4"/>
+  <circle cx="455" cy="55" r="42" fill="#ffe9d2" opacity="0.7"/>
+  <!-- 白卡片 + 投影 -->
+  <rect x="30" y="36" width="440" height="330" rx="30" fill="#d9a05e" opacity="0.28" filter="url(#softB)"/>
+  <rect x="30" y="28" width="440" height="330" rx="30" fill="#ffffff"/>
+  
+  
+  <circle cx="100" cy="78" r="4" fill="#ffca8a" opacity="1"/><circle cx="408" cy="84" r="5" fill="#ffca8a" opacity="1"/>
+  
+  <path transform="translate(112,62) scale(0.9)" d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4 Z" fill="#ffb85c"/>
+  <path transform="translate(398,64) scale(0.8)" d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4 Z" fill="#ffb85c"/>
+  <path transform="translate(250,52) scale(0.75)" d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4 Z" fill="#ffb85c"/>
+  
+  <g transform="translate(92,178) rotate(-14) scale(0.8)">
+    <path d="M0 0 q14 -16 30 -12 q-4 18 -22 20 q-8 1 -8 -8 z" fill="#5cb56a"/>
+    <path d="M4 -2 q12 -8 22 -8" stroke="#3d9b4f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(408,182) rotate(198) scale(0.8)">
+    <path d="M0 0 q14 -16 30 -12 q-4 18 -22 20 q-8 1 -8 -8 z" fill="#5cb56a"/>
+    <path d="M4 -2 q12 -8 22 -8" stroke="#3d9b4f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <g transform="translate(160,162) scale(0.95,0.95)">
+    <path d="M-40 0 a40 26 0 0 0 80 0 z" fill="#ff9800"/>
+    <path d="M-40 0 h80 v4 h-80 z" fill="#e07f00"/>
+    <path d="M-30 -4 a30 14 0 0 1 60 0 z" fill="#fffdf7"/>
+    <path d="M-18 -10 q4 -6 0 -12 M0 -12 q4 -6 0 -12 M18 -10 q4 -6 0 -12" stroke="#d8c3a5" stroke-width="3.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  
+  <g transform="translate(340,162) scale(-0.95,0.95)">
+    <path d="M-40 0 a40 26 0 0 0 80 0 z" fill="#ff9800"/>
+    <path d="M-40 0 h80 v4 h-80 z" fill="#e07f00"/>
+    <path d="M-30 -4 a30 14 0 0 1 60 0 z" fill="#fffdf7"/>
+    <path d="M-18 -10 q4 -6 0 -12 M0 -12 q4 -6 0 -12 M18 -10 q4 -6 0 -12" stroke="#d8c3a5" stroke-width="3.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  
+  <g transform="translate(160,128) rotate(-12) scale(0.9)">
+    <rect x="-4" y="-46" width="6" height="58" rx="3" fill="#874e00"/>
+    <rect x="8" y="-46" width="6" height="58" rx="3" fill="#a66a1f"/>
+  </g>
+  
+  <g transform="translate(340,128) rotate(12) scale(0.9)">
+    <rect x="-4" y="-46" width="6" height="58" rx="3" fill="#874e00"/>
+    <rect x="8" y="-46" width="6" height="58" rx="3" fill="#a66a1f"/>
+  </g>
+  
+  <g transform="translate(250,96) scale(0.62)">
+    <path d="M-22 -52 q-10 -18 0 -34 q10 -16 0 -32" stroke="#874e00" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path d="M22 -52 q-10 -18 0 -34 q10 -16 0 -32" stroke="#874e00" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.72"/>
+    <rect x="-74" y="-30" width="148" height="22" rx="11" fill="#874e00"/>
+    <path d="M-66 -8 h132 v34 a44 44 0 0 1 -44 44 h-44 a44 44 0 0 1 -44 -44 z" fill="#ff9800"/>
+    <ellipse cx="-30" cy="26" rx="14" ry="9" fill="#ffb54d" opacity="0.75"/>
+  </g>
+
+  <text x="250" y="238" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="34" font-weight="700" fill="#874e00">邀请您一起点菜</text>
+  <text x="250" y="274" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="17" fill="#b3803f">来饭桶宝，一起决定今天吃什么</text>
+  <rect x="186" y="296" width="128" height="34" rx="17" fill="#fff1de"/>
+         <text x="250" y="318" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" fill="#c47a1f">点我参与点菜</text>
+</svg>

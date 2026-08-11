@@ -76,12 +76,15 @@ Page({
 
     this.setData({ joining: true, needLogin: false });
     try {
-      const { orderId } = await orderInvite.acceptOrderInvite(this.data.token);
+      const { orderId, guest } = await orderInvite.acceptOrderInvite(this.data.token);
       this._acceptHandled = true;
       orderInvite.clearPendingOrderInviteToken();
       this.setData({ joined: true });
       setTimeout(() => {
-        wx.reLaunch({ url: `/pages/order/pick/index?orderId=${orderId}` });
+        const url = guest
+          ? `/pages/order/pick/index?orderId=${orderId}&inviteToken=${encodeURIComponent(this.data.token)}`
+          : `/pages/order/pick/index?orderId=${orderId}`;
+        wx.reLaunch({ url });
       }, 600);
     } catch (e) {
       const msg = (e && e.message) || "加入失败，请重试";
@@ -103,6 +106,7 @@ Page({
     return {
       title: share.ORDER_INVITE_SHARE_TITLE,
       path: orderInvite.buildOrderInvitePath(token),
+      imageUrl: "/images/share/share-order-invite.png",
     };
   },
 });

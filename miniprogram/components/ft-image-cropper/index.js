@@ -129,6 +129,12 @@ Component({
 
     /**
      * 按当前 view 的 x/y/scale 计算裁剪区域，canvas 导出 4:3 JPEG
+     *
+     * 坐标口径：movable-view 缩放后的 x/y 语义（缩放原点、事件返回值）各端表现不一致，
+     * 直接按事件值推算会导致「预览 ≠ 导出」。这里优先用 boundingClientRect 实测
+     * 图片的真实渲染矩形（含缩放/位移后的最终视觉位置）换算裁剪区域；
+     * 仅当实测矩形明显不含缩放时，才回退到「盒子中心为缩放原点」的推算。
+     *
      * @returns {Promise<string>} tempFilePath
      */
     _exportCrop() {
@@ -136,58 +142,91 @@ Component({
         this.createSelectorQuery()
           .select("#ftCropCanvas")
           .fields({ node: true })
+          .select(".ft-cropper-img")
+          .boundingClientRect()
+          .select(".ft-cropper-frame")
+          .boundingClientRect()
           .exec((res) => {
-            const canvas = res && res[0] && res[0].node;
-            if (!canvas) {
-              reject(new Error("canvas 初始化失败"));
-              return;
-            }
-            const { iw, ih } = this._img;
-            const { w: frameW, h: frameH } = this._frame;
-            const { x, y, scale } = this._view;
-            const { imgW, imgH } = this.data;
-            // 缩放以盒子中心为原点：视觉图片相对取景框左上角的偏移
-            const visualW = imgW * scale;
-            const visualH = imgH * scale;
-            const visualLeft = x + (imgW - visualW) / 2;
-            const visualTop = y + (imgH - visualH) / 2;
-            // 取景框在视觉图片坐标系中的位置 → 原图像素坐标
-            const ratio = iw / visualW;
-            const sx = Math.max(0, -visualLeft * ratio);
-            const sy = Math.max(0, -visualTop * ratio);
-            const sw = Math.min(iw - sx, frameW * ratio);
-            const sh = Math.min(ih - sy, frameH * ratio);
-            if (sw <= 0 || sh <= 0) {
-              reject(new Error("裁剪区域无效"));
-              return;
-            }
-            let canvasW = Math.round(sw);
-            if (canvasW > MAX_EXPORT_WIDTH) canvasW = MAX_EXPORT_WIDTH;
-            const canvasH = Math.round((canvasW * 3) / 4);
-            this.setData({ canvasW, canvasH });
-            canvas.width = canvasW;
-            canvas.height = canvasH;
+            try {
+              const canvas = res && res[0] && res[0].node;
+              if (!canvas) {
+                reject(new Error("canvas 初始化失败"));
+                return;
+              }
+              const { iw, ih } = this._img;
+              const { w: frameW, h: frameH } = this._frame;
+              const { x, y, scale } = this._view;
+              const { imgW, imgH } = this.data;
+              const imgRect = res[1];
+              const frameRect = res[2];
 
-            const ctx = canvas.getContext("2d");
-            const img = canvas.createImage();
-            img.onload = () => {
-              ctx.clearRect(0, 0, canvasW, canvasH);
-              ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
-              wx.canvasToTempFilePath({
-                canvas,
-                fileType: "jpg",
-                quality: 0.9,
-                destWidth: canvasW,
-                destHeight: canvasH,
-                success: (r) =>
-                  r && r.tempFilePath
-                    ? resolve(r.tempFilePath)
-                    : reject(new Error("导出失败")),
-                fail: reject,
+              const expectedW = imgW * scale;
+              const rectReflectsScale =
+                imgRect &&
+                Math.abs(imgRect.width - expectedW) <= Math.max(3, expectedW * 0.02);
+
+              let visualW, visualH, visualLeft, visualTop;
+              if (imgRect && frameRect && (rectReflectsScale || scale <= 1.02)) {
+                // 实测：图片渲染矩形相对取景框左上角
+                visualW = imgRect.width;
+                visualH = imgRect.height;
+                visualLeft = imgRect.left - frameRect.left;
+                visualTop = imgRect.top - frameRect.top;
+              } else {
+                // 回退：缩放以盒子中心为原点推算
+                visualW = expectedW;
+                visualH = imgH * scale;
+                visualLeft = x + (imgW - visualW) / 2;
+                visualTop = y + (imgH - visualH) / 2;
+              }
+
+              // 取景框在视觉图片坐标系中的位置 → 原图像素坐标
+              const ratio = iw / visualW;
+              const sx = Math.max(0, -visualLeft * ratio);
+              const sy = Math.max(0, -visualTop * ratio);
+              const sw = Math.min(iw - sx, frameW * ratio);
+              const sh = Math.min(ih - sy, frameH * ratio);
+              if (sw <= 0 || sh <= 0) {
+                reject(new Error("裁剪区域无效"));
+                return;
+              }
+              let canvasW = Math.round(sw);
+              if (canvasW > MAX_EXPORT_WIDTH) canvasW = MAX_EXPORT_WIDTH;
+              const canvasH = Math.round((canvasW * 3) / 4);
+              // 同步 movable-view 当前位置/缩放，避免 setData 重渲染时预览跳回初始状态
+              this.setData({
+                canvasW,
+                canvasH,
+                viewX: x,
+                viewY: y,
+                scaleValue: scale,
               });
-            };
-            img.onerror = () => reject(new Error("图片加载失败"));
-            img.src = this.data.src;
+              canvas.width = canvasW;
+              canvas.height = canvasH;
+
+              const ctx = canvas.getContext("2d");
+              const img = canvas.createImage();
+              img.onload = () => {
+                ctx.clearRect(0, 0, canvasW, canvasH);
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+                wx.canvasToTempFilePath({
+                  canvas,
+                  fileType: "jpg",
+                  quality: 0.9,
+                  destWidth: canvasW,
+                  destHeight: canvasH,
+                  success: (r) =>
+                    r && r.tempFilePath
+                      ? resolve(r.tempFilePath)
+                      : reject(new Error("导出失败")),
+                  fail: reject,
+                });
+              };
+              img.onerror = () => reject(new Error("图片加载失败"));
+              img.src = this.data.src;
+            } catch (err) {
+              reject(err);
+            }
           });
       });
     },

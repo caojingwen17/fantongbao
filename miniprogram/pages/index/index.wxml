@@ -1,14 +1,4 @@
 <view class="ft-page home-page">
-  <view class="ft-loading-mask" wx:if="{{homeBootstrapping}}">
-    <view class="ft-loading-mark"><view class="ft-ico ft-ico-cook"></view></view>
-    <view class="ft-loading-dots">
-      <view class="ft-loading-dot"></view>
-      <view class="ft-loading-dot"></view>
-      <view class="ft-loading-dot"></view>
-    </view>
-    <text class="ft-loading-text">加载中…</text>
-  </view>
-
   <block wx:if="{{homeNeedFamily}}">
     <view class="blob blob-a"></view>
     <view class="blob blob-b"></view>
@@ -71,6 +61,22 @@
     bindrefresherrefresh="onRefresh"
   >
     <view class="main-inner">
+    <!-- 首屏骨架：模块加载完成前展示占位，避免「暂无数据」闪烁 -->
+    <block wx:if="{{homeBootstrapping}}">
+      <view class="ft-skeleton sk-family-card"></view>
+      <view class="ft-skeleton sk-label"></view>
+      <view class="ft-skeleton sk-order-card"></view>
+      <view class="ft-skeleton sk-label"></view>
+      <view class="sk-tile-row">
+        <view class="ft-skeleton sk-tile"></view>
+        <view class="ft-skeleton sk-tile"></view>
+      </view>
+      <view class="sk-tile-row">
+        <view class="ft-skeleton sk-tile"></view>
+        <view class="ft-skeleton sk-tile"></view>
+      </view>
+    </block>
+
     <view class="home-guest-banner ft-card-lowest" wx:if="{{homeGuest}}">
       <view class="home-guest-banner-inner">
         <text class="home-guest-banner-text">浏览体验中，登录后可同步家庭数据</text>
@@ -78,7 +84,7 @@
       </view>
     </view>
     <!-- 家庭卡片 -->
-    <view class="card family-card ft-card-lowest">
+    <view class="card family-card ft-card-lowest" wx:if="{{!homeBootstrapping}}">
       <view class="family-top">
         <view class="family-left">
           <view class="kicker">当前家庭</view>
@@ -110,25 +116,16 @@
 
       <!-- Members avatars (real data) -->
       <view class="avatar-stack" wx:if="{{membersCount && membersCount>0}}">
-        <image
-          class="member-avatar avatar-a"
-          wx:if="{{memberAvatarDisplays && memberAvatarDisplays[0]}}"
-          mode="aspectFill"
-          src="{{memberAvatarDisplays[0]}}"
-        />
-        <view class="avatar-fallback avatar-a" wx:else aria-hidden="true"></view>
-
-        <block wx:if="{{membersCount >= 2}}">
-          <image
-            class="member-avatar avatar-b"
-            wx:if="{{memberAvatarDisplays && memberAvatarDisplays[1]}}"
-            mode="aspectFill"
-            src="{{memberAvatarDisplays[1]}}"
+        <block wx:for="{{memberAvatarDisplays}}" wx:key="index">
+          <ft-cloud-image
+            wx:if="{{item.url}}"
+            imgClass="member-avatar {{index > 0 ? 'avatar-overlap' : ''}}"
+            src="{{item.url}}"
+            familyId="{{familyId}}"
           />
-          <view class="avatar-fallback avatar-b" wx:else aria-hidden="true"></view>
+          <view wx:else class="member-avatar avatar-fallback {{index > 0 ? 'avatar-overlap' : ''}}" aria-hidden="true"></view>
         </block>
-
-        <view class="avatar-more" wx:if="{{membersCount>2}}" aria-hidden="true">+{{membersCount-2}}</view>
+        <view class="avatar-more avatar-overlap" wx:if="{{membersCount > 7}}" aria-hidden="true">+{{membersCount-7}}</view>
       </view>
     </view>
 
@@ -147,7 +144,7 @@
     </view>
 
     <!-- 点菜单 -->
-    <view class="section" wx:if="{{!homeEmptyHero}}">
+    <view class="section" wx:if="{{!homeEmptyHero && !homeBootstrapping}}">
       <view class="section-head">
         <view class="section-title">点菜单</view>
         <view class="section-head-right">
@@ -187,7 +184,7 @@
     </view>
 
     <!-- 常用菜谱 -->
-    <view class="section" wx:if="{{!homeEmptyHero}}">
+    <view class="section" wx:if="{{!homeEmptyHero && !homeBootstrapping}}">
       <view class="section-head">
         <view class="section-title">常用菜谱</view>
         <view class="count-pill">{{recipeTotalCount}}</view>
@@ -197,10 +194,9 @@
         <block wx:for="{{recipes}}" wx:key="id">
           <view class="recipe-tile ft-card-lowest" bindtap="goRecipeDetail" data-recipeid="{{item.id}}">
             <view class="recipe-media">
-              <image class="recipe-img" wx:if="{{item.recipeImgDisplay}}" mode="aspectFill" src="{{item.recipeImgDisplay}}" />
+              <ft-cloud-image imgClass="recipe-img" src="{{item.recipeImg}}" familyId="{{familyId}}" />
               <view class="recipe-grad"></view>
               <view class="recipe-meta">
-                <view class="recipe-tag">常用</view>
                 <view class="recipe-title">{{item.recipeName}}</view>
               </view>
             </view>

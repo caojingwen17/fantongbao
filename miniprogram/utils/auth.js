@@ -94,8 +94,6 @@ function ensureWxLogin() {
 }
 
 async function runCompleteLoginFlow(userInfo, options) {
-  await ensureWxLogin();
-
   const silent = !!(options && options.silent);
   const payload = {
     type: "login",
@@ -103,12 +101,13 @@ async function runCompleteLoginFlow(userInfo, options) {
     avatarUrl: userInfo.avatarUrl,
   };
 
-  let loginResp;
-  if (silent) {
-    loginResp = await cloud.callFunction("familyFunctions", payload);
-  } else {
-    loginResp = await cloud.callFunctionWithErrorToast("familyFunctions", payload);
-  }
+  // wx.login（刷新会话态）与 login 云调用互不依赖，并行发出
+  const [loginResp] = await Promise.all([
+    silent
+      ? cloud.callFunction("familyFunctions", payload)
+      : cloud.callFunctionWithErrorToast("familyFunctions", payload),
+    ensureWxLogin(),
+  ]);
 
   if (!loginResp || loginResp.success === false) {
     throw new Error(
@@ -128,11 +127,14 @@ async function runCompleteLoginFlow(userInfo, options) {
   };
   if (loginResp.openid) app.globalData.openid = loginResp.openid;
 
-  const familiesResp = await cloud
-    .callFunction("familyFunctions", { type: "getMyFamilies" })
-    .catch(() => null);
-
-  const families = (familiesResp && familiesResp.families) || [];
+  // login 已带回家庭列表；旧版云函数未带回时再单独拉一次
+  let families = Array.isArray(loginResp.families) ? loginResp.families : null;
+  if (!families) {
+    const familiesResp = await cloud
+      .callFunction("familyFunctions", { type: "getMyFamilies" })
+      .catch(() => null);
+    families = (familiesResp && familiesResp.families) || [];
+  }
   app.globalData.families = families;
 
   const serverCid = loginResp.currentFamilyId || null;
@@ -178,11 +180,14 @@ async function applyServerSession(restoreResp) {
   app.globalData.userInfo = { nickName, avatarUrl };
   if (restoreResp.openid) app.globalData.openid = restoreResp.openid;
 
-  const familiesResp = await cloud
-    .callFunction("familyFunctions", { type: "getMyFamilies" })
-    .catch(() => null);
-
-  const families = (familiesResp && familiesResp.families) || [];
+  // restoreSession 已带回家庭列表；旧版云函数未带回时再单独拉一次
+  let families = Array.isArray(restoreResp.families) ? restoreResp.families : null;
+  if (!families) {
+    const familiesResp = await cloud
+      .callFunction("familyFunctions", { type: "getMyFamilies" })
+      .catch(() => null);
+    families = (familiesResp && familiesResp.families) || [];
+  }
   app.globalData.families = families;
 
   const serverCid = restoreResp.currentFamilyId || null;
@@ -200,8 +205,11 @@ async function applyServerSession(restoreResp) {
 }
 
 async function tryRestoreFromServer() {
-  await ensureWxLogin();
-  const resp = await cloud.callFunction("familyFunctions", { type: "restoreSession" });
+  // wx.login（刷新会话态）与 restoreSession 云调用互不依赖，并行发出
+  const [resp] = await Promise.all([
+    cloud.callFunction("familyFunctions", { type: "restoreSession" }),
+    ensureWxLogin(),
+  ]);
   if (!resp || !resp.restored || !resp.userInfo) {
     return { ok: false, currentFamilyId: null, error: null };
   }

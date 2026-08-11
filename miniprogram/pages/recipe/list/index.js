@@ -1,9 +1,9 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
-const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 const KEYWORD_DEBOUNCE_MS = 320;
+const PAGE_SIZE = 30;
 
 Page({
   data: {
@@ -13,6 +13,9 @@ Page({
     familyId: null,
     listLoading: false,
     refreshing: false,
+    /** 分页：是否还有下一页 / 是否正在加载更多 */
+    hasMore: false,
+    loadingMore: false,
     sheetVisible: false,
     selectedRecipeId: "",
     selectedRecipeName: "",
@@ -57,6 +60,10 @@ Page({
     if (!ok) return;
     const app = getApp();
     this.setData({ familyId: app.globalData.currentFamilyId });
+  },
+
+  onUnload() {
+    clearTimeout(this._keywordTimer);
   },
 
   onBack() {
@@ -135,17 +142,51 @@ Page({
         type: "listRecipes",
         familyId: this.data.familyId,
         keyword: this.data.keyword,
+        lite: true,
+        skip: 0,
+        limit: PAGE_SIZE,
       });
       const raw = result && result.recipes ? result.recipes : [];
-      const withImg = await attachRecipeImgDisplay(raw);
+      // 图片由 ft-cloud-image 组件各自解析/自愈，列表直接渲染原始数据
       this.setData({
-        recipes: withImg,
-        viewRecipes: this.buildViewRecipes(withImg),
+        recipes: raw,
+        viewRecipes: this.buildViewRecipes(raw),
+        hasMore: !!(result && result.hasMore),
       });
     } catch (e) {
       // 已由封装处理提示
     } finally {
       this.setData({ listLoading: false });
+    }
+  },
+
+  /** 滚动到底加载下一页 */
+  async loadMoreRecipes() {
+    const { familyId, listLoading, loadingMore, hasMore, recipes } = this.data;
+    if (!familyId || listLoading || loadingMore || !hasMore) return;
+    this.setData({ loadingMore: true });
+    try {
+      const result = await cloud.callFunction("recipeFunctions", {
+        type: "listRecipes",
+        familyId,
+        keyword: this.data.keyword,
+        lite: true,
+        skip: (recipes || []).length,
+        limit: PAGE_SIZE,
+      });
+      const raw = result && result.recipes ? result.recipes : [];
+      if (raw.length) {
+        const merged = (recipes || []).concat(raw);
+        this.setData({
+          recipes: merged,
+          viewRecipes: this.buildViewRecipes(merged),
+        });
+      }
+      this.setData({ hasMore: !!(result && result.hasMore) });
+    } catch (e) {
+      // 已由封装处理提示
+    } finally {
+      this.setData({ loadingMore: false });
     }
   },
 

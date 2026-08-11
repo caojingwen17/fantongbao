@@ -37,6 +37,21 @@ async function getOrder({ orderId }) {
   return res && res.data && res.data[0] ? res.data[0] : null;
 }
 
+// 云函数端 .get() 不指定 limit 最多返回 100 条，统一分页取全
+async function getAllDocs(query) {
+  const PAGE_SIZE = 100;
+  const data = [];
+  let offset = 0;
+  for (;;) {
+    const res = await query.skip(offset).limit(PAGE_SIZE).get();
+    const batch = (res && res.data) || [];
+    for (const d of batch) data.push(d);
+    if (batch.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return data;
+}
+
 /**
  * 解析多单参数：orderIds（数组）优先，退化到 orderId 单参。
  * 逐个校验订单存在、同一家庭，并对家庭做成员权限校验。
@@ -50,9 +65,17 @@ async function getOrdersForEvent({ event, openid }) {
       : [];
   const orderIds = [...new Set(rawIds.filter(Boolean))];
   if (!orderIds.length) throw new Error("缺少 orderId");
+  const res = await db
+    .collection("orders")
+    .where({ _id: db.command.in(orderIds) })
+    .get();
+  const orderById = {};
+  (res.data || []).forEach((o) => {
+    orderById[o._id] = o;
+  });
   const orders = [];
   for (const id of orderIds) {
-    const o = await getOrder({ orderId: id });
+    const o = orderById[id] || null;
     if (!o) throw new Error("点菜单不存在");
     if (orders.length && o.familyId !== orders[0].familyId) throw new Error("点菜单不在同一家庭");
     orders.push(o);
@@ -187,11 +210,22 @@ exports.main = async (event) => {
       const order = orders[0];
       const familyId = order.familyId;
 
-      const itemsRes = await db
-        .collection("order_shopping_items")
-        .where({ orderId: db.command.in(orderIds), familyId })
-        .get();
-      const items = itemsRes.data || [];
+      // 家庭成员首次进入买菜清单时打点：此后凭邀请链接的客人不可再点菜
+      const shoppingStartTs = now();
+      await Promise.all(
+        orders
+          .filter((o) => o && !o.shoppingStartedAt)
+          .map((o) =>
+            db
+              .collection("orders")
+              .where({ _id: o._id })
+              .update({ data: { shoppingStartedAt: shoppingStartTs } })
+          )
+      );
+
+      const items = await getAllDocs(
+        db.collection("order_shopping_items").where({ orderId: db.command.in(orderIds), familyId })
+      );
 
       // 合并所有选中订单的菜谱，构建菜谱名映射
       const allRecipes = [];
@@ -506,8 +540,9 @@ exports.main = async (event) => {
       if (!order) throw new Error("点菜单不存在");
       await assertFamilyMember({ openid, familyId: order.familyId });
 
-      const stepsRes = await db.collection("order_cooking_steps").where({ orderId, familyId: order.familyId }).get();
-      const steps = stepsRes.data || [];
+      const steps = await getAllDocs(
+        db.collection("order_cooking_steps").where({ orderId, familyId: order.familyId })
+      );
 
       const recipes = Array.isArray(order.recipes) ? order.recipes : [];
       const recipeIds = recipes.map((r) => r.recipeId);
@@ -606,9 +641,23 @@ exports.main = async (event) => {
         });
       }
 
-      const allRes = await db.collection("order_cooking_steps").where({ orderId: order._id, familyId: order.familyId }).get();
-      const allSteps = allRes.data || [];
-      const allDone = allSteps.length > 0 && allSteps.every((x) => !!x.done);
+      // 不拉全量（.get() 最多 100 条会截断导致误判），改用存在性查询判断是否全部完成
+      const undoneRes = await db
+        .collection("order_cooking_steps")
+        .where({ orderId: order._id, familyId: order.familyId, done: false })
+        .limit(1)
+        .get();
+      const hasUndone = !!(undoneRes.data && undoneRes.data.length);
+      let hasSteps = true;
+      if (!hasUndone) {
+        const anyRes = await db
+          .collection("order_cooking_steps")
+          .where({ orderId: order._id, familyId: order.familyId })
+          .limit(1)
+          .get();
+        hasSteps = !!(anyRes.data && anyRes.data.length);
+      }
+      const allDone = hasSteps && !hasUndone;
 
       let newOrderStatus = order.status;
       if (allDone) {

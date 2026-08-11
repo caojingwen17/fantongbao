@@ -1,61 +1,61 @@
 <view class="ft-page login-page">
   <ft-loading id="ft-loading" />
-  <!-- Decorative blobs -->
   <view class="blob blob-a"></view>
   <view class="blob blob-b"></view>
-  <view class="blob blob-c"></view>
 
   <view class="login-main">
     <!-- Brand -->
     <view class="brand">
       <view class="brand-logo">
-        <image class="brand-logo-img" mode="aspectFill" src="/images/icons/fantongbao.png" />
+        <image class="brand-logo-img" mode="aspectFill" src="/images/icons/launch-logo.png" />
       </view>
       <view class="brand-title">饭桶宝</view>
-      <view class="brand-sub">请设置头像、填写昵称后登录，用于家庭内展示</view>
+      <view class="brand-sub">家庭菜谱 · 点菜 · 买菜 · 做菜</view>
     </view>
 
     <!-- 静默恢复提示 -->
-    <view class="restore-card ft-card-lowest" wx:if="{{checkingSession}}">
-      <view class="restore-row">
-        <view class="restore-spinner"></view>
-        <view class="restore-text">正在恢复登录…</view>
+    <view class="restore-card" wx:if="{{checkingSession}}">
+      <view class="ft-loading-dots">
+        <view class="ft-loading-dot"></view>
+        <view class="ft-loading-dot"></view>
+        <view class="ft-loading-dot"></view>
       </view>
+      <text class="restore-text">正在恢复登录…</text>
     </view>
 
     <!-- Form Card -->
-    <view class="form-card ft-card" wx:else>
-      <view class="login-error ft-card-lowest" wx:if="{{loginError}}">{{loginError}}</view>
+    <view class="form-card" wx:else>
+      <view class="login-error" wx:if="{{loginError}}">{{loginError}}</view>
+
       <!-- Avatar -->
-      <view class="row">
-        <view class="row-left">
-          <view class="row-title">头像</view>
-          <view class="row-sub">{{avatarPreview ? "已选择" : "点击选择头像"}}</view>
+      <view class="avatar-block">
+        <view class="avatar-wrap">
+          <view class="avatar-circle {{avatarPreview ? '' : 'is-empty'}}">
+            <ft-cloud-image wx:if="{{avatarPreview}}" imgClass="avatar-img" src="{{avatarPreview}}" />
+            <view wx:else class="ft-ico ft-ico-upload avatar-icon"></view>
+          </view>
+          <button class="avatar-hit" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar"></button>
         </view>
-        <button class="avatar-pick" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-          <image wx:if="{{avatarPreview}}" class="avatar-img" mode="aspectFill" src="{{avatarPreview}}" />
-          <view wx:else class="ft-ico ft-ico-users avatar-icon"></view>
-        </button>
+        <view class="avatar-tip">{{avatarPreview ? "点击更换头像" : "点击选择头像"}}</view>
       </view>
 
       <!-- Nickname -->
       <view class="field">
         <view class="field-label">昵称</view>
-        <view class="field-input-wrap">
-          <input
-            class="field-input"
-            type="nickname"
-            placeholder="请输入昵称"
-            value="{{nickName}}"
-            bindinput="onNickInput"
-          />
-        </view>
+        <input
+          class="field-input"
+          type="nickname"
+          placeholder="例如：干饭小王"
+          value="{{nickName}}"
+          bindinput="onNickInput"
+        />
       </view>
 
       <!-- Submit -->
       <button class="ft-btn ft-btn-primary ft-btn-block submit-btn" bindtap="onSubmitLogin" disabled="{{isLoading}}">
         {{isLoading ? "登录中…" : "完成登录"}}
       </button>
+      <view class="form-tip">头像和昵称仅在家庭内展示</view>
     </view>
   </view>
 </view>

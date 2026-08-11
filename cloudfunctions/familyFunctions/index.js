@@ -87,8 +87,7 @@ function pickRestorableUserProfile(user) {
   return { nickName, avatarUrl };
 }
 
-async function getUser(openid) {
-  try {
+async function getUser(openid) {  try {
     const snap = await db.collection("users").doc(openid).get();
     return snap && snap.data ? snap.data : null;
   } catch (e) {
@@ -118,6 +117,26 @@ async function assertFamilyMember({ openid, familyId }) {
     throw new Error("没有家庭访问权限");
   }
   return fam;
+}
+
+/** 查询我所在的家庭列表（getMyFamilies / login / restoreSession 共用） */
+async function listMyFamilies(openid) {
+  const famRes = await db
+    .collection("families")
+    .where({
+      memberIds: db.command.elemMatch(db.command.eq(openid)),
+    })
+    .orderBy("createTime", "desc")
+    .get()
+    .catch(async () => {
+      // 兜底：部分版本 elemMatch 不生效时，退而求其次拉取再过滤
+      const all = await db.collection("families").get();
+      const list = (all && all.data ? all.data : [])
+        .filter((f) => (Array.isArray(f.memberIds) ? f.memberIds.includes(openid) : false))
+        .sort((a, b) => (b.createTime || 0) - (a.createTime || 0));
+      return { data: list };
+    });
+  return (famRes && famRes.data) || [];
 }
 
 async function assertFamilyAdmin({ openid, familyId }) {
@@ -174,10 +193,13 @@ async function handleFamilyEvent(event) {
       }
 
       const afterLogin = await getUser(openid);
+      // 顺带带回家庭列表，客户端无需再单独调 getMyFamilies（省一次往返）
+      const families = await listMyFamilies(openid);
       return {
         success: true,
         openid,
         currentFamilyId: afterLogin && afterLogin.currentFamilyId ? afterLogin.currentFamilyId : null,
+        families,
       };
     }
 
@@ -191,12 +213,15 @@ async function handleFamilyEvent(event) {
         return { success: true, restored: false, needManualLogin: true };
       }
 
+      // 顺带带回家庭列表，客户端无需再单独调 getMyFamilies（省一次往返）
+      const families = await listMyFamilies(openid);
       return {
         success: true,
         restored: true,
         openid,
         userInfo: profile,
         currentFamilyId: (user && user.currentFamilyId) || null,
+        families,
       };
     }
 
@@ -318,26 +343,9 @@ async function handleFamilyEvent(event) {
     }
 
     case "getMyFamilies": {
-      // 查询：memberIds 数组包含 openid 的家庭
-      const famRes = await db
-        .collection("families")
-        .where({
-        memberIds: db.command.elemMatch(db.command.eq(openid)),
-        })
-        .orderBy("createTime", "desc")
-        .get()
-        .catch(async () => {
-        // 兜底：部分版本 elemMatch 不生效时，退而求其次拉取再过滤
-        const all = await db.collection("families").get();
-        const list = (all && all.data ? all.data : [])
-          .filter((f) => (Array.isArray(f.memberIds) ? f.memberIds.includes(openid) : false))
-          .sort((a, b) => (b.createTime || 0) - (a.createTime || 0));
-        return { data: list };
-      });
-
       return {
         success: true,
-        families: (famRes && famRes.data) || [],
+        families: await listMyFamilies(openid),
       };
     }
 
@@ -437,6 +445,60 @@ async function handleFamilyEvent(event) {
       });
 
       return { success: true };
+    }
+
+    /**
+     * 首页首屏聚合：一次调用返回成员 + 进行中点菜单 + 菜谱（总数 + 最新 N 条）。
+     * 合并原 getFamilyMembers / listActiveOrders / listRecipesForHome 三次往返，
+     * 供启动页预取与首页刷新使用。各查询在云函数内并行。
+     */
+    case "getHomeData": {
+      const { familyId, limit } = event;
+      if (!familyId) throw new Error("缺少 familyId");
+      const fam = await assertFamilyMember({ openid, familyId });
+      const lim = Math.min(Math.max(parseInt(limit, 10) || 4, 1), 50);
+
+      const memberIds = Array.isArray(fam.memberIds) ? fam.memberIds : [];
+      const [membersRes, shopRes, cookRes, countRes, listRes] = await Promise.all([
+        memberIds.length
+          ? db.collection("users").where({ _id: db.command.in(memberIds) }).get()
+          : Promise.resolve({ data: [] }),
+        db.collection("orders").where({ familyId, status: "pending_shopping" }).orderBy("createTime", "desc").get(),
+        db.collection("orders").where({ familyId, status: "pending_cooking" }).orderBy("createTime", "desc").get(),
+        db.collection("recipes").where({ familyId }).count(),
+        db.collection("recipes").where({ familyId }).orderBy("createTime", "desc").limit(lim).get(),
+      ]);
+
+      // 与 getFamilyMembers 相同的字段兼容处理
+      const members = (membersRes.data || []).map((m) => {
+        const nested = m && m.data ? m.data : null;
+        return {
+          ...m,
+          nickName: m.nickName || (nested ? nested.nickName : ""),
+          avatarUrl: m.avatarUrl || (nested ? nested.avatarUrl : ""),
+        };
+      });
+
+      // 与 orderFunctions.listActiveOrders 相同的返回结构与排序
+      const mapOrder = (o) => ({
+        _id: o._id,
+        orderName: o.orderName,
+        status: o.status,
+        createTime: o.createTime,
+        recipeCount: Array.isArray(o.recipes) ? o.recipes.length : 0,
+      });
+      const orders = [...(shopRes.data || []), ...(cookRes.data || [])].map(mapOrder);
+      orders.sort((a, b) => {
+        const ta = a.createTime ? new Date(a.createTime).getTime() : 0;
+        const tb = b.createTime ? new Date(b.createTime).getTime() : 0;
+        return tb - ta;
+      });
+
+      // 与 recipeFunctions.listRecipesForHome 相同
+      const totalCount = (countRes && typeof countRes.total === "number" ? countRes.total : 0) || 0;
+      const recipes = (listRes.data || []).map((r) => ({ ...r, id: r._id }));
+
+      return { success: true, members, orders, recipes, totalCount };
     }
 
     default:

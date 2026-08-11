@@ -2,6 +2,18 @@
  * 统一封装 wx.cloud.callFunction，减少各页面重复代码。
  */
 
+/** 云调用超时：防止挂起的请求把页面刷新去重锁永久卡死（会话内图片/数据再也不更新） */
+const DEFAULT_TIMEOUT_MS = 12000;
+
+function withTimeout(promise, ms = DEFAULT_TIMEOUT_MS) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("网络超时，请检查网络后重试")), ms)
+    ),
+  ]);
+}
+
 function normalizeCloudError(err) {
   if (!err) return new Error("请求失败");
   if (err instanceof Error && err.message && !err.errMsg) return err;
@@ -25,23 +37,26 @@ function normalizeCloudError(err) {
   return new Error(raw);
 }
 
-function callFunction(name, data = {}) {
+function callFunction(name, data = {}, options = {}) {
   if (!wx.cloud) {
     return Promise.reject(new Error("wx.cloud 未初始化"));
   }
-  return wx.cloud
-    .callFunction({
-      name,
-      data,
-    })
-    .then((resp) => {
-      const result = resp && resp.result;
-      if (result && result.success === false) {
-        throw new Error(result.errMsg || result.message || "云端处理失败");
-      }
-      return result;
-    })
-    .catch((e) => Promise.reject(normalizeCloudError(e)));
+  const timeoutMs = typeof options.timeout === "number" ? options.timeout : DEFAULT_TIMEOUT_MS;
+  return withTimeout(
+    wx.cloud
+      .callFunction({
+        name,
+        data,
+      })
+      .then((resp) => {
+        const result = resp && resp.result;
+        if (result && result.success === false) {
+          throw new Error(result.errMsg || result.message || "云端处理失败");
+        }
+        return result;
+      }),
+    timeoutMs
+  ).catch((e) => Promise.reject(normalizeCloudError(e)));
 }
 
 function callFunctionWithErrorToast(name, data = {}) {

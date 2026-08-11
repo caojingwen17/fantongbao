@@ -1,6 +1,6 @@
 const invite = require("../../utils/invite");
 const orderInvite = require("../../utils/orderInvite");
-const { resolveMainEntryStatus, delay } = require("../../utils/entryBoot");
+const { resolveMainEntryStatus, startOptimisticHomePrefetch, startHomePrefetch, delay } = require("../../utils/entryBoot");
 
 Page({
   data: {
@@ -50,12 +50,16 @@ Page({
     invite.clearPendingInviteCode();
 
     this.setProgress(12);
+    // 用上次会话的 familyId 乐观预取首页数据，与静默登录全程并行
+    startOptimisticHomePrefetch();
     const bootPromise = resolveMainEntryStatus();
     const minDelayPromise = delay(900);
 
     this.setProgress(36);
     const status = await bootPromise;
     this.setProgress(Math.min(88, status === "ok" ? 82 : 72));
+    // 身份判定为 ok 后立刻预取首页数据，与最短展示时长 + 页面跳转并行
+    if (status === "ok") startHomePrefetch();
     await minDelayPromise;
     this.setProgress(100);
     await delay(120);

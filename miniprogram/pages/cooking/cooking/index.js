@@ -74,6 +74,10 @@ Page({
             totalCount: result.totalCount || 0,
           },
         });
+        // 有未完成步骤时重置自动提示标记，便于下次全部勾选后再次询问
+        if (!result.totalCount || (result.doneCount || 0) < result.totalCount) {
+          this._autoCompletePromptShown = false;
+        }
       }
     } finally {
       this.setData({ checklistLoading: false });
@@ -133,6 +137,11 @@ Page({
         type: targetDone ? "markCookingStepDone" : "markCookingStepUndone",
         stepId,
       });
+      if (targetDone) {
+        this._maybePromptCompleteCooking();
+      } else {
+        this._autoCompletePromptShown = false;
+      }
     } catch (err) {
       this.setData({
         [`groups[${gi}].${stepKey}[${si}].done`]: wasDone,
@@ -146,6 +155,17 @@ Page({
         pendingToggleCount: nextPending,
       });
     }
+  },
+
+  /** 全部步骤勾选后立即询问是否完成做菜（每次全勾只问一次，取消勾选后重置） */
+  _maybePromptCompleteCooking() {
+    const { progress } = this.data;
+    const total = (progress && progress.totalCount) || 0;
+    const done = (progress && progress.doneCount) || 0;
+    if (!total || done < total) return;
+    if (this._autoCompletePromptShown) return;
+    this._autoCompletePromptShown = true;
+    this.setData({ showCompleteModal: true });
   },
 
   onToggleGroup(e) {

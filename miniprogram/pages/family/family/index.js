@@ -2,21 +2,8 @@ const cloud = require("../../../utils/cloud");
 const auth = require("../../../utils/auth");
 const share = require("../../../utils/share");
 const invite = require("../../../utils/invite");
-const { resolveBatch, attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 const haptics = require("../../../utils/haptics");
 const ui = require("../../../utils/ui");
-
-/** cloud:// 不能直接作 image src（开发者工具会拼成页面相对路径）；仅使用解析后的 https 或原 http(s) */
-function avatarUrlForDisplay(raw, fileIdToHttps) {
-  const u = raw || "";
-  if (!u) return "";
-  if (String(u).indexOf("cloud://") === 0) {
-    const resolved = fileIdToHttps && fileIdToHttps[u];
-    if (resolved && /^https?:\/\//i.test(String(resolved))) return resolved;
-    return "";
-  }
-  return u;
-}
 
 Page({
   data: {
@@ -29,14 +16,11 @@ Page({
     recipeCounts: {},
     currentFamily: null,
     members: [],
-    recipes: [],
-    recipeTotalCount: 0,
     /** 首屏拉取家庭/成员 */
     pageBooting: true,
     /** 切换家庭/加载详情时 */
     detailLoading: false,
     membersLoading: false,
-    recipesLoading: false,
     /** 防止重复点击：切换 / 创建 / 加入 / 踢人 / 退出 */
     actionBusy: false,
     /** 正在切换到的家庭 id，用于切换按钮 loading */
@@ -49,6 +33,7 @@ Page({
     mealWeekdayLabels: ["日", "一", "二", "三", "四", "五", "六"],
     calendarCells: [],
     calendarLoading: false,
+    calAnimFlip: false,
     mealCalMonthExpense: 0,
     mealCalMonthExpenseText: "0",
     /** 干饭日历：按日聚合的订单详情（弹窗用） */
@@ -121,8 +106,23 @@ Page({
       userNickName: (ui && (ui.nickName || ui.nickname)) || "",
       userAvatarUrl: (ui && (ui.avatarUrl || ui.avatar)) || "",
     });
+
+    // 登录流程已拉过家庭列表：先用缓存渲染首屏，后台再刷新校验
+    const cached = (app.globalData && app.globalData.families) || [];
+    if (cached.length) {
+      const currentFamilyId = app.globalData.currentFamilyId;
+      const current = cached.find((f) => f && f._id === currentFamilyId) || cached[0] || null;
+      this.setData({ families: cached, currentFamily: current, pageBooting: false });
+      this.applyFamiliesDisplay(cached, current, this.data.recipeCounts);
+      this._prefetchDetail(current);
+      this.refreshFamiliesList().catch(() => {});
+      return;
+    }
+
     try {
       await this.refreshFamiliesList();
+    } catch (e) {
+      /* 保留空态，可下拉重试 */
     } finally {
       this.setData({ pageBooting: false });
     }
@@ -213,7 +213,21 @@ Page({
     }
     this.setData({ currentFamily: current || null });
 
+    // 先渲染列表壳（角色/人数/名称已齐），菜谱计数随后补上，不再阻塞首屏
+    this.applyFamiliesDisplay(families, current, this.data.recipeCounts);
+
+    const recipeCounts = await this.fetchRecipeCounts(families, current);
+    this.setData({ recipeCounts });
+    this.applyFamiliesDisplay(families, current, recipeCounts);
+
+    // 列表数据就绪后后台预取详情（成员 + 当月月历），点进详情秒开
+    this._prefetchDetail(current);
+  },
+
+  /** 拉取各家庭菜谱计数（批量统计为 0 时对当前家庭兜底一次） */
+  async fetchRecipeCounts(families, current) {
     const ids = families.map((f) => f && f._id).filter(Boolean);
+    if (!ids.length) return {};
     const countsResp = await cloud
       .callFunction("recipeFunctions", {
         type: "countRecipesByFamilyIds",
@@ -246,8 +260,12 @@ Page({
         recipeCounts[familyId] = total;
       })
     );
-    this.setData({ recipeCounts });
+    return recipeCounts;
+  },
 
+  /** 组装列表展示数据（计数缺失时先按家庭文档自带字段或 0 展示，计数到达后重调本方法刷新） */
+  applyFamiliesDisplay(families, current, recipeCounts) {
+    const app = getApp();
     const openid = app.globalData.openid;
     const familiesDisplay = families.map((f) => {
       const isAdmin = !!(openid && f && f.adminId === openid);
@@ -277,6 +295,28 @@ Page({
     this.setData({ familiesDisplay });
   },
 
+  /** 列表页渲染后后台预取详情数据（成员 + 当月月历），点进详情时直接消费/命中缓存 */
+  _prefetchDetail(family) {
+    if (!family || !family._id) return;
+    const familyId = family._id;
+    this._detailPrefetch = {
+      familyId,
+      membersPromise: cloud
+        .callFunction("familyFunctions", { type: "getFamilyMembers", familyId })
+        .catch(() => ({})),
+    };
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    const key = `${familyId}:${y}:${m}`;
+    if (this._calCache && this._calCache[key]) return; // 当月已预热过
+    this._fetchMealCalendarData(familyId, y, m)
+      .then((res) => {
+        this._calCacheSet(key, this._processMealCalendar(res));
+      })
+      .catch(() => {});
+  },
+
   async fetchFamilyDetail(familyId) {
     const app = getApp();
     const openid = app.globalData.openid || "";
@@ -291,28 +331,27 @@ Page({
       currentOpenid: openid,
       detailLoading: true,
       membersLoading: true,
-      recipesLoading: true,
       members: [],
-      recipes: [],
-      recipeTotalCount: 0,
       mealCalYear: calNow.getFullYear(),
       mealCalMonth: calNow.getMonth() + 1,
       calendarCells: [],
       mealCalDayMap: {},
     });
 
+    // 预取命中（列表页渲染时已后台发出）则复用，否则现场发起
+    const pre = this._detailPrefetch;
+    this._detailPrefetch = null;
+    const membersPromise =
+      pre && pre.familyId === familyId && pre.membersPromise
+        ? pre.membersPromise
+        : cloud
+            .callFunction("familyFunctions", { type: "getFamilyMembers", familyId })
+            .catch(() => ({}));
+    // 月历与成员互不依赖，立即并行（预取已写入缓存时这里直接命中）
+    const calPromise = this.fetchMealCalendar();
+
     try {
-      const [membersResp, recipesResp, orderCountResp] = await Promise.all([
-        cloud
-          .callFunction("familyFunctions", { type: "getFamilyMembers", familyId })
-          .catch(() => ({})),
-        cloud
-          .callFunction("recipeFunctions", { type: "listRecipes", familyId, keyword: "" })
-          .catch(() => ({})),
-        cloud
-          .callFunction("orderFunctions", { type: "countRecipeOrdersInFamily", familyId })
-          .catch(() => ({})),
-      ]);
+      const membersResp = await membersPromise;
 
       const rawMembers = (membersResp && membersResp.members) || [];
       const sortedRawMembers = (() => {
@@ -323,39 +362,11 @@ Page({
         return admin ? [admin, ...rest] : rawMembers;
       })();
 
-      const quickMembers = sortedRawMembers.map((m) => {
-        if (!m) return m;
-        return { ...m, avatarUrlDisplay: avatarUrlForDisplay(m.avatarUrl, {}) };
-      });
-      this.setData({ members: quickMembers, membersLoading: false });
+      this.setData({ members: sortedRawMembers, membersLoading: false });
 
-      const urls = sortedRawMembers.map((m) => m && m.avatarUrl).filter(Boolean);
-      const map = await resolveBatch(urls, { familyId });
-      const members = sortedRawMembers.map((m) => {
-        if (!m) return m;
-        return { ...m, avatarUrlDisplay: avatarUrlForDisplay(m.avatarUrl, map) };
-      });
-
-      const rawRecipes = (recipesResp && recipesResp.recipes) || [];
-      const recipeTotalCount = rawRecipes.length;
-      const orderCounts = (orderCountResp && orderCountResp.counts) || {};
-      const sorted = [...rawRecipes].sort((a, b) => {
-        const ida = a && a.id ? a.id : "";
-        const idb = b && b.id ? b.id : "";
-        const ca = typeof orderCounts[ida] === "number" ? orderCounts[ida] : 0;
-        const cb = typeof orderCounts[idb] === "number" ? orderCounts[idb] : 0;
-        if (cb !== ca) return cb - ca;
-        const ta = a && a.createTime ? new Date(a.createTime).getTime() : 0;
-        const tb = b && b.createTime ? new Date(b.createTime).getTime() : 0;
-        return tb - ta;
-      });
-      const top7 = sorted.slice(0, 7);
-      const recipes = await attachRecipeImgDisplay(top7);
-
-      this.setData({ members, recipes, recipeTotalCount, recipesLoading: false });
-      await this.fetchMealCalendar();
+      await calPromise;
     } finally {
-      this.setData({ detailLoading: false, membersLoading: false, recipesLoading: false });
+      this.setData({ detailLoading: false, membersLoading: false });
     }
   },
 
@@ -367,6 +378,8 @@ Page({
     for (let i = 0; i < firstWeekday; i++) {
       cells.push({ type: "pad", cellKey: `p-${i}` });
     }
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const ym = `${year}-${String(month).padStart(2, "0")}`;
     for (let d = 1; d <= daysInMonth; d++) {
       const key = `${ym}-${String(d).padStart(2, "0")}`;
@@ -380,6 +393,7 @@ Page({
         cellKey: key,
         orderCount,
         dayExpense,
+        isToday: key === todayKey,
         expenseText: orderCount > 0 ? this.formatExpenseShort(dayExpense, true) : "",
       });
     }
@@ -414,50 +428,104 @@ Page({
     return rounded.toFixed(2).replace(/0$/, "").replace(/\.$/, "");
   },
 
+  /** 拉取某月干饭日历原始数据（listCompletedOrdersInMonth） */
+  async _fetchMealCalendarData(familyId, year, month) {
+    const res = await cloud.callFunction("orderFunctions", {
+      type: "listCompletedOrdersInMonth",
+      familyId,
+      year,
+      month,
+    });
+    return res || {};
+  },
+
+  /** 原始返回 → 按日聚合 + 月度总消费（与渲染解耦，便于缓存/预取复用） */
+  _processMealCalendar(res) {
+    const list = (res && res.orders) || [];
+    const byDay = {};
+    list.forEach((o) => {
+      // calendarDate = 开始制作日（云函数计算）；兜底旧字段
+      const t = o.calendarDate || o.shoppingCompletedAt || o.completedAt;
+      if (!t) return;
+      const d = new Date(t);
+      if (Number.isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (!byDay[key]) byDay[key] = [];
+      const expense = this.parseShoppingExpense(o.shoppingExpense);
+      byDay[key].push({
+        _id: o._id,
+        orderName: o.orderName || "点菜单",
+        recipeNames: Array.isArray(o.recipeNames) ? o.recipeNames : [],
+        durationText: o.durationText || "—",
+        timeRangeText: o.timeRangeText || "—",
+        shoppingExpense: expense,
+        expenseText: this.formatExpenseFull(expense),
+      });
+    });
+    const monthExpenseTotal =
+      res && typeof res.monthExpenseTotal === "number"
+        ? res.monthExpenseTotal
+        : list.reduce((sum, o) => sum + this.parseShoppingExpense(o && o.shoppingExpense), 0);
+    return { byDay, monthExpenseTotal };
+  },
+
+  _calCacheSet(key, processed) {
+    this._calCache = this._calCache || {};
+    this._calCache[key] = processed;
+  },
+
+  _applyMealCalendar(processed, year, month) {
+    const calendarCells = this.buildCalendarCells(year, month, processed.byDay);
+    this.setData({
+      calendarCells,
+      mealCalDayMap: processed.byDay,
+      mealCalMonthExpense: processed.monthExpenseTotal,
+      mealCalMonthExpenseText: this.formatExpenseFull(processed.monthExpenseTotal),
+      calAnimFlip: !this.data.calAnimFlip,
+    });
+  },
+
+  /** 后台刷新某月数据并更新缓存；页面仍停留在该月时同步界面 */
+  async _refreshMealCalendarData(familyId, year, month, key) {
+    try {
+      const res = await this._fetchMealCalendarData(familyId, year, month);
+      const processed = this._processMealCalendar(res);
+      this._calCacheSet(key, processed);
+      if (
+        this.data.viewMode === "detail" &&
+        this.data.currentFamily &&
+        this.data.currentFamily._id === familyId &&
+        this.data.mealCalYear === year &&
+        this.data.mealCalMonth === month
+      ) {
+        this._applyMealCalendar(processed, year, month);
+      }
+    } catch (e) {
+      /* 保留缓存数据 */
+    }
+  },
+
   async fetchMealCalendar() {
     const familyId = this.data.currentFamily && this.data.currentFamily._id;
     if (!familyId || this.data.viewMode !== "detail") return;
     const { mealCalYear, mealCalMonth } = this.data;
     if (!mealCalYear || !mealCalMonth) return;
+
+    const key = `${familyId}:${mealCalYear}:${mealCalMonth}`;
+    const cached = this._calCache && this._calCache[key];
+    if (cached) {
+      // 命中缓存（含列表页预取）：立即渲染，后台静默刷新
+      this._applyMealCalendar(cached, mealCalYear, mealCalMonth);
+      this._refreshMealCalendarData(familyId, mealCalYear, mealCalMonth, key);
+      return;
+    }
+
     this.setData({ calendarLoading: true });
     try {
-      const res = await cloud.callFunction("orderFunctions", {
-        type: "listCompletedOrdersInMonth",
-        familyId,
-        year: mealCalYear,
-        month: mealCalMonth,
-      });
-      const list = (res && res.orders) || [];
-      const byDay = {};
-      list.forEach((o) => {
-        const t = o.shoppingCompletedAt || o.completedAt;
-        if (!t) return;
-        const d = new Date(t);
-        if (Number.isNaN(d.getTime())) return;
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        if (!byDay[key]) byDay[key] = [];
-        const expense = this.parseShoppingExpense(o.shoppingExpense);
-        byDay[key].push({
-          _id: o._id,
-          orderName: o.orderName || "点菜单",
-          recipeNames: Array.isArray(o.recipeNames) ? o.recipeNames : [],
-          durationText: o.durationText || "—",
-          timeRangeText: o.timeRangeText || "—",
-          shoppingExpense: expense,
-          expenseText: this.formatExpenseFull(expense),
-        });
-      });
-      const monthExpenseTotal =
-        typeof res.monthExpenseTotal === "number"
-          ? res.monthExpenseTotal
-          : list.reduce((sum, o) => sum + this.parseShoppingExpense(o && o.shoppingExpense), 0);
-      const calendarCells = this.buildCalendarCells(mealCalYear, mealCalMonth, byDay);
-      this.setData({
-        calendarCells,
-        mealCalDayMap: byDay,
-        mealCalMonthExpense: monthExpenseTotal,
-        mealCalMonthExpenseText: this.formatExpenseFull(monthExpenseTotal),
-      });
+      const res = await this._fetchMealCalendarData(familyId, mealCalYear, mealCalMonth);
+      const processed = this._processMealCalendar(res);
+      this._calCacheSet(key, processed);
+      this._applyMealCalendar(processed, mealCalYear, mealCalMonth);
     } catch (e) {
       this.setData({
         calendarCells: [],
@@ -590,15 +658,15 @@ Page({
       viewMode: "detail",
     });
     try {
-      await cloud.callFunctionWithErrorToast("familyFunctions", {
-        type: "switchFamily",
-        familyId,
-      });
-      await this.refreshFamiliesList();
+      // 详情先行（预取/缓存直接命中即秒开）；切换与列表刷新后台进行，不再阻塞渲染
       await this.fetchFamilyDetail(familyId);
-    } catch (e) {
-      await this.refreshFamiliesList();
-      await this.fetchFamilyDetail(familyId);
+      cloud
+        .callFunctionWithErrorToast("familyFunctions", {
+          type: "switchFamily",
+          familyId,
+        })
+        .then(() => this.refreshFamiliesList())
+        .catch(() => {});
     } finally {
       this.setData({
         actionBusy: false,
@@ -712,6 +780,7 @@ Page({
     return {
       title: `邀请你加入「${name}」一起玩饭桶宝`,
       path: invite.buildFamilyInvitePath(currentFamily.inviteCode),
+      imageUrl: share.FAMILY_INVITE_SHARE_IMAGE,
     };
   },
 

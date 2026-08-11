@@ -91,7 +91,12 @@
                 data-nickname="{{item.nickName}}"
               >
                 <view class="member-avatar-wrap">
-                  <image wx:if="{{item.avatarUrlDisplay}}" class="member-avatar" mode="aspectFill" src="{{item.avatarUrlDisplay}}" />
+                  <ft-cloud-image
+                    wx:if="{{item.avatarUrl}}"
+                    imgClass="member-avatar"
+                    src="{{item.avatarUrl}}"
+                    familyId="{{currentFamily._id}}"
+                  />
                   <view wx:else class="member-avatar member-avatar-placeholder" aria-hidden="true"></view>
                 </view>
                 <view class="member-name">{{item.nickName}}</view>
@@ -99,45 +104,32 @@
               </view>
             </block>
           </view>
-          <view class="members-loading" wx:if="{{membersLoading}}">
-            <view class="members-loading-dot"></view>
-            <text>正在加载成员…</text>
+          <view class="members-skeleton" wx:if="{{membersLoading}}">
+            <view class="ft-skeleton sk-avatar" wx:for="{{[1,2,3,4,5]}}" wx:key="*this"></view>
           </view>
           <view class="members-empty" wx:if="{{!membersLoading && (!members || members.length===0)}}">暂无成员</view>
         </view>
 
-        <view class="panel">
-          <view class="panel-head">
-            <view class="panel-title">家庭菜谱 TOP7</view>
-            <view class="panel-badge">{{recipeTotalCount}} 个</view>
-          </view>
-          <view class="recipe-grid" wx:if="{{!recipesLoading && recipes && recipes.length}}">
-            <block wx:for="{{recipes}}" wx:key="id">
-              <view class="recipe-thumb">
-                <image class="recipe-img" wx:if="{{item.recipeImgDisplay}}" mode="aspectFill" src="{{item.recipeImgDisplay}}" />
-              </view>
-            </block>
-            <view class="recipe-thumb more" wx:if="{{recipeTotalCount > 7}}"><text>…</text></view>
-          </view>
-          <view class="recipes-loading" wx:if="{{recipesLoading}}">加载菜谱中…</view>
-          <view class="members-empty" wx:if="{{!recipesLoading && (!recipes || recipes.length===0)}}">暂无菜谱</view>
-        </view>
-
         <view class="panel meal-cal-panel">
-          <view class="panel-head meal-cal-head">
-            <view class="panel-title">干饭日历</view>
+          <view class="meal-cal-top">
+            <view>
+              <view class="panel-title">干饭日历</view>
+              <view class="meal-cal-total">本月消费<text class="meal-cal-total-v">¥{{mealCalMonthExpenseText}}</text></view>
+            </view>
             <view class="meal-cal-nav">
-              <view class="meal-cal-nav-btn" bindtap="onPrevMealMonth" aria-label="上一月">‹</view>
+              <view class="meal-cal-nav-btn" bindtap="onPrevMealMonth">‹</view>
               <text class="meal-cal-month">{{mealCalYear}}年{{mealCalMonth}}月</text>
-              <view class="meal-cal-nav-btn" bindtap="onNextMealMonth" aria-label="下一月">›</view>
+              <view class="meal-cal-nav-btn" bindtap="onNextMealMonth">›</view>
             </view>
           </view>
           <view class="meal-cal-weekdays">
             <text wx:for="{{mealWeekdayLabels}}" wx:key="*this">{{item}}</text>
           </view>
-          <view class="meal-cal-loading" wx:if="{{calendarLoading}}">加载日历中…</view>
-          <view class="meal-cal-frame" wx:if="{{!calendarLoading}}">
-            <view class="meal-cal-grid">
+          <view class="meal-cal-skeleton" wx:if="{{calendarLoading && !calendarCells.length}}">
+            <view class="ft-skeleton sk-cal-cell" wx:for="{{[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28]}}" wx:key="*this"></view>
+          </view>
+          <view class="meal-cal-frame {{calendarLoading ? 'ft-list-dim' : ''}}" wx:else>
+            <view class="meal-cal-grid {{calAnimFlip ? 'cal-anim-a' : 'cal-anim-b'}}">
               <view
                 wx:for="{{calendarCells}}"
                 wx:key="cellKey"
@@ -145,22 +137,18 @@
               >
                 <block wx:if="{{item.type === 'day'}}">
                   <view
-                    class="meal-cal-day-inner {{item.orderCount ? 'has-orders' : 'is-empty'}}"
+                    class="cal-cell {{item.orderCount ? 'has-orders' : ''}} {{item.isToday ? 'is-today' : ''}}"
                     bindtap="onMealCalDayTap"
                     data-daykey="{{item.cellKey}}"
                     data-ordercount="{{item.orderCount}}"
                   >
-                    <text class="meal-cal-daynum">{{item.day}}</text>
-                    <view class="meal-cal-day-spacer"></view>
-                    <view wx:if="{{item.orderCount > 0}}" class="meal-cal-expense-pill {{item.dayExpense ? '' : 'is-zero'}}">¥{{item.expenseText}}</view>
+                    <text class="cal-num">{{item.day}}</text>
+                    <view class="cal-exp" wx:if="{{item.dayExpense}}">¥{{item.expenseText}}</view>
+                    <view class="cal-dot" wx:elif="{{item.orderCount}}"></view>
                   </view>
                 </block>
               </view>
             </view>
-          </view>
-          <view class="meal-cal-month-total" wx:if="{{!calendarLoading}}">
-            <text class="meal-cal-month-total-k">本月消费</text>
-            <text class="meal-cal-month-total-v">¥{{mealCalMonthExpenseText}}</text>
           </view>
         </view>
 

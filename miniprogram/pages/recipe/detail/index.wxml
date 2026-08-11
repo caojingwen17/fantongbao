@@ -20,11 +20,13 @@
       <!-- Hero -->
       <view class="card hero-card">
         <view class="hero-media">
-          <image class="hero-img" wx:if="{{recipeImgDisplay}}" mode="aspectFill" src="{{recipeImgDisplay}}" />
+          <ft-cloud-image imgClass="hero-img" src="{{recipeImg}}" familyId="{{familyId}}" />
           <view class="hero-grad" aria-hidden="true"></view>
-          <view class="hero-edit-btn ft-btn ft-btn-sm" bindtap="goEdit">修改</view>
+          <view class="hero-share-btn" bindtap="onShareAsImage" aria-label="分享菜谱">
+            <view class="ft-ico ft-ico-share ft-ico-sm"></view>
+            <text>分享</text>
+          </view>
           <view class="hero-bottom">
-            <view class="hero-kicker">家常快手</view>
             <view class="hero-title">{{recipeName}}</view>
           </view>
         </view>
@@ -105,7 +107,7 @@
   <canvas type="2d" id="sharePosterCanvas" class="share-poster-hidden" aria-hidden="true"></canvas>
 
   <view class="ft-bottom-bar" wx:if="{{recipeId}}">
-    <view class="ft-btn ft-btn-primary" bindtap="onShareAsImage">分享图片</view>
+    <view class="ft-btn ft-btn-primary" bindtap="goEdit">修改</view>
     <view class="ft-btn ft-btn-danger" bindtap="onAskDeleteRecipe">删除</view>
   </view>
 

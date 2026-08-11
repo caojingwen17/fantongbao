@@ -24,7 +24,7 @@
 }
 .img{
   width: 140rpx;
-  height: 110rpx;
+  height: 105rpx; /* 4:3 */
   border-radius: var(--ft-r-lg);
   background: var(--ft-surface-container-high);
 }

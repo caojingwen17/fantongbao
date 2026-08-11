@@ -2,7 +2,8 @@
   "navigationBarTitleText": "登录",
   "navigationStyle": "custom",
   "usingComponents": {
-    "ft-loading": "/components/ft-loading/index"
+    "ft-loading": "/components/ft-loading/index",
+    "ft-cloud-image": "/components/ft-cloud-image/index"
   }
 }
 

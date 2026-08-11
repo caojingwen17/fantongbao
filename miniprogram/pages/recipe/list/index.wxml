@@ -5,7 +5,7 @@
 
   <ft-topbar title="家庭菜谱" custom-back bind:back="onBack" />
 
-  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true" refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+  <scroll-view scroll-y="true" class="main" show-scrollbar="false" scrollbar-hidden="true" enhanced="true" refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh" bindscrolltolower="loadMoreRecipes" lower-threshold="80">
     <view class="main-inner">
       <view class="search-wrap">
         <view class="search-icon ft-ico ft-ico-search ft-ico-sm"></view>
@@ -16,34 +16,37 @@
       <view class="ft-btn ft-btn-primary ft-btn-block add-recipe-btn" bindtap="goAdd">添加菜谱</view>
 
       <view class="count-row">
-        <view class="count-text">共 {{viewRecipes.length}} 个菜谱</view>
+        <view class="count-text">共 {{viewRecipes.length}}{{hasMore ? "+" : ""}} 个菜谱</view>
         <view class="hint-text" wx:if="{{keyword}}">已按关键词筛选</view>
       </view>
-      <view class="list-hint-delete" wx:if="{{viewRecipes.length}}">点击右侧「删」或长按条目可删除</view>
+      <view class="list-hint-delete" wx:if="{{viewRecipes.length}}">长按条目可编辑，点右侧图标删除</view>
 
       <view class="recipe-list" wx:if="{{viewRecipes.length}}">
         <block wx:for="{{viewRecipes}}" wx:key="id">
           <view class="recipe-item" bindtap="goDetail" bindlongpress="onLongPressRecipe" data-recipeid="{{item.id}}">
             <view class="recipe-row">
               <view class="recipe-media">
-                <image class="recipe-img" wx:if="{{item.recipeImgDisplay}}" mode="aspectFill" src="{{item.recipeImgDisplay}}" />
-                <view class="recipe-img-placeholder" wx:else>待上传</view>
+                <ft-cloud-image imgClass="recipe-img" src="{{item.recipeImg}}" familyId="{{familyId}}" />
               </view>
               <view class="recipe-body">
                 <view class="recipe-name">{{item.recipeName}}</view>
                 <view class="recipe-date">添加于 {{item.createDateText}}</view>
-                <view class="recipe-foot">
-                  <view class="recipe-foot-spacer"></view>
-                  <view class="recipe-foot-right">
-                    <view class="recipe-row-del" catchtap="onTapDeleteRecipe" data-recipeid="{{item.id}}">删</view>
-                    <view class="recipe-arrow">›</view>
-                  </view>
-                </view>
+              </view>
+              <view
+                class="recipe-del"
+                catchtap="onTapDeleteRecipe"
+                data-recipeid="{{item.id}}"
+                aria-label="删除菜谱"
+              >
+                <view class="ft-ico ft-ico-trash ft-ico-sm"></view>
               </view>
             </view>
           </view>
         </block>
       </view>
+
+      <view class="list-footer" wx:if="{{loadingMore}}">加载中…</view>
+      <view class="list-footer" wx:elif="{{viewRecipes.length && !hasMore}}">没有更多了</view>
 
       <view class="ft-empty" wx:if="{{!viewRecipes.length}}">
         <view class="ft-ico ft-ico-dish ft-ico-lg"></view>

@@ -1,6 +1,7 @@
 /**
- * 分享海报：导出图 = 白卡单层圆角；全宽头图 + 下方单列备菜/做菜步骤（Apricot 列表式）
- * 逻辑宽 343（375−32），圆角 26
+ * 分享海报：暖杏渐变底全幅海报
+ * 顶部品牌条 → 4:3 圆角封面卡 → 菜名/步数 → 白卡步骤列表 → 底部二维码
+ * 逻辑宽 343（375−32）
  */
 function renderRecipeSharePoster(pageComponent, opts) {
   const recipeName = String(opts.recipeName || "菜谱");
@@ -10,48 +11,65 @@ function renderRecipeSharePoster(pageComponent, opts) {
   const qrLocalPath = opts.qrLocalPath || "";
 
   const C = {
+    bg0: "#fff7ee",
+    bg1: "#ffe3c2",
+    blob: "rgba(255, 182, 92, 0.22)",
+    white: "#ffffff",
     onSurface: "#432900",
     onSurfaceVariant: "#765524",
-    cream: "#ffe8d2",
-    white: "#ffffff",
-    stepNumBg: "#f9e534",
-    stepNumFg: "#5b5300",
-    stepRowLine: "rgba(135, 78, 0, 0.12)",
+    primary: "#874e00",
+    accent: "#ff9800",
+    accentSoft: "rgba(255, 152, 0, 0.16)",
+    divider: "rgba(135, 78, 0, 0.08)",
     qrBorder: "rgba(135, 78, 0, 0.15)",
+    cardShadow: "rgba(135, 78, 0, 0.16)",
   };
 
   const W = 375 - 32;
-  const cardR = 26;
-  const inner = 18;
-  const heroH = Math.round((W * 9) / 16);
-  const heroBottomPad = 20;
-  /** 菜名相对原位置再下移（增大 y） */
-  const heroTitleNudgeY = 30;
+  const padX = 16;
+  const contentW = W - padX * 2;
   const fontStack = 'system-ui, -apple-system, "PingFang SC", "Helvetica Neue", sans-serif';
 
-  const ptContent = 10;
-  const ptFirstSection = 6;
-  const sectionHeaderH = 18;
-  /** 区块标题「备菜·N 步」与下方步骤列表的间距 */
-  const ptStepsAfterHeader = 10;
-  const sectionTitleOffsetX = 4 + 12;
-  const stepPadTop = 5;
-  const stepPadBottom = 7;
-  const stepPadX = 0;
-  const stepInnerGap = 8;
-  const numD = 20;
-  const numCornerR = 5;
-  const ptNextSection = 12;
-  const footerMt = 8;
-  const footerPt = 16;
-  const footerRowMinH = 102;
-  const pbContent = 16;
-  const qrWrap = 90;
-  const qrPad = 6;
-  const qrImg = 78;
+  /* 顶部品牌条 */
+  const ptContent = 18;
+  const headerH = 24;
+  const headerMb = 14;
 
-  const stepBoxW = W - inner * 2;
-  const textMaxW = stepBoxW - numD - stepInnerGap;
+  /* 封面卡（4:3，与上传裁切比例一致） */
+  const heroH = Math.round((contentW * 3) / 4);
+  const heroR = 18;
+  const heroMb = 16;
+
+  /* 菜名 + 步数概览 */
+  const titleLineH = 30;
+  const titleMb = 8;
+  const metaH = 16;
+  const metaMb = 16;
+
+  /* 步骤白卡 */
+  const cardR = 20;
+  const cardPadX = 14;
+  const cardPadTop = 16;
+  const cardPadBottom = 14;
+  const secHeaderH = 20;
+  const secHeaderMb = 8;
+  const secGap = 16;
+  const numD = 20;
+  const stepNumGap = 10;
+  const stepPadTop = 6;
+  const stepPadBottom = 8;
+  const stepLineH = 18;
+  const stepTextTopPad = 1;
+
+  /* 底部二维码区 */
+  const footerMt = 16;
+  const footerH = 88;
+  const pbContent = 20;
+  const qrWrap = 84;
+  const qrPad = 6;
+  const qrImg = 72;
+
+  const stepTextMaxW = contentW - cardPadX * 2 - numD - stepNumGap;
 
   function roundRectPath(ctx, x, y, w, h, r) {
     const rr = Math.min(r, w / 2, h / 2);
@@ -63,19 +81,6 @@ function renderRecipeSharePoster(pageComponent, opts) {
     ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
     ctx.lineTo(x + rr, y + h);
     ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
-    ctx.lineTo(x, y + rr);
-    ctx.quadraticCurveTo(x, y, x + rr, y);
-    ctx.closePath();
-  }
-
-  function roundTopRectPath(ctx, x, y, w, h, r) {
-    const rr = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.lineTo(x + w - rr, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
-    ctx.lineTo(x + w, y + h);
-    ctx.lineTo(x, y + h);
     ctx.lineTo(x, y + rr);
     ctx.quadraticCurveTo(x, y, x + rr, y);
     ctx.closePath();
@@ -94,6 +99,15 @@ function renderRecipeSharePoster(pageComponent, opts) {
     const sx = (iw - sw) / 2;
     const sy = (ih - sh) / 2;
     ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  }
+
+  function loadImage(canvas, src) {
+    return new Promise((resImg, rejImg) => {
+      const img = canvas.createImage();
+      img.onload = () => resImg(img);
+      img.onerror = rejImg;
+      img.src = src;
+    });
   }
 
   return new Promise((resolve, reject) => {
@@ -133,14 +147,11 @@ function renderRecipeSharePoster(pageComponent, opts) {
           const titleLines = measureWrap(
             recipeName,
             `900 24px ${fontStack}`,
-            W - inner * 2
+            contentW
           ).slice(0, 2);
-          const titleLineH = 28;
 
           const stepFont = `600 13px ${fontStack}`;
-          const stepLineH = 18;
-          const stepTextTopPad = 1;
-          const maxLinesPerStep = 4;
+          const maxLinesPerStep = 3;
           const maxStepsShown = 3;
 
           const buildStepBlocks = (arr) => {
@@ -148,7 +159,7 @@ function renderRecipeSharePoster(pageComponent, opts) {
             const total = arr.length;
             arr.slice(0, maxStepsShown).forEach((st, idx) => {
               const raw = String(st || "").trim();
-              const wrapped = measureWrap(raw, stepFont, textMaxW);
+              const wrapped = measureWrap(raw, stepFont, stepTextMaxW);
               const lines = wrapped.slice(0, maxLinesPerStep);
               const textH = stepTextTopPad + lines.length * stepLineH;
               const rowContentH = Math.max(numD, textH);
@@ -159,34 +170,26 @@ function renderRecipeSharePoster(pageComponent, opts) {
               }
             });
             if (total > maxStepsShown) {
-              blocks.push({ type: "muted", text: "…" });
+              blocks.push({ type: "muted", text: `… 共 ${total} 步` });
             }
             return blocks;
           };
 
           const sections = [];
           if (prepareSteps.length) {
-            sections.push({
-              label: "备菜",
-              n: prepareSteps.length,
-              steps: buildStepBlocks(prepareSteps),
-            });
+            sections.push({ label: "备菜", n: prepareSteps.length, steps: buildStepBlocks(prepareSteps) });
           }
           if (cookingSteps.length) {
-            sections.push({
-              label: "做菜",
-              n: cookingSteps.length,
-              steps: buildStepBlocks(cookingSteps),
-            });
+            sections.push({ label: "做菜", n: cookingSteps.length, steps: buildStepBlocks(cookingSteps) });
           }
 
-          function measureBelowHero() {
-            let h = ptContent;
-            if (sections.length) h += ptFirstSection;
+          /* 高度测量 */
+          const measureStepsCard = () => {
+            if (!sections.length) return 0;
+            let h = cardPadTop;
             sections.forEach((sec, si) => {
-              if (si > 0) h += ptNextSection;
-              h += sectionHeaderH;
-              h += ptStepsAfterHeader;
+              if (si > 0) h += secGap;
+              h += secHeaderH + secHeaderMb;
               sec.steps.forEach((b, bi) => {
                 if (b.type === "step") {
                   h += b.boxH;
@@ -197,225 +200,264 @@ function renderRecipeSharePoster(pageComponent, opts) {
                 }
               });
             });
-            h += footerMt + 1 + footerPt + footerRowMinH + pbContent;
+            h += cardPadBottom;
             return h;
-          }
+          };
 
-          const belowHero = measureBelowHero();
-          const H = Math.max(320, Math.min(heroH + belowHero, 4000));
-          const cornerR = Math.min(cardR, W / 2 - 1, H / 2 - 1);
+          const metaText = sections.length
+            ? sections.map((s) => `${s.label} ${s.n} 步`).join(" · ")
+            : "家厨好味，与你分享";
+
+          const stepsCardH = measureStepsCard();
+          let H = ptContent + headerH + headerMb + heroH + heroMb;
+          H += titleLines.length * titleLineH + titleMb + metaH + metaMb;
+          if (stepsCardH) H += stepsCardH + footerMt;
+          H += footerH + pbContent;
+          H = Math.max(360, Math.min(H, 4000));
 
           canvas.width = W * dpr;
           canvas.height = H * dpr;
           ctx.scale(dpr, dpr);
 
-          ctx.clearRect(0, 0, W, H);
-          ctx.save();
-          roundRectPath(ctx, 0, 0, W, H, cornerR);
-          ctx.clip();
-
-          ctx.fillStyle = C.white;
+          /* 背景：暖杏渐变 + 光斑 */
+          const bgG = ctx.createLinearGradient(0, 0, 0, H);
+          bgG.addColorStop(0, C.bg0);
+          bgG.addColorStop(1, C.bg1);
+          ctx.fillStyle = bgG;
           ctx.fillRect(0, 0, W, H);
-
-          const heroTopR = Math.min(cardR, W / 2 - 1, heroH / 2 - 1);
-
-          const drawHero = async () => {
-            ctx.save();
-            roundTopRectPath(ctx, 0, 0, W, heroH, heroTopR);
-            ctx.clip();
-            if (coverLocalPath) {
-              try {
-                const img = canvas.createImage();
-                await new Promise((resImg, rejImg) => {
-                  img.onload = resImg;
-                  img.onerror = rejImg;
-                  img.src = coverLocalPath;
-                });
-                drawImageCover(ctx, img, 0, 0, W, heroH);
-              } catch (e) {
-                const g0 = ctx.createLinearGradient(0, 0, W, heroH);
-                g0.addColorStop(0, C.cream);
-                g0.addColorStop(1, "#ffd6a8");
-                ctx.fillStyle = g0;
-                ctx.fillRect(0, 0, W, heroH);
-              }
-            } else {
-              const g0 = ctx.createLinearGradient(0, 0, W, heroH);
-              g0.addColorStop(0, C.cream);
-              g0.addColorStop(1, "#ffd6a8");
-              ctx.fillStyle = g0;
-              ctx.fillRect(0, 0, W, heroH);
-            }
-            const g = ctx.createLinearGradient(0, heroH * 0.25, 0, heroH);
-            g.addColorStop(0, "rgba(0,0,0,0)");
-            g.addColorStop(0.45, "rgba(0,0,0,0.1)");
-            g.addColorStop(1, "rgba(0,0,0,0.6)");
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, W, heroH);
-
-            const blockBottom = heroH - heroBottomPad;
-            let ty =
-              blockBottom - titleLines.length * titleLineH - 4 + heroTitleNudgeY;
-            ctx.fillStyle = "#ffffff";
-            ctx.font = `900 24px ${fontStack}`;
-            titleLines.forEach((ln) => {
-              ctx.fillText(ln, inner, ty);
-              ty += titleLineH;
-            });
-            ctx.restore();
-          };
-
-          await drawHero();
-
-          let y = heroH + ptContent;
-          if (sections.length) y += ptFirstSection;
-
-          sections.forEach((sec, si) => {
-            if (si > 0) y += ptNextSection;
-
-            ctx.fillStyle = C.stepNumBg;
-            roundRectPath(ctx, inner, y + 1, 4, 16, 2);
-            ctx.fill();
-
-            ctx.fillStyle = C.onSurface;
-            ctx.font = `900 17px ${fontStack}`;
-            ctx.textBaseline = "alphabetic";
-            ctx.fillText(
-              `${sec.label} · ${sec.n} 步`,
-              inner + sectionTitleOffsetX,
-              y + 14
-            );
-            y += sectionHeaderH;
-
-            y += ptStepsAfterHeader;
-
-            sec.steps.forEach((b, bi) => {
-              if (b.type === "step") {
-                const rowTop = y;
-                const numLeft = inner + stepPadX;
-                const numTop = rowTop + stepPadTop;
-
-                ctx.fillStyle = C.stepNumBg;
-                roundRectPath(ctx, numLeft, numTop, numD, numD, numCornerR);
-                ctx.fill();
-                ctx.fillStyle = C.stepNumFg;
-                ctx.font = `900 10px ${fontStack}`;
-                const num = String(b.num);
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(num, numLeft + numD / 2, numTop + numD / 2);
-                ctx.textAlign = "left";
-                ctx.textBaseline = "alphabetic";
-
-                ctx.fillStyle = C.onSurface;
-                ctx.font = stepFont;
-                let ly = rowTop + stepPadTop + stepTextTopPad + 13;
-                b.lines.forEach((ln) => {
-                  ctx.fillText(ln, inner + stepPadX + numD + stepInnerGap, ly);
-                  ly += stepLineH;
-                });
-
-                y += b.boxH;
-                const next = sec.steps[bi + 1];
-                if (next && next.type === "step") {
-                  ctx.strokeStyle = "rgba(135, 78, 0, 0.08)";
-                  ctx.lineWidth = 1;
-                  ctx.beginPath();
-                  ctx.moveTo(inner, y);
-                  ctx.lineTo(W - inner, y);
-                  ctx.stroke();
-                  y += 1;
-                }
-              } else if (b.type === "muted") {
-                ctx.fillStyle = "rgba(118, 85, 36, 0.65)";
-                ctx.font = `600 12px ${fontStack}`;
-                ctx.fillText(b.text, inner + stepPadX + numD + stepInnerGap, y + 12);
-                y += 16;
-              }
-            });
-          });
-
-          y += footerMt;
-          const footBorderY = y;
-          ctx.strokeStyle = C.stepRowLine;
-          ctx.lineWidth = 1;
+          ctx.fillStyle = C.blob;
           ctx.beginPath();
-          ctx.moveTo(inner, footBorderY);
-          ctx.lineTo(W - inner, footBorderY);
-          ctx.stroke();
+          ctx.arc(W - 20, 30, 76, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(-24, H - 70, 88, 0, Math.PI * 2);
+          ctx.fill();
 
-          y += 1 + footerPt;
-          const rowTop = y;
+          let y = ptContent;
 
-          ctx.textAlign = "left";
-          const qrLeft = W - inner - qrWrap;
-          const footerTextMaxW = Math.max(80, qrLeft - inner - 8);
-          const subFont = `600 11px ${fontStack}`;
-          const subLines = measureWrap(
-            "扫码查看完整菜谱并加入我的家庭菜谱",
-            subFont,
-            footerTextMaxW
-          ).slice(0, 2);
-          const subLineH = 14;
-          const titleBlockH = 12 + subLines.length * subLineH;
-          const leftCenterY = rowTop + footerRowMinH / 2;
-          let ty = leftCenterY - titleBlockH / 2 + 11;
+          /* 顶部品牌条 */
+          let brandTextX = padX;
+          try {
+            const logo = await loadImage(canvas, "/images/icons/launch-logo.png");
+            ctx.save();
+            roundRectPath(ctx, padX, y, headerH, headerH, 7);
+            ctx.clip();
+            ctx.drawImage(logo, padX, y, headerH, headerH);
+            ctx.restore();
+            brandTextX = padX + headerH + 8;
+          } catch (e) {}
+          ctx.fillStyle = C.primary;
+          ctx.font = `900 15px ${fontStack}`;
+          ctx.textBaseline = "middle";
+          ctx.fillText("饭桶宝", brandTextX, y + headerH / 2 + 1);
+          /* 右侧小胶囊 */
+          ctx.font = `600 10px ${fontStack}`;
+          const pillText = "家厨 · 菜谱";
+          const pillTextW = ctx.measureText(pillText).width;
+          const pillW = pillTextW + 20;
+          const pillH = 20;
+          const pillX = W - padX - pillW;
+          const pillY = y + (headerH - pillH) / 2;
+          ctx.fillStyle = C.accentSoft;
+          roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+          ctx.fill();
+          ctx.fillStyle = C.primary;
+          ctx.fillText(pillText, pillX + 10, pillY + pillH / 2 + 1);
+          ctx.textBaseline = "alphabetic";
+          y += headerH + headerMb;
 
-          ctx.fillStyle = C.onSurfaceVariant;
-          ctx.font = `900 11px ${fontStack}`;
-          ctx.fillText("饭桶宝 · 家厨小帮手", inner, ty);
-          ty += 16;
-          ctx.font = subFont;
-          ctx.fillStyle = "rgba(118, 85, 36, 0.55)";
-          subLines.forEach((ln) => {
-            ctx.fillText(ln, inner, ty);
-            ty += subLineH;
-          });
-
-          const qrTop = rowTop + (footerRowMinH - qrWrap) / 2;
-
+          /* 封面卡：白底托 + 投影，内部 4:3 图 */
+          const heroX = padX;
+          const heroY = y;
           ctx.save();
-          ctx.shadowColor = "rgba(0,0,0,0.06)";
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetY = 2;
+          ctx.shadowColor = C.cardShadow;
+          ctx.shadowBlur = 16;
+          ctx.shadowOffsetY = 6;
           ctx.shadowOffsetX = 0;
-          roundRectPath(ctx, qrLeft, qrTop, qrWrap, qrWrap, 10);
           ctx.fillStyle = C.white;
+          roundRectPath(ctx, heroX, heroY, contentW, heroH, heroR);
           ctx.fill();
           ctx.restore();
-          roundRectPath(ctx, qrLeft, qrTop, qrWrap, qrWrap, 10);
+          ctx.save();
+          roundRectPath(ctx, heroX, heroY, contentW, heroH, heroR);
+          ctx.clip();
+          let heroDrawn = false;
+          if (coverLocalPath) {
+            try {
+              const img = await loadImage(canvas, coverLocalPath);
+              drawImageCover(ctx, img, heroX, heroY, contentW, heroH);
+              heroDrawn = true;
+            } catch (e) {}
+          }
+          if (!heroDrawn) {
+            const g0 = ctx.createLinearGradient(heroX, heroY, heroX, heroY + heroH);
+            g0.addColorStop(0, "#ffe8d2");
+            g0.addColorStop(1, "#ffd6a8");
+            ctx.fillStyle = g0;
+            ctx.fillRect(heroX, heroY, contentW, heroH);
+            ctx.fillStyle = "rgba(135, 78, 0, 0.35)";
+            ctx.font = `900 15px ${fontStack}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("饭桶宝 · 今日好菜", heroX + contentW / 2, heroY + heroH / 2);
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
+          }
+          ctx.restore();
+          y += heroH + heroMb;
+
+          /* 菜名 */
+          ctx.fillStyle = C.onSurface;
+          ctx.font = `900 24px ${fontStack}`;
+          titleLines.forEach((ln) => {
+            ctx.fillText(ln, padX, y + 22);
+            y += titleLineH;
+          });
+          y += titleMb;
+
+          /* 步数概览 */
+          ctx.fillStyle = C.onSurfaceVariant;
+          ctx.font = `600 12px ${fontStack}`;
+          ctx.fillText(metaText, padX, y + 11);
+          y += metaH + metaMb;
+
+          /* 步骤白卡 */
+          if (sections.length) {
+            const cardX = padX;
+            const cardY = y;
+            ctx.save();
+            ctx.shadowColor = C.cardShadow;
+            ctx.shadowBlur = 14;
+            ctx.shadowOffsetY = 5;
+            ctx.shadowOffsetX = 0;
+            ctx.fillStyle = C.white;
+            roundRectPath(ctx, cardX, cardY, contentW, stepsCardH, cardR);
+            ctx.fill();
+            ctx.restore();
+
+            let cy = cardY + cardPadTop;
+            const textX = cardX + cardPadX;
+
+            sections.forEach((sec, si) => {
+              if (si > 0) cy += secGap;
+
+              /* 区块标题：橙色小方块 + 备菜·N 步 */
+              ctx.fillStyle = C.accent;
+              roundRectPath(ctx, textX, cy + 2, 5, 16, 2.5);
+              ctx.fill();
+              ctx.fillStyle = C.onSurface;
+              ctx.font = `900 15px ${fontStack}`;
+              ctx.fillText(`${sec.label} · ${sec.n} 步`, textX + 12, cy + 15);
+              cy += secHeaderH + secHeaderMb;
+
+              sec.steps.forEach((b, bi) => {
+                if (b.type === "step") {
+                  const rowTop = cy;
+                  const numTop = rowTop + stepPadTop;
+
+                  /* 序号圆：浅橙底 + 深棕字（与 App 内步骤序号一致） */
+                  ctx.fillStyle = C.accentSoft;
+                  ctx.beginPath();
+                  ctx.arc(textX + numD / 2, numTop + numD / 2, numD / 2, 0, Math.PI * 2);
+                  ctx.fill();
+                  ctx.fillStyle = C.primary;
+                  ctx.font = `900 10px ${fontStack}`;
+                  ctx.textAlign = "center";
+                  ctx.textBaseline = "middle";
+                  ctx.fillText(String(b.num), textX + numD / 2, numTop + numD / 2 + 0.5);
+                  ctx.textAlign = "left";
+                  ctx.textBaseline = "alphabetic";
+
+                  ctx.fillStyle = C.onSurface;
+                  ctx.font = stepFont;
+                  let ly = rowTop + stepPadTop + stepTextTopPad + 13;
+                  b.lines.forEach((ln) => {
+                    ctx.fillText(ln, textX + numD + stepNumGap, ly);
+                    ly += stepLineH;
+                  });
+
+                  cy += b.boxH;
+                  const next = sec.steps[bi + 1];
+                  if (next && next.type === "step") {
+                    ctx.strokeStyle = C.divider;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(textX, cy);
+                    ctx.lineTo(cardX + contentW - cardPadX, cy);
+                    ctx.stroke();
+                    cy += 1;
+                  }
+                } else if (b.type === "muted") {
+                  ctx.fillStyle = "rgba(118, 85, 36, 0.6)";
+                  ctx.font = `600 11px ${fontStack}`;
+                  ctx.fillText(b.text, textX + numD + stepNumGap, cy + 11);
+                  cy += 16;
+                }
+              });
+            });
+
+            y += stepsCardH + footerMt;
+          }
+
+          /* 底部：左文案 + 右二维码 */
+          const rowTop = y;
+          const qrLeft = W - padX - qrWrap;
+          const footerTextMaxW = Math.max(80, qrLeft - padX - 12);
+
+          const f1 = "扫码查看完整菜谱";
+          const f2Lines = measureWrap(
+            "加入我的家庭菜谱，一起好好吃饭",
+            `600 11px ${fontStack}`,
+            footerTextMaxW
+          ).slice(0, 2);
+          const fBlockH = 16 + 6 + f2Lines.length * 14;
+          let fy = rowTop + (footerH - fBlockH) / 2;
+
+          ctx.fillStyle = C.onSurface;
+          ctx.font = `900 13px ${fontStack}`;
+          ctx.fillText(f1, padX, fy + 12);
+          fy += 16 + 6;
+          ctx.fillStyle = "rgba(118, 85, 36, 0.6)";
+          ctx.font = `600 11px ${fontStack}`;
+          f2Lines.forEach((ln) => {
+            ctx.fillText(ln, padX, fy + 10);
+            fy += 14;
+          });
+
+          const qrTop = rowTop + (footerH - qrWrap) / 2;
+          ctx.save();
+          ctx.shadowColor = C.cardShadow;
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetY = 3;
+          ctx.shadowOffsetX = 0;
+          ctx.fillStyle = C.white;
+          roundRectPath(ctx, qrLeft, qrTop, qrWrap, qrWrap, 12);
+          ctx.fill();
+          ctx.restore();
+          roundRectPath(ctx, qrLeft, qrTop, qrWrap, qrWrap, 12);
           ctx.strokeStyle = C.qrBorder;
           ctx.lineWidth = 1;
           ctx.stroke();
 
           const imgLeft = qrLeft + qrPad;
           const imgTop = qrTop + qrPad;
+          let qrDrawn = false;
           if (qrLocalPath) {
             try {
-              const qr = canvas.createImage();
-              await new Promise((resQ, rejQ) => {
-                qr.onload = resQ;
-                qr.onerror = rejQ;
-                qr.src = qrLocalPath;
-              });
+              const qr = await loadImage(canvas, qrLocalPath);
               ctx.drawImage(qr, imgLeft, imgTop, qrImg, qrImg);
-            } catch (e) {
-              ctx.fillStyle = "rgba(118, 85, 36, 0.45)";
-              ctx.font = `600 10px ${fontStack}`;
-              ctx.textAlign = "center";
-              ctx.fillText("码图加载失败", imgLeft + qrImg / 2, imgTop + qrImg / 2);
-              ctx.textAlign = "left";
-            }
-          } else {
-            ctx.fillStyle = "rgba(118, 85, 36, 0.35)";
-            ctx.font = `600 9px ${fontStack}`;
-            ctx.textAlign = "center";
-            ctx.fillText("小程序码", imgLeft + qrImg / 2, imgTop + qrImg / 2 - 4);
-            ctx.fillText("78×78", imgLeft + qrImg / 2, imgTop + qrImg / 2 + 8);
-            ctx.textAlign = "left";
+              qrDrawn = true;
+            } catch (e) {}
           }
-
-          ctx.restore();
+          if (!qrDrawn) {
+            ctx.fillStyle = "rgba(118, 85, 36, 0.4)";
+            ctx.font = `600 10px ${fontStack}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("小程序码", imgLeft + qrImg / 2, imgTop + qrImg / 2);
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
+          }
 
           wx.canvasToTempFilePath(
             {

@@ -166,6 +166,10 @@ Page({
           progress: { totalCount, doneCount },
         });
         this.applyMergedItemsToView(mergedItems, { totalCount, doneCount });
+        // 有未勾选项时重置自动提示标记，便于下次全部勾选后再次询问
+        if (!totalCount || doneCount < totalCount) {
+          this._autoCompletePromptShown = false;
+        }
       }
     } catch (e) {
       wx.showToast({
@@ -257,6 +261,11 @@ Page({
         orderId: this.data.orderId,
         itemIds,
       });
+      if (targetDone) {
+        this._maybePromptCompleteShopping();
+      } else {
+        this._autoCompletePromptShown = false;
+      }
     } catch (err) {
       // 失败回滚到点击前，避免错误状态留在界面。
       this.applyMergedItemsToView(prevMergedItems, prevProgress);
@@ -267,6 +276,36 @@ Page({
         pendingToggleCount: nextPending,
       });
     }
+  },
+
+  /** 全部采购项勾选后立即询问是否完成买菜（每次全勾只问一次，取消勾选后重置） */
+  _maybePromptCompleteShopping() {
+    const { progress, order } = this.data;
+    const total = (progress && progress.totalCount) || 0;
+    const done = (progress && progress.doneCount) || 0;
+    if (!order || order.status !== "pending_shopping") return;
+    if (!total || done < total) return;
+    if (this._autoCompletePromptShown) return;
+    this._autoCompletePromptShown = true;
+    this.openConfirm(
+      {
+        kicker: "完成买菜",
+        title: "采购项已全部勾选",
+        content: "是否完成买菜，进入做菜阶段？",
+        confirmText: "确认完成",
+      },
+      async () => {
+        if ((this.data.pendingToggleCount || 0) > 0) {
+          wx.showToast({ title: "正在同步勾选，请稍后", icon: "none" });
+          return;
+        }
+        this.setData({
+          expenseDialogVisible: true,
+          expenseInput: "",
+          pendingCompleteOrderId: this.data.orderId,
+        });
+      }
+    );
   },
 
   async onConfirmAllSeasonings() {
@@ -309,6 +348,7 @@ Page({
         itemIds: uniqueItemIds,
       });
       wx.showToast({ title: "调料已全部确认", icon: "none" });
+      this._maybePromptCompleteShopping();
     } catch (err) {
       this.applyMergedItemsToView(prevMergedItems, prevProgress);
       wx.showToast({ title: "更新失败，请重试", icon: "none" });
@@ -359,6 +399,7 @@ Page({
         itemIds: uniqueItemIds,
       });
       wx.showToast({ title: "食材已全部确认", icon: "none" });
+      this._maybePromptCompleteShopping();
     } catch (err) {
       this.applyMergedItemsToView(prevMergedItems, prevProgress);
       wx.showToast({ title: "更新失败，请重试", icon: "none" });

@@ -4,7 +4,8 @@
   "usingComponents": {
     "ft-topbar": "/components/ft-topbar/index",
     "ft-modal": "/components/ft-modal/index",
-    "ft-loading": "/components/ft-loading/index"
+    "ft-loading": "/components/ft-loading/index",
+    "ft-cloud-image": "/components/ft-cloud-image/index"
   }
 }
 

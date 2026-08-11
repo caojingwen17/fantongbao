@@ -12,7 +12,12 @@ function now() {
   return new Date();
 }
 
+// 同一云函数实例只兜底创建一次，避免每次 submitFeedback 都白跑一次 createCollection 往返
+const ensuredCollections = {};
+
 async function ensureCollection(name) {
+  if (ensuredCollections[name]) return;
+  ensuredCollections[name] = true;
   try {
     await db.createCollection(name);
   } catch (e) {

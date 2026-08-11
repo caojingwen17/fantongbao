@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "分享菜谱",
   "navigationBarBackgroundColor": "#fff7ed",
-  "navigationBarTextStyle": "black"
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ft-cloud-image": "/components/ft-cloud-image/index"
+  }
 }

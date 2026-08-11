@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
+  
+  <defs>
+    <linearGradient id="bgC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff7ee"/>
+      <stop offset="1" stop-color="#ffe3c2"/>
+    </linearGradient>
+    <filter id="softC" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <rect width="500" height="400" fill="url(#bgC)"/>
+  <circle cx="70" cy="60" r="90" fill="#ffd9ad" opacity="0.45"/>
+  <circle cx="445" cy="345" r="110" fill="#ffcf9a" opacity="0.4"/>
+  <circle cx="455" cy="55" r="42" fill="#ffe9d2" opacity="0.7"/>
+  <!-- 白卡片 + 投影 -->
+  <rect x="30" y="36" width="440" height="330" rx="30" fill="#d9a05e" opacity="0.28" filter="url(#softC)"/>
+  <rect x="30" y="28" width="440" height="330" rx="30" fill="#ffffff"/>
+  
+  
+  <circle cx="96" cy="82" r="4" fill="#ffca8a" opacity="1"/><circle cx="406" cy="78" r="5" fill="#ffca8a" opacity="1"/><circle cx="424" cy="152" r="3.5" fill="#ffd9a8" opacity="1"/>
+  
+  <path transform="translate(110,60) scale(1)" d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4 Z" fill="#ffb85c"/>
+  <path transform="translate(394,94) scale(0.85)" d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4 Z" fill="#ffb85c"/>
+  
+  <g transform="translate(96,180) rotate(-16) scale(0.85)">
+    <path d="M0 0 q14 -16 30 -12 q-4 18 -22 20 q-8 1 -8 -8 z" fill="#5cb56a"/>
+    <path d="M4 -2 q12 -8 22 -8" stroke="#3d9b4f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(404,184) rotate(202) scale(0.85)">
+    <path d="M0 0 q14 -16 30 -12 q-4 18 -22 20 q-8 1 -8 -8 z" fill="#5cb56a"/>
+    <path d="M4 -2 q12 -8 22 -8" stroke="#3d9b4f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <g transform="translate(250,118) scale(1.05)">
+    <path d="M-52 6 L0 -42 L52 6 z" fill="#874e00"/>
+    <rect x="-40" y="6" width="80" height="52" rx="10" fill="#ff9800"/>
+    <rect x="-12" y="24" width="24" height="34" rx="8" fill="#fff5ec"/>
+    <path d="M0 22 c-5 -8 -16 -4 -16 4 c0 7 9 11 16 16 c7 -5 16 -9 16 -16 c0 -8 -11 -12 -16 -4 z" fill="#ff6b4a" transform="translate(0,0) scale(0.62) translate(0,26)"/>
+  </g>
+  
+  <g transform="translate(126,176) scale(0.85)">
+    <circle r="17" fill="#ff6b4a"/>
+    <path d="M0 -17 l-6 -8 M0 -17 l6 -8 M0 -17 l0 -11" stroke="#3d9b4f" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <circle cx="-6" cy="-5" r="5" fill="#ff8f73" opacity="0.8"/>
+  </g>
+  
+  <g transform="translate(376,178) scale(0.85)">
+    <ellipse rx="20" ry="15" fill="#fffdf7" stroke="#f0e2cd" stroke-width="2"/>
+    <circle r="8" fill="#ffb020"/>
+  </g>
+
+  <text x="250" y="238" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="32" font-weight="700" fill="#874e00">邀请你加入我们的家</text>
+  <text x="250" y="274" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="17" fill="#b3803f">一家人，一起吃好每一顿饭</text>
+  <rect x="186" y="296" width="128" height="34" rx="17" fill="#fff1de"/>
+         <text x="250" y="318" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" fill="#c47a1f">点我加入家庭</text>
+</svg>

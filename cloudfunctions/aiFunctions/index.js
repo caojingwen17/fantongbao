@@ -1,6 +1,7 @@
 const cloud = require("wx-server-sdk");
 const https = require("https");
 const { getOpenidOrThrow } = require("./auth");
+const xhsParser = require("./xhsParser");
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
@@ -11,7 +12,12 @@ const db = cloud.database();
 const AI_RATE_WINDOW_MS = 60 * 60 * 1000;
 const AI_RATE_MAX_CALLS = 40;
 
+// 同一云函数实例只兜底创建一次，避免每次调用都白跑一次 createCollection 往返
+let aiUsageCollectionEnsured = false;
+
 async function ensureAiUsageCollection() {
+  if (aiUsageCollectionEnsured) return;
+  aiUsageCollectionEnsured = true;
   try {
     await db.createCollection("ai_usage_logs");
   } catch (e) {
@@ -72,7 +78,7 @@ function safeStr(v) {
 /** 将百炼 API 英文报错转为用户可读提示 */
 function formatBailianUserTip(errMsg, fallback) {
   const s = safeStr(errMsg);
-  const def = fallback || "AI 调用失败，已为你生成通用菜谱，可自行修改";
+  const def = fallback || "AI 调用失败，已生成空白模板，请手动填写或重试";
   if (!s) return def;
   if (/free quota has been exhausted|free tier only/i.test(s)) {
     return "百炼免费额度已用完：请在阿里云百炼控制台开通按量付费（或关闭「仅免费额度」）后重试";
@@ -183,14 +189,15 @@ const RECIPE_JSON_EXAMPLE = {
   ingredients: [
     { name: "鸡翅中", amount: "8个" },
     { name: "青椒", amount: "2个" },
+    { name: "鸡蛋", amount: "2个" },
     { name: "姜", amount: "3片" },
   ],
   seasonings: [
-    { name: "生抽", amount: "1勺" },
-    { name: "盐", amount: "少许" },
+    { name: "生抽", amount: "" },
+    { name: "盐", amount: "" },
   ],
-  prepareSteps: ["鸡翅洗净对半切开", "青椒去籽切块", "姜切片备用"],
-  cookingSteps: ["热锅少油下鸡翅煎至两面微黄", "加入姜片和青椒翻炒", "加生抽和盐调味，炒匀出锅"],
+  prepareSteps: ["鸡翅洗净对半切开", "青椒去籽切块", "鸡蛋打散", "姜切片备用"],
+  cookingSteps: ["热锅少油下鸡翅煎至两面微黄", "加入姜片和青椒翻炒", "倒入蛋液炒熟，加生抽和盐调味，炒匀出锅"],
 };
 
 function buildStrictJsonOutputRules(hard) {
@@ -296,22 +303,46 @@ function canonicalizeRecipeItemName(name) {
   const raw = safeStr(name).trim();
   if (!raw) return raw;
   if (RECIPE_ALIAS_TO_CANONICAL[raw]) return RECIPE_ALIAS_TO_CANONICAL[raw];
+  // 剥掉括号注释与常见形态后缀再匹配：小葱（切碎）/ 小葱段 / 小葱末 → 小葱
+  const stripped = raw
+    .replace(/[（(][^)）]*[)）]/g, "")
+    .replace(/(段|末|花|碎|丝|片|块|丁|茸|泥|粒|圈)+$/g, "")
+    .trim();
+  if (stripped && RECIPE_ALIAS_TO_CANONICAL[stripped]) {
+    return RECIPE_ALIAS_TO_CANONICAL[stripped];
+  }
   return raw;
+}
+
+/** 来源忠实规则：禁止编造原文/图片中没有的内容（用于图片 OCR 后的结构化场景） */
+function buildSourceFidelityRules() {
+  return [
+    "【来源忠实规则 — 防止编造，优先级最高】",
+    "1) 只允许提取原文中出现的信息；禁止编造原文没有的食材、调料、用量和步骤。",
+    "2) 原文没有提到的类别，对应字段输出空数组 []，不要根据菜名猜测补全。",
+    "3) 用量以原文为准；原文未写用量时 amount 留空字符串 \"\"，不要自行估算。",
+    "4) 步骤按原文顺序整理，可精简表述，但不得新增、拼接出原文没有的操作。",
+    "5) 原文中的非菜谱内容（广告、评论、点赞引导等）一律忽略。",
+  ].join("\n");
 }
 
 function buildIngredientSeasoningRules() {
   return [
     "【食材/调料分类规则】",
-    "1) ingredients：主料、配菜等实物食材（如鸡翅、青椒、土豆、鸡蛋；葱姜蒜作配菜时）。",
-    "2) seasonings：盐、糖、生抽、老抽、蚝油、料酒、醋、胡椒、花椒、豆瓣、淀粉、鸡精、味精、油类等调味品。",
-    "3) 明显用于调味的项禁止放进 ingredients；同名项不要在两边重复出现。",
+    "1) ingredients：主料、配菜等实物食材（如鸡翅、青椒、土豆、鸡蛋）。",
+    "2) seasonings：盐、糖、生抽、老抽、蚝油、料酒、醋、胡椒、花椒粉、豆瓣、淀粉、鸡精、味精、油类等调味品。",
+    "3) 葱、姜、蒜、蒜苗、蒜苔、洋葱、韭菜、香菜、小米辣、干辣椒、青椒、红椒等香辛配菜一律属于 ingredients，即使用于爆香/增香也禁止放入 seasonings。",
+    "4) 明显用于调味的项禁止放进 ingredients；同名项不要在两边重复出现。",
     "",
     "【名称统一规则 — name 字段必须使用标准名，禁止输出别名】",
     "葱姜蒜香料：葱（小葱/香葱/大葱/葱花/葱白等）、姜（生姜/老姜/姜片/姜丝等）、蒜（大蒜/蒜头/蒜末/蒜蓉等）、蒜苗、蒜苔、洋葱、韭菜、香菜、小米辣、干辣椒、青椒、红椒、花椒、八角、桂皮、香叶、陈皮",
     "常见蔬菜：西红柿（番茄）、土豆（马铃薯/洋芋）、红薯（地瓜/番薯）、白菜（大白菜）",
     "基础调料：盐、糖、冰糖、生抽（味极鲜；未标明时酱油默认生抽）、老抽、蚝油、料酒、醋、食用油（未指明种类时油/植物油）、花生油、菜籽油、芝麻油（香油/麻油）、淀粉（生粉）、胡椒粉、辣椒粉、花椒粉、孜然粉、豆瓣酱、豆豉、番茄酱、甜面酱、黄豆酱、芝麻酱、沙拉酱、腐乳、味精、鸡精、五香粉、十三香、咖喱粉、蜂蜜、芥末、小苏打",
-    "4) 「葱姜蒜」写在同一行时必须拆成 葱、姜、蒜 三条；用量只写在 amount。",
-    "5) 花椒/八角/桂皮/香叶整粒入菜放 ingredients，粉状放 seasonings。",
+    "5) 「葱姜蒜」写在同一行时必须拆成 葱、姜、蒜 三条；用量只写在 amount。",
+    "6) 花椒/八角/桂皮/香叶整粒入菜放 ingredients，粉状放 seasonings。",
+    "7) 蛋类（鸡蛋、鸭蛋、鹌鹑蛋、皮蛋等）、肉类、豆制品、蔬菜一律属于 ingredients，禁止放入 seasonings。",
+    "8) 常见家常调料（盐、糖、生抽、老抽、蚝油、料酒、醋、食用油、鸡精、味精、胡椒粉、芝麻油等）的 amount 一律输出空字符串 \"\"，用量由用户按口味掌握，禁止估算「1勺/2勺/少许/适量」；只有原文明确写出且对菜品关键的用量（如腌制配比）才保留在 amount。",
+    "9) 原文为无标点连续描述时，必须先按食材/调料词逐项切分，量词只归属紧邻的那个词，禁止把其他食材的名称或用量粘进某项的 amount。例如「两大勺生抽一颗鸡蛋」应拆为：seasonings 里 生抽(amount \"\")，ingredients 里 鸡蛋(amount \"1颗\")。",
   ].join("\n");
 }
 
@@ -352,7 +383,7 @@ function isValidXhsUrl(url) {
   try {
     const parsed = new URL(u);
     const host = (parsed.hostname || "").toLowerCase();
-    return host.includes("xiaohongshu.com") || host.includes("xhslink.com");
+    return host.includes("xiaohongshu.com") || host.includes("xhslink.com") || host.includes("xhslink.cn");
   } catch (e) {
     return false;
   }
@@ -452,6 +483,11 @@ function getOcrStructureTextModel() {
   return "qwen3.5-flash";
 }
 
+/** 视频理解模型（需支持视频输入的 VL 模型；未配置则跳过视频画面识别） */
+function getVideoModel() {
+  return safeStr(process.env.QWEN_VIDEO_MODEL).trim();
+}
+
 /** 图片识别流水线：ocr_then_text（快）| vision_json（旧） */
 function getImagePipeline() {
   const p = safeStr(process.env.AI_IMAGE_PIPELINE).trim().toLowerCase();
@@ -489,6 +525,28 @@ async function downloadImagesFromFileIds(fileIds) {
       };
     })
   );
+  return rows;
+}
+
+/** 从外部 URL 下载图片（小红书图集），失败/超限的跳过，全部失败则抛错 */
+async function downloadImagesFromUrls(urls, maxCount) {
+  const picked = (urls || []).slice(0, maxCount || IMAGE_AI_MAX_COUNT);
+  const results = await Promise.all(
+    picked.map(async (url) => {
+      try {
+        const buf = await xhsParser.downloadImageBuffer(url);
+        return {
+          imageBase64: buf.toString("base64"),
+          mimeType: detectMimeFromBuffer(buf),
+        };
+      } catch (e) {
+        console.warn("[aiFunctions] xhs image download failed:", safeStr(e && e.message));
+        return null;
+      }
+    })
+  );
+  const rows = results.filter(Boolean);
+  if (!rows.length) throw new Error("笔记图片下载失败");
   return rows;
 }
 
@@ -594,7 +652,27 @@ function normalizeRecipeOut(obj, fallbackName) {
     .map((s) => (typeof s === "string" ? safeStr(s).trim() : safeStr(s && s.text).trim()))
     .filter((s) => s);
 
-  const seasoningRe = /(盐|糖|酱油|生抽|老抽|蚝油|料酒|醋|胡椒|花椒|孜然|豆瓣|豆豉|辣椒粉|淀粉|鸡精|味精|芝麻油|香油|番茄酱|沙拉酱|咖喱)/i;
+  const seasoningRe = /(盐|糖|酱油|生抽|老抽|蚝油|料酒|醋|胡椒|孜然|豆瓣|豆豉|辣椒粉|花椒粉|淀粉|鸡精|味精|芝麻油|香油|番茄酱|沙拉酱|咖喱)/i;
+  /** 明显是食材、禁止留在调料列表的项（模型误分类反向纠偏） */
+  const neverSeasoningRe = /(鸡蛋|鸭蛋|鹅蛋|鹌鹑蛋|皮蛋|咸蛋|松花蛋)/;
+  /** 香辛配菜：即使被模型判成调料也归食材。精确匹配标准名，避免误伤花椒粉/辣椒粉等 */
+  const NEVER_SEASONING_EXACT = {
+    葱: 1, 姜: 1, 蒜: 1, 蒜苗: 1, 蒜苔: 1, 洋葱: 1, 韭菜: 1, 香菜: 1,
+    小米辣: 1, 干辣椒: 1, 青椒: 1, 红椒: 1, 花椒: 1, 八角: 1, 桂皮: 1, 香叶: 1,
+  };
+  /** 常见家常调料：amount 强制留空，用量由用户按口味掌握（与提示词规则一致） */
+  const COMMON_SEASONING_NO_AMOUNT = {
+    盐: 1, 糖: 1, 生抽: 1, 老抽: 1, 蚝油: 1, 料酒: 1, 醋: 1,
+    食用油: 1, 花生油: 1, 菜籽油: 1, 芝麻油: 1,
+    鸡精: 1, 味精: 1, 胡椒粉: 1, 辣椒粉: 1, 花椒粉: 1, 孜然粉: 1,
+    五香粉: 1, 十三香: 1,
+  };
+  /** amount 中混入食材名词，说明模型把多项粘在一起了（如生抽 amount="1颗鸡蛋+三大勺"），清掉兜底 */
+  const amountFusedRe = /(鸡蛋|鸭蛋|鹅蛋|鹌鹑蛋|皮蛋|咸蛋|松花蛋|大排|排骨)/;
+  const sanitizeAmount = (a) => {
+    const s = safeStr(a).trim();
+    return amountFusedRe.test(s) ? "" : s;
+  };
   const norm = (s) =>
     safeStr(s)
       .trim()
@@ -610,28 +688,53 @@ function normalizeRecipeOut(obj, fallbackName) {
     const canonicalName = canonicalizeRecipeItemName(item.name);
     const key = norm(canonicalName);
     if (!key) return;
+    const amount = sanitizeAmount(item.amount);
     if (seen[key]) {
       const existing = list.find((x) => norm(x.name) === key);
-      if (existing && !existing.amount && item.amount) existing.amount = item.amount;
+      if (existing && !existing.amount && amount) existing.amount = amount;
       return;
     }
     seen[key] = true;
-    list.push({ name: canonicalName, amount: item.amount });
+    list.push({ name: canonicalName, amount });
   };
 
-  // 先放模型的调料
-  cleanedSeasonings.forEach((x) => pushUnique(finalSeasonings, seenSea, x));
+  // 先放模型的调料；明显是食材的项（如鸡蛋、蒜、小米辣）纠偏回食材列表
+  cleanedSeasonings.forEach((x) => {
+    const canonicalName = canonicalizeRecipeItemName(x.name);
+    if (
+      neverSeasoningRe.test(canonicalName) ||
+      neverSeasoningRe.test(x.name) ||
+      NEVER_SEASONING_EXACT[canonicalName]
+    ) {
+      pushUnique(finalIngredients, seenIng, { name: canonicalName, amount: x.amount });
+      return;
+    }
+    pushUnique(finalSeasonings, seenSea, x);
+  });
 
   // 对模型的食材做纠偏：像调料的项移到调料列表
   cleanedIngredients.forEach((x) => {
     const canonicalName = canonicalizeRecipeItemName(x.name);
     const key = norm(canonicalName);
     if (!key) return;
+    if (
+      neverSeasoningRe.test(canonicalName) ||
+      neverSeasoningRe.test(x.name) ||
+      NEVER_SEASONING_EXACT[canonicalName]
+    ) {
+      pushUnique(finalIngredients, seenIng, { name: canonicalName, amount: x.amount });
+      return;
+    }
     if (seasoningRe.test(canonicalName) || seasoningRe.test(x.name)) {
       pushUnique(finalSeasonings, seenSea, { name: canonicalName, amount: x.amount });
       return;
     }
     pushUnique(finalIngredients, seenIng, { name: canonicalName, amount: x.amount });
+  });
+
+  // 常见家常调料用量强制留空
+  finalSeasonings.forEach((x) => {
+    if (COMMON_SEASONING_NO_AMOUNT[x.name]) x.amount = "";
   });
 
   return {
@@ -703,6 +806,18 @@ function looksLikePlaceholderRecipe(recipe) {
   return ingBad || prepBad || cookBad;
 }
 
+/** 归一化结果中是否含有真实识别出的内容（哪怕只有一部分），用于决定保留还是整体回退 */
+function hasAnyRecognizedContent(recipe) {
+  if (!recipe || typeof recipe !== "object") return false;
+  const isPlaceholder = (s) => /请补充|待补充|自行补充/.test(safeStr(s));
+  const texts = []
+    .concat(Array.isArray(recipe.ingredients) ? recipe.ingredients.map((x) => x && x.name) : [])
+    .concat(Array.isArray(recipe.seasonings) ? recipe.seasonings.map((x) => x && x.name) : [])
+    .concat(Array.isArray(recipe.prepareSteps) ? recipe.prepareSteps : [])
+    .concat(Array.isArray(recipe.cookingSteps) ? recipe.cookingSteps : []);
+  return texts.some((s) => safeStr(s).trim() && !isPlaceholder(s));
+}
+
 async function qwenOcrPlainTextFromImages(recipeName, images) {
   const { apiKey, baseUrl, model } = getBailianConfig("vision");
   if (!apiKey) {
@@ -718,7 +833,9 @@ async function qwenOcrPlainTextFromImages(recipeName, images) {
   const prompt = [
     `菜名：${safeStr(recipeName).trim()}`,
     `共 ${n} 张菜谱截图${total > n ? `（已省略 ${total - n} 张以加速）` : ""}。`,
-    "请识别图中与菜谱相关的全部文字（食材、调料、用量、备菜步骤、做菜步骤），按阅读顺序合并输出。",
+    "请逐字识别图中与菜谱相关的全部文字（食材、调料、用量、备菜步骤、做菜步骤），按阅读顺序合并输出。",
+    "只做忠实转录：图中没有的文字一律不要补充，不要根据菜名或常识编造任何内容。",
+    "与菜谱无关的文字（广告、评论、水印等）不要输出。",
     "只输出纯文本，不要 JSON，不要 markdown，不要解释。",
   ].join("\n");
 
@@ -761,7 +878,10 @@ async function qwenExtractRecipeFromImages(recipeName, images) {
     `图片数量：${n} 张（按用户选择顺序）${truncated ? `；共 ${images.length} 张，本次仅分析前 ${n} 张` : ""}`,
     "",
     "请综合所有图片中的文字与画面，提取并去重合并：食材、调料及用量、备菜步骤、做菜步骤。",
-    "若图片信息不完整，可结合菜名合理补全，但不得输出占位词。",
+    `若图片中包含多道菜的教程，只提取与菜名「${safeStr(recipeName).trim()}」最相关的那一道菜；其他菜品的内容一律忽略，禁止混合多道菜的信息。`,
+    "只提取图片中真实存在的信息，禁止根据菜名或常识编造图中没有的食材、调料、用量或步骤；图中没有的类别对应字段输出空数组 []。",
+    "",
+    buildSourceFidelityRules(),
     "",
     buildIngredientSeasoningRules(),
     "",
@@ -786,6 +906,98 @@ async function qwenExtractRecipeFromImages(recipeName, images) {
     throw e;
   }
   return { parsed: coerceModelRecipeShape(parsed), rawText: text };
+}
+
+/**
+ * 视频理解：将视频流地址直接交给支持视频输入的 VL 模型提取菜谱。
+ * 仅在配置 QWEN_VIDEO_MODEL 后启用；模型自行拉取视频，注意 60s 函数超时。
+ * 注意：走 OpenAI 兼容的 /chat/completions + video_url（百炼官方文档的视频入参形式），
+ * /responses 的 input_video 无官方支持，勿回退。
+ * @param {string} recipeName
+ * @param {string} videoUrl mp4 流地址
+ * @param {{ title?: string, desc?: string }} note 笔记标题/文案，作为辅助上下文
+ */
+async function qwenExtractRecipeFromVideo(recipeName, videoUrl, note) {
+  const { apiKey, baseUrl } = getBailianConfig("vision");
+  const model = getVideoModel();
+  if (!apiKey) {
+    const e = new Error("未配置百炼 API Key（请在云函数环境变量设置 DASHSCOPE_API_KEY）");
+    e.code = "NO_API_KEY";
+    throw e;
+  }
+  if (!model) throw new Error("未配置视频理解模型（QWEN_VIDEO_MODEL）");
+
+  const name = safeStr(recipeName).trim();
+  const prompt = [
+    "你是「饭桶宝」菜谱结构化提取器。任务：观看做菜视频，提取菜谱信息并输出为严格 JSON。",
+    `菜名：${name}`,
+    note && note.title ? `视频标题：${safeStr(note.title).slice(0, 100)}` : "",
+    note && note.desc ? `视频文案：${safeStr(note.desc).slice(0, 500)}` : "",
+    "",
+    "请综合视频画面、内嵌字幕与口播，提取：食材、调料及用量、备菜步骤、做菜步骤。",
+    `若视频中包含多道菜，只提取与菜名「${name}」最相关的一道；其他菜品的内容一律忽略，禁止混合。`,
+    "只提取视频中真实呈现的信息，禁止根据菜名或常识编造；确实无法确认的类别输出空数组 []。",
+    "",
+    buildIngredientSeasoningRules(),
+    "",
+    buildStrictJsonOutputRules(false),
+  ].join("\n");
+
+  // 视频流地址统一升级为 https（百炼服务端拉取更稳），fps=1 控制抽帧成本
+  const httpsVideoUrl = safeStr(videoUrl).replace(/^http:\/\//i, "https://");
+  const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
+  const resp = await httpsJson({
+    url,
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: {
+      model,
+      enable_thinking: false,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "video_url", video_url: { url: httpsVideoUrl }, fps: 1 },
+            { type: "text", text: prompt },
+          ],
+        },
+      ],
+    },
+    timeoutMs: 55000,
+  });
+  const text = extractTextFromChatCompletion(resp && resp.data);
+  if (!text) {
+    const e = new Error("视频理解模型返回为空");
+    e.code = "BAD_MODEL_OUTPUT";
+    e.raw = safeStr(resp && resp.raw).slice(0, 1200);
+    throw e;
+  }
+
+  const parsed = parseRecipeJsonFromModelText("extractRecipeFromVideo", model, text);
+  if (!parsed) {
+    const e = new Error("大模型返回内容无法解析为 JSON");
+    e.code = "BAD_MODEL_OUTPUT";
+    e.raw = text.slice(0, 1200);
+    throw e;
+  }
+  return coerceModelRecipeShape(parsed);
+}
+
+/** 从 OpenAI 兼容 chat/completions 响应中取文本（content 可能是字符串或分段数组） */
+function extractTextFromChatCompletion(data) {
+  const choice = data && Array.isArray(data.choices) ? data.choices[0] : null;
+  const content = choice && choice.message ? choice.message.content : null;
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((p) => safeStr(p && (p.text || p.content)))
+      .filter(Boolean)
+      .join("");
+  }
+  return "";
 }
 
 /**
@@ -872,16 +1084,23 @@ async function qwenExtractRecipeFromPastedText(recipeName, pastedText, opts = {}
   if (raw.length > 12000) throw new Error("文案过长，请删减后再试");
 
   const url = `${baseUrl.replace(/\/+$/, "")}/responses`;
+  // 来源忠实提取：只允许整理原文已有的信息，禁止结合菜名补全（图片 OCR 与粘贴文案统一行为）
   const prompt = [
-    "你是「饭桶宝」菜谱结构化提取器。任务：从用户粘贴的文字中提取菜谱信息，并输出为严格 JSON。",
+    "你是「饭桶宝」菜谱结构化提取器。任务：从用户提供的文字中提取菜谱信息，并输出为严格 JSON。",
     `用户填写的菜名：${name}`,
     "",
-    "【用户粘贴的文字】",
+    "【用户提供的文字】",
     "----",
     raw,
     "----",
     "",
-    "请从上述文字提取或归纳：食材、调料及用量、备菜步骤、做菜步骤。文字杂乱时可结合菜名补全。",
+    "请从上述文字提取：食材、调料及用量、备菜步骤、做菜步骤。只允许整理原文已有的信息，禁止结合菜名补全任何原文没有的内容。",
+    "",
+    "【多菜聚焦规则】",
+    `若文字中包含多道菜的教程（一篇教多个菜），只提取与菜名「${name}」最相关的那一道菜的食材、调料和步骤；其他菜品的内容一律忽略，禁止把多道菜的信息混合在一起。`,
+    `菜名与原文表述可能略有差异（如用户写「鹿茸菇」原文写「香辣鹿茸菇」），按最相关的一道判断即可；若原文没有任何与菜名相关的菜品，对应字段输出空数组 []。`,
+    "",
+    buildSourceFidelityRules(),
     "",
     buildIngredientSeasoningRules(),
     "",
@@ -930,13 +1149,16 @@ exports.main = async (event) => {
 
     const ctx = cloud.getWXContext();
     const openid = getOpenidOrThrow(ctx);
-    await assertAiRateLimit(openid);
 
     switch (event.type) {
     case "generateCommonRecipe": {
       const { recipeName, familyId } = event;
       if (!recipeName) throw new Error("缺少 recipeName");
-      if (familyId) await assertFamilyMember({ openid, familyId });
+      // 限流 count 与家庭成员校验互不依赖，并行执行
+      await Promise.all([
+        assertAiRateLimit(openid),
+        familyId ? assertFamilyMember({ openid, familyId }) : Promise.resolve(),
+      ]);
       try {
         let modelOut = await qwenGenerateCommonRecipeByName(recipeName, { hard: false });
         let normalized = normalizeRecipeOut(modelOut, recipeName);
@@ -999,18 +1221,182 @@ exports.main = async (event) => {
       };
     }
 
+    /**
+     * 小红书分享链接识别：短链还原 → 分享页 SSR 解析出文案/图集，
+     * 文案优先走文本提炼，不够再走图集 OCR；失败降级为空白模板。
+     * 该路径依赖小红书页面结构，属于脆弱能力，失败一律兜底不报错给用户。
+     */
+    case "extractRecipeFromLink": {
+      const { shareText, recipeName, familyId } = event;
+      if (!recipeName) throw new Error("缺少 recipeName");
+      const rawShare = safeStr(shareText).trim();
+      if (!rawShare) throw new Error("缺少 shareText");
+      await Promise.all([
+        assertAiRateLimit(openid),
+        familyId ? assertFamilyMember({ openid, familyId }) : Promise.resolve(),
+      ]);
+
+      const name = safeStr(recipeName).trim();
+      const failWithTemplate = (errRaw, tip) => ({
+        mock: true,
+        source: "xhs->parse-fallback",
+        tip: tip || "链接解析失败，请改用「多图识别」截图导入或「文字识别」粘贴文案",
+        error: safeStr(errRaw),
+        ...genGenericRecipeByName(name),
+      });
+
+      let note = null;
+      try {
+        note = await xhsParser.fetchNoteFromShareText(rawShare);
+        console.log(
+          `[aiFunctions][xhs] noteId=${note.noteId} type=${note.type} ` +
+            `title=${note.title.slice(0, 30)} descLen=${note.desc.length} images=${note.images.length} ` +
+            `subtitle=${note.subtitleUrl ? "yes" : "no"} videoUrl=${note.videoUrl ? "yes" : "no"} duration=${note.videoDuration || 0}s`
+        );
+      } catch (e) {
+        const code = e && e.code;
+        // 这些错误信息本身即为用户可读提示，直接透出
+        const passThrough = code === "NO_LINK" || code === "LINK_EXPIRED" || code === "LOGIN_REQUIRED";
+        return failWithTemplate(e && e.message, passThrough ? safeStr(e && e.message) : undefined);
+      }
+
+      // 各来源按笔记类型排优先级，取第一个能产出有效内容的结果：
+      // 视频笔记：口播字幕 → 文案 → 视频理解模型；图文笔记：文案 → 图集 OCR
+      let normalized = null;
+      let source = "";
+      const stageErrors = [];
+      let subtitleAiAttempted = false;
+      const tryStage = async (src, fn) => {
+        if (normalized) return;
+        try {
+          const out = await fn();
+          if (!out) {
+            stageErrors.push(`${src}:无产出`);
+            return;
+          }
+          const n = normalizeRecipeOut(out, name);
+          if (hasAnyRecognizedContent(n)) {
+            normalized = n;
+            source = src;
+          } else {
+            stageErrors.push(`${src}:未提取到有效菜谱内容`);
+          }
+        } catch (e) {
+          stageErrors.push(`${src}:${safeStr(e && e.message).slice(0, 150)}`);
+          console.warn(`[aiFunctions][xhs] ${src} failed:`, safeStr(e && e.message));
+        }
+      };
+
+      const textBody = [note.title ? `笔记标题：${note.title}` : "", note.desc]
+        .filter(Boolean)
+        .join("\n")
+        .trim()
+        .slice(0, 10000);
+      const runTextStage = () =>
+        textBody.length >= 20
+          ? qwenExtractRecipeFromPastedText(name, textBody, { scene: "extractRecipeFromLinkText" })
+          : Promise.resolve(null);
+      const runImageStage = async () => {
+        if (!note.images.length) return null;
+        const images = await downloadImagesFromUrls(note.images, IMAGE_AI_MAX_COUNT);
+        const ocrText = await qwenOcrPlainTextFromImages(name, images);
+        return qwenExtractRecipeFromPastedText(name, ocrText.slice(0, 10000), {
+          model: getOcrStructureTextModel(),
+          scene: "extractRecipeFromLinkImage",
+        });
+      };
+      const runSubtitleStage = async () => {
+        if (!note.subtitleUrl) return null;
+        const srt = await xhsParser.downloadTextFile(note.subtitleUrl);
+        const transcript = xhsParser.srtToText(srt);
+        if (transcript.length < 20) return null;
+        // 字幕正文已包含标题+文案，调过 AI 后纯文案环节即为冗余（见下方跳过逻辑）
+        subtitleAiAttempted = true;
+        const body = [
+          note.title ? `笔记标题：${note.title}` : "",
+          note.desc,
+          "【视频口播字幕】",
+          transcript,
+        ]
+          .filter(Boolean)
+          .join("\n")
+          .trim()
+          .slice(0, 10000);
+        return qwenExtractRecipeFromPastedText(name, body, {
+          scene: "extractRecipeFromLinkSubtitle",
+        });
+      };
+      const runVideoModelStage = () => {
+        // 超长视频跳过，控制成本与 60s 超时风险
+        if (!note.videoUrl || !getVideoModel()) {
+          if (note.videoUrl && !getVideoModel()) {
+            console.warn("[aiFunctions][xhs] 视频流可用但未配置 QWEN_VIDEO_MODEL，跳过视频理解环节");
+          }
+          return Promise.resolve(null);
+        }
+        if (note.videoDuration && note.videoDuration > 300) return Promise.resolve(null);
+        console.log(
+          `[aiFunctions][xhs] video stage: model=${getVideoModel()} duration=${note.videoDuration || 0}s`
+        );
+        return qwenExtractRecipeFromVideo(name, note.videoUrl, note);
+      };
+
+      if (note.type === "video") {
+        await tryStage("xhs->subtitle", runSubtitleStage);
+        // 字幕正文已含标题+文案且调过 AI：纯文案环节冗余，跳过以把 60s 预算留给视频理解
+        if (!subtitleAiAttempted) await tryStage("xhs->text", runTextStage);
+        await tryStage("xhs->video", runVideoModelStage);
+      } else {
+        await tryStage("xhs->text", runTextStage);
+        await tryStage("xhs->images", runImageStage);
+      }
+
+      if (!normalized) {
+        const tip =
+          note.type === "video"
+            ? "未能从视频中识别出菜谱内容，可截图画面用「多图识别」或粘贴文案"
+            : "笔记中可提取的内容不足，请改用截图识别或粘贴文案";
+        const stageSummary = stageErrors.join(" | ") || "笔记可提取内容不足";
+        console.warn(`[aiFunctions][xhs] all stages failed noteId=${note.noteId}: ${stageSummary}`);
+        return failWithTemplate(stageSummary, tip);
+      }
+      const partial = looksLikePlaceholderRecipe(normalized);
+      return {
+        mock: false,
+        source,
+        noteTitle: note.title,
+        tip: partial
+          ? "部分内容无法从笔记中提取，已保留提取到的内容，请手动补充缺失项"
+          : "已从小红书笔记提取，可继续编辑",
+        ...normalized,
+      };
+    }
+
     /** 粘贴文案 + AI 提炼（推荐，替代小红书链接模式） */
     case "extractRecipeFromText": {
       const { recipeName, pastedText, familyId } = event;
       if (!recipeName) throw new Error("缺少 recipeName");
-      if (familyId) await assertFamilyMember({ openid, familyId });
+      // 限流 count 与家庭成员校验互不依赖，并行执行
+      await Promise.all([
+        assertAiRateLimit(openid),
+        familyId ? assertFamilyMember({ openid, familyId }) : Promise.resolve(),
+      ]);
       const t = safeStr(pastedText).trim();
       if (t.length < 8) throw new Error("请先粘贴足够长度的做法文案");
       try {
         const modelOut = await qwenExtractRecipeFromPastedText(recipeName, t);
         const normalized = normalizeRecipeOut(modelOut, recipeName);
         if (looksLikePlaceholderRecipe(normalized)) {
-          throw new Error("模型返回占位内容");
+          // 部分内容可提取时保留真实结果，缺失部分留占位提示用户手动补充，不做编造
+          if (hasAnyRecognizedContent(normalized)) {
+            return {
+              mock: false,
+              source: "text->qwen",
+              tip: "部分内容无法从文案中提取，已保留提取到的内容，请手动补充缺失项",
+              ...normalized,
+            };
+          }
+          throw new Error("文案中可提取的有效内容不足");
         }
         return {
           mock: false,
@@ -1025,7 +1411,7 @@ exports.main = async (event) => {
           return {
             mock: true,
             source: "text->no-api-key-fallback",
-            tip: "未配置 AI 密钥，已生成通用菜谱模板，可继续编辑",
+            tip: "未配置 AI 密钥，已生成空白模板，请手动填写",
             error: safeStr(e && e.message),
             ...parsed,
           };
@@ -1034,7 +1420,7 @@ exports.main = async (event) => {
         return {
           mock: true,
           source: "text->fallback",
-          tip: "提炼未完全成功，已为你生成通用菜谱，可自行修改",
+          tip: "未能从文案中提取有效内容，已生成空白模板，请手动填写或重试",
           error: safeStr(e && (e.message || e.errMsg)),
           debugRaw: safeStr(e && e.raw).slice(0, 1200),
           ...parsed,
@@ -1061,7 +1447,11 @@ exports.main = async (event) => {
         throw new Error(`最多支持 ${IMAGE_AI_MAX_COUNT} 张图片`);
       }
 
-      await assertImageFileIdsForFamily({ openid, familyId, fileIds: ids });
+      // 限流 count 与图片归属/家庭成员校验互不依赖，并行执行
+      await Promise.all([
+        assertAiRateLimit(openid),
+        assertImageFileIdsForFamily({ openid, familyId, fileIds: ids }),
+      ]);
 
       const images = await downloadImagesFromFileIds(ids);
       const pipeline = getImagePipeline();
@@ -1094,7 +1484,7 @@ exports.main = async (event) => {
           return {
             mock: true,
             source: "image->ocr-fallback",
-            tip: formatBailianUserTip(errRaw, "图片识别失败，已为你生成通用菜谱，可自行修改"),
+            tip: formatBailianUserTip(errRaw, "图片识别失败，已生成空白模板，请手动填写或重试"),
             error: errRaw,
             pipeline,
             imageCount: ids.length,
@@ -1128,7 +1518,7 @@ exports.main = async (event) => {
               return {
                 mock: true,
                 source: "image->qwen-fallback",
-                tip: formatBailianUserTip(errRaw, "图片识别失败，已为你生成通用菜谱，可自行修改"),
+                tip: formatBailianUserTip(errRaw, "图片识别失败，已生成空白模板，请手动填写或重试"),
                 error: errRaw,
                 pipeline,
                 imageCount: ids.length,
@@ -1141,7 +1531,7 @@ exports.main = async (event) => {
             return {
               mock: true,
               source: "image->qwen-fallback",
-              tip: formatBailianUserTip(errRaw, "图片识别失败，已为你生成通用菜谱，可自行修改"),
+              tip: formatBailianUserTip(errRaw, "图片识别失败，已生成空白模板，请手动填写或重试"),
               error: errRaw,
               pipeline,
               imageCount: ids.length,
@@ -1167,12 +1557,26 @@ exports.main = async (event) => {
       }
 
       if (looksLikePlaceholderRecipe(normalized)) {
+        // 部分内容可识别时保留真实结果，缺失部分留占位提示用户手动补充，不做编造
+        if (hasAnyRecognizedContent(normalized)) {
+          return {
+            mock: false,
+            source,
+            tip: "部分信息未能从图片识别，已保留识别到的内容，请手动补充缺失项",
+            pipeline,
+            imageCount: ids.length,
+            usedVisionModel,
+            usedTextModel,
+            ...normalized,
+          };
+        }
+        // 完全不可读/信息不足：只给空白模板和提示，不生成任何编造内容
         const fallback = genGenericRecipeByName(recipeName);
         return {
           mock: true,
           source: "image->placeholder-fallback",
-          tip: "未能从图片识别出有效内容，已生成通用模板，请手动修改",
-          error: "模型返回占位内容",
+          tip: "未能从图片识别出有效内容，请换更清晰的图片重试，或手动填写",
+          error: "图片可识别内容不足",
           debugRaw: visionRawText.slice(0, 800),
           pipeline,
           imageCount: ids.length,

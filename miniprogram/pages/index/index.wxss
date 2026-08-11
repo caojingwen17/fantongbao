@@ -82,6 +82,32 @@
   min-height: 100%;
 }
 
+/* 首屏骨架布局 */
+.sk-family-card {
+  height: 200rpx;
+  border-radius: 64rpx;
+}
+.sk-label {
+  margin-top: 40rpx;
+  height: 36rpx;
+  width: 200rpx;
+}
+.sk-order-card {
+  margin-top: 20rpx;
+  height: 140rpx;
+  border-radius: 40rpx;
+}
+.sk-tile-row {
+  margin-top: 18rpx;
+  display: flex;
+  gap: 18rpx;
+}
+.sk-tile {
+  flex: 1;
+  height: 250rpx;
+  border-radius: 40rpx;
+}
+
 .card {
   /* Tailwind in prototype: rounded-lg = 2rem */
   border-radius: 64rpx;
@@ -213,6 +239,9 @@
   margin-left: 0;
 }
 .avatar-b {
+  margin-left: -24rpx;
+}
+.avatar-overlap {
   margin-left: -24rpx;
 }
 .avatar-more {
@@ -457,6 +486,7 @@
   overflow: hidden;
 }
 .recipe-img {
+  --ft-ci-pos: absolute;
   position: absolute;
   left: 0;
   top: 0;
@@ -476,12 +506,6 @@
   left: 18rpx;
   right: 18rpx;
   bottom: 18rpx;
-}
-.recipe-tag {
-  font-size: 18rpx;
-  font-weight: 900;
-  letter-spacing: 1.6rpx;
-  color: rgba(255, 255, 255, 0.82);
 }
 .recipe-title {
   margin-top: 6rpx;

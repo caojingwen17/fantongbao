@@ -41,20 +41,22 @@ exports.main = async (event) => {
     "ai_usage_logs",
   ];
 
-  for (const name of collections) {
-    await safeCreateCollection(name);
-  }
+  // 各集合创建互不依赖，并行执行
+  await Promise.all(collections.map((name) => safeCreateCollection(name)));
 
-  await safeCreateIndex("families", { inviteCode: 1 }, { unique: true });
-  await safeCreateIndex("families", { adminId: 1 });
-  await safeCreateIndex("recipes", { familyId: 1, recipeName: 1 });
-  await safeCreateIndex("orders", { familyId: 1, status: 1 });
-  await safeCreateIndex("order_shopping_items", { familyId: 1, orderId: 1 });
-  await safeCreateIndex("order_cooking_steps", { familyId: 1, orderId: 1 });
-  await safeCreateIndex("recipe_share_tokens", { token: 1 }, { unique: true });
-  await safeCreateIndex("recipe_share_tokens", { recipeId: 1 }, { unique: true });
-  await safeCreateIndex("feedback", { createTime: -1 });
-  await safeCreateIndex("ai_usage_logs", { openid: 1, createTime: -1 });
+  // 各索引创建互不依赖，并行执行
+  await Promise.all([
+    safeCreateIndex("families", { inviteCode: 1 }, { unique: true }),
+    safeCreateIndex("families", { adminId: 1 }),
+    safeCreateIndex("recipes", { familyId: 1, recipeName: 1 }),
+    safeCreateIndex("orders", { familyId: 1, status: 1 }),
+    safeCreateIndex("order_shopping_items", { familyId: 1, orderId: 1 }),
+    safeCreateIndex("order_cooking_steps", { familyId: 1, orderId: 1 }),
+    safeCreateIndex("recipe_share_tokens", { token: 1 }, { unique: true }),
+    safeCreateIndex("recipe_share_tokens", { recipeId: 1 }, { unique: true }),
+    safeCreateIndex("feedback", { createTime: -1 }),
+    safeCreateIndex("ai_usage_logs", { openid: 1, createTime: -1 }),
+  ]);
 
   return {
     success: true,

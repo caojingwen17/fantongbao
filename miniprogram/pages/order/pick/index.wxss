@@ -104,12 +104,12 @@
   position: relative;
 }
 .recipe-media {
-  width: 160rpx;
-  height: 160rpx;
+  width: 200rpx;
+  height: 150rpx;
   border-radius: 16rpx;
   overflow: hidden;
   background: var(--ft-surface-container);
-  flex: 0 0 160rpx;
+  flex: 0 0 200rpx;
 }
 .recipe-img {
   width: 100%;
@@ -118,13 +118,6 @@
 .recipe-img-placeholder {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #d9d9d9;
-  color: #666;
-  font-size: 22rpx;
-  font-weight: 800;
 }
 .recipe-body {
   min-width: 0;

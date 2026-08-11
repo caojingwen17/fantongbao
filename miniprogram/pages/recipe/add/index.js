@@ -1,7 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
-const { resolveForImage } = require("../../../utils/cloudDisplay");
 const { uploadRecipeDisplayImage, notifyPublishSecError } = require("../../../utils/sec");
 const haptics = require("../../../utils/haptics");
 const {
@@ -17,6 +16,9 @@ Page({
     pastedRecipeText: "",
     pastedLen: 0,
     isExtractingFromText: false,
+    linkText: "",
+    linkLen: 0,
+    isExtractingFromLink: false,
     recipeName: "",
     recipeImg: "",
     recipeImgDisplay: "",
@@ -27,13 +29,13 @@ Page({
     cookingSteps: [],
     isImportingImage: false,
     isGeneratingCommon: false,
-    importTab: "image",
+    importTab: "link",
     canImport: false,
     accordion: {
       ingredients: true,
-      seasonings: false,
-      prep: false,
-      cook: false,
+      seasonings: true,
+      prep: true,
+      cook: true,
     },
     stepDrag: {
       active: false,
@@ -41,7 +43,78 @@ Page({
       index: -1,
       offsetY: 0,
       targetIndex: -1,
+      shiftY: [],
     },
+    /** 当前编辑中的步骤输入框（listKey-index），失焦切回纯文本展示 */
+    stepFocusKey: "",
+    /** 编辑态 textarea 的估算高度（px） */
+    stepFocusHeight: 60,
+    /** 键盘高度（px），>0 时用于撑开底部留白并滚动定位 */
+    keyboardHeight: 0,
+    /** scroll-view 的 scroll-top 定位值，聚焦步骤时仅滚动到键盘上方所需的最小距离 */
+    stepScrollTop: 0,
+  },
+
+  onStepFocus(e) {
+    const ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    const list = ds.list;
+    const index = Number(ds.index);
+    const items = this.data[list] || [];
+    const text = (items[index] && items[index].text) || "";
+    this.setData({
+      stepFocusKey: `${list}-${index}`,
+      stepFocusHeight: this.estimateStepHeight(text),
+    });
+    // 键盘已弹出时（从一行切到另一行），keyboardheightchange 不会再触发，这里直接定位
+    if (this.data.keyboardHeight > 0) {
+      setTimeout(() => this._scrollFocusedStepAboveKeyboard(), 100);
+    }
+  },
+
+  /**
+   * 键盘弹出时把聚焦的步骤行滚动到键盘上方：
+   * 只滚「被键盘遮住的距离 + 间距」，未被遮挡则不滚动。
+   */
+  _scrollFocusedStepAboveKeyboard() {
+    const key = this.data.stepFocusKey;
+    const kb = this.data.keyboardHeight;
+    if (!key || kb <= 0) return;
+    const win = typeof wx.getWindowInfo === "function" ? wx.getWindowInfo() : wx.getSystemInfoSync();
+    const keyboardTop = (win.windowHeight || 667) - kb;
+    const margin = 12; // 输入框底部与键盘顶部的间距(px)
+    wx.createSelectorQuery()
+      .in(this)
+      .select("#step-row-" + key)
+      .boundingClientRect()
+      .select(".main")
+      .scrollOffset()
+      .exec((res) => {
+        const rect = res && res[0];
+        const offset = res && res[1];
+        if (!rect || !offset) return;
+        const overflow = rect.bottom - (keyboardTop - margin);
+        if (overflow <= 0) return; // 未被键盘遮挡，不滚动
+        this.setData({ stepScrollTop: offset.scrollTop + overflow });
+      });
+  },
+
+  onStepBlur() {
+    this.setData({ stepFocusKey: "" });
+  },
+
+  /**
+   * 按文本估算编辑态高度（px）：iOS 原生 textarea 的 auto-height 会算错，
+   * 这里按行数估算。输入框实际可用宽度约 15 字/行，估算取更窄值并加行高余量，
+   * 保证聚焦态高度 ≥ 失焦展示高度，切换不「缩水」。
+   */
+  estimateStepHeight(text) {
+    const lines = String(text || "")
+      .split("\n")
+      .reduce((acc, s) => acc + Math.max(1, Math.ceil(s.length / 15)), 0);
+    const clamped = Math.min(Math.max(lines, 1), 10);
+    const win = typeof wx.getWindowInfo === "function" ? wx.getWindowInfo() : wx.getSystemInfoSync();
+    const rpx = (win.windowWidth || 375) / 750;
+    return Math.max(Math.round(96 * rpx), Math.round((clamped * 38 + 60) * rpx));
   },
 
   _stepDrag: null,
@@ -69,6 +142,25 @@ Page({
       prepareSteps: normalizeStepItems(["备菜步骤（1）"]),
       cookingSteps: normalizeStepItems(["做菜步骤（1）"]),
     });
+
+    // 键盘弹出时：撑开底部留白，并把正在编辑的步骤行滚动到键盘上方
+    this._onKeyboardHeight = (res) => {
+      const h = (res && res.height) || 0;
+      this.setData({ keyboardHeight: h });
+      if (h > 0) {
+        setTimeout(() => this._scrollFocusedStepAboveKeyboard(), 60);
+      }
+    };
+    if (typeof wx.onKeyboardHeightChange === "function") {
+      wx.onKeyboardHeightChange(this._onKeyboardHeight);
+    }
+  },
+
+  onUnload() {
+    if (this._onKeyboardHeight && typeof wx.offKeyboardHeightChange === "function") {
+      wx.offKeyboardHeightChange(this._onKeyboardHeight);
+    }
+    this._onKeyboardHeight = null;
   },
 
   toggleAccordion(e) {
@@ -77,6 +169,30 @@ Page({
     const next = { ...(this.data.accordion || {}) };
     next[key] = !next[key];
     this.setData({ accordion: next });
+  },
+
+  /** 校验失败：展开对应分组并滚动过去 */
+  _scrollToSection(key) {
+    const next = { ...(this.data.accordion || {}), [key]: true };
+    this.setData({ accordion: next });
+    setTimeout(() => {
+      wx.pageScrollTo({ selector: `#acc-${key}`, duration: 220 });
+    }, 80);
+  },
+
+  /** 导入区未解锁（未填菜名）时点击，给出解锁路径 */
+  onImportLockedTap() {
+    if (this.data.canImport) return;
+    wx.showToast({ title: "先填写菜名，再使用 AI 导入", icon: "none" });
+  },
+
+  /** 上传展示图：未填菜名时给出提示 */
+  onTapCoverUpload() {
+    if (!this.data.canImport) {
+      wx.showToast({ title: "请先填写菜名", icon: "none" });
+      return;
+    }
+    this.onChooseImage();
   },
 
   onImportTabChange(e) {
@@ -88,6 +204,11 @@ Page({
   onPastedRecipeTextInput(e) {
     const v = e.detail.value || "";
     this.setData({ pastedRecipeText: v, pastedLen: v.length });
+  },
+
+  onLinkTextInput(e) {
+    const v = e.detail.value || "";
+    this.setData({ linkText: v, linkLen: v.length });
   },
 
   onRecipeNameInput(e) {
@@ -119,8 +240,8 @@ Page({
     ui.showLoading("检测中…", true);
     try {
       const fid = await uploadRecipeDisplayImage(filePath, familyId);
-      const recipeImgDisplay = await resolveForImage(fid, { familyId });
-      this.setData({ recipeImg: fid, recipeImgDisplay });
+      // 用本地裁切图立即回显：刚上传的文件 CDN 可能未生效
+      this.setData({ recipeImg: fid, recipeImgDisplay: filePath });
       ui.hideLoading();
       wx.showToast({ title: "图片上传成功", icon: "none" });
     } catch (err) {
@@ -153,7 +274,7 @@ Page({
         recipeName: this.data.recipeName,
         pastedText: raw,
         familyId: this.data.familyId,
-      });
+      }, { timeout: 60000 });
 
       if (result && result.recipeName) {
         this.setData({
@@ -182,7 +303,73 @@ Page({
     }
   },
 
-  /* 小红书链接 onExtract 已移除；需要时从 git 恢复并对接 aiFunctions.extractRecipe */
+  /** 小红书分享链接识别：云函数解析笔记文案/图集后走 AI 提炼 */
+  async onExtractFromLink() {
+    if (!this.data.familyId) {
+      wx.showToast({ title: "请先选择家庭", icon: "none" });
+      return;
+    }
+    if (!String(this.data.recipeName || "").trim()) {
+      wx.showToast({ title: "请先输入菜名", icon: "none" });
+      return;
+    }
+    const raw = String(this.data.linkText || "").trim();
+    if (!/(xhslink\.(?:com|cn)|xiaohongshu\.com)/i.test(raw)) {
+      wx.showToast({ title: "请粘贴小红书分享口令或链接", icon: "none" });
+      return;
+    }
+    if (this.data.isExtractingFromLink) return;
+    this.setData({ isExtractingFromLink: true });
+    this.showAiLoading();
+    try {
+      const result = await cloud.callFunction("aiFunctions", {
+        type: "extractRecipeFromLink",
+        recipeName: this.data.recipeName,
+        shareText: raw,
+        familyId: this.data.familyId,
+      }, { timeout: 90000 });
+
+      if (result && result.recipeName) {
+        this.setData({
+          ingredients: result.ingredients || [],
+          seasonings: result.seasonings || [],
+          prepareSteps: normalizeStepItems(result.prepareSteps || []),
+          cookingSteps: normalizeStepItems(result.cookingSteps || []),
+        });
+        const tip =
+          result.tip ||
+          (result.mock ? "解析未完全成功，请核对后编辑" : "已提取内容，可继续编辑");
+        haptics.medium();
+        wx.showToast({
+          title: tip.length > 28 ? tip.slice(0, 28) + "…" : tip,
+          icon: "none",
+          duration: result.mock ? 4500 : 2500,
+        });
+        if (result.mock && tip.length > 28) {
+          wx.showModal({
+            title: "解析提示",
+            content: tip,
+            showCancel: false,
+            confirmText: "知道了",
+          });
+        }
+      } else {
+        wx.showToast({ title: "解析失败，请改用截图识别", icon: "none" });
+      }
+    } catch (e) {
+      const msg =
+        (e && e.message) ||
+        (e && e.errMsg) ||
+        "解析失败，请稍后重试";
+      wx.showToast({ title: String(msg).slice(0, 32), icon: "none", duration: 4000 });
+      console.error("[recipe/add] extract from link failed:", e);
+    } finally {
+      this.hideAiLoading();
+      this.setData({ isExtractingFromLink: false });
+    }
+  },
+
+  /* 旧小红书链接 onExtract 已移除；链接识别走 onExtractFromLink → aiFunctions.extractRecipeFromLink */
 
   compressImagePath(filePath) {
     return new Promise((resolve) => {
@@ -273,7 +460,7 @@ Page({
             recipeName: this.data.recipeName,
             imageFileIds: fileIds,
             familyId: this.data.familyId,
-          });
+          }, { timeout: 90000 });
 
           if (result && result.recipeName) {
             this.setData({
@@ -339,7 +526,7 @@ Page({
           type: "generateCommonRecipe",
           recipeName: this.data.recipeName,
           familyId: this.data.familyId,
-        })
+        }, { timeout: 60000 })
         .catch(() => null);
 
       const payload = result && result.recipeName ? result : null;
@@ -393,6 +580,7 @@ Page({
     this.setData({ ingredients });
   },
   removeIngredient(e) {
+    haptics.light();
     const idx = e.currentTarget.dataset.index;
     const ingredients = this.data.ingredients || [];
     ingredients.splice(idx, 1);
@@ -417,6 +605,7 @@ Page({
     this.setData({ seasonings });
   },
   removeSeasoning(e) {
+    haptics.light();
     const idx = e.currentTarget.dataset.index;
     const seasonings = this.data.seasonings || [];
     seasonings.splice(idx, 1);
@@ -450,12 +639,14 @@ Page({
     this.setData({ cookingSteps });
   },
   removePrepareStep(e) {
+    haptics.light();
     const idx = e.currentTarget.dataset.index;
     const prepareSteps = [...(this.data.prepareSteps || [])];
     prepareSteps.splice(idx, 1);
     this.setData({ prepareSteps: prepareSteps.length ? prepareSteps : [createStepItem("")] });
   },
   removeCookingStep(e) {
+    haptics.light();
     const idx = e.currentTarget.dataset.index;
     const cookingSteps = [...(this.data.cookingSteps || [])];
     cookingSteps.splice(idx, 1);
@@ -504,15 +695,28 @@ Page({
     const { listKey, fromIndex, startY, rects } = this._stepDrag;
     const offsetY = touch.clientY - startY;
     const targetIndex = calcDragTargetIndex(rects, touch.clientY, fromIndex);
-    if (
-      this.data.stepDrag.offsetY === offsetY &&
-      this.data.stepDrag.targetIndex === targetIndex
-    ) {
-      return;
+
+    const update = {};
+    if (this.data.stepDrag.offsetY !== offsetY) {
+      update["stepDrag.offsetY"] = offsetY;
     }
-    this.setData({
-      "stepDrag.offsetY": offsetY,
-      "stepDrag.targetIndex": targetIndex,
+    if (this.data.stepDrag.targetIndex !== targetIndex) {
+      update["stepDrag.targetIndex"] = targetIndex;
+      update["stepDrag.shiftY"] = this._computeShiftY(fromIndex, targetIndex, rects);
+    }
+    if (Object.keys(update).length) this.setData(update);
+  },
+
+  /** 其他行让位位移：被拖行高度 + 行间距，介于 from 与 target 之间的行反向平移 */
+  _computeShiftY(fromIndex, targetIndex, rects) {
+    const win = typeof wx.getWindowInfo === "function" ? wx.getWindowInfo() : wx.getSystemInfoSync();
+    const gapPx = (18 * (win.windowWidth || 375)) / 750;
+    const rowH = ((rects[fromIndex] && rects[fromIndex].height) || 60) + gapPx;
+    return (rects || []).map((_, i) => {
+      if (i === fromIndex) return 0;
+      if (fromIndex < targetIndex && i > fromIndex && i <= targetIndex) return -rowH;
+      if (targetIndex < fromIndex && i >= targetIndex && i < fromIndex) return rowH;
+      return 0;
     });
   },
 
@@ -535,6 +739,7 @@ Page({
         index: -1,
         offsetY: 0,
         targetIndex: -1,
+        shiftY: [],
       },
     });
   },
@@ -564,10 +769,12 @@ Page({
     const cleanedCookingSteps = getStepTexts(cookingSteps).filter((s) => String(s).trim() !== "");
 
     if (!cleanedIngredients.length) {
+      this._scrollToSection("ingredients");
       wx.showToast({ title: "至少填写1种食材", icon: "none" });
       return;
     }
     if (!cleanedPrepareSteps.length || !cleanedCookingSteps.length) {
+      this._scrollToSection(cleanedPrepareSteps.length ? "cook" : "prep");
       wx.showToast({ title: "备菜和做菜步骤都至少填写1条", icon: "none" });
       return;
     }

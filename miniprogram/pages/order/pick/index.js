@@ -2,7 +2,6 @@ const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
 const haptics = require("../../../utils/haptics");
-const { attachRecipeImgDisplay } = require("../../../utils/cloudDisplay");
 
 const KEYWORD_DEBOUNCE_MS = 320;
 
@@ -10,6 +9,9 @@ Page({
   data: {
     orderId: "",
     familyId: "",
+    /** 客人模式：凭点餐邀请 token 访问，不加入家庭 */
+    inviteToken: "",
+    guest: false,
     order: null,
     localPicked: [],
     recipesRaw: [],
@@ -29,9 +31,12 @@ Page({
     if (!ok) return;
     const app = getApp();
     const orderId = (options && options.orderId) || "";
+    const inviteToken = (options && options.inviteToken) || "";
     this.setData({
       orderId,
       familyId: app.globalData.currentFamilyId || "",
+      inviteToken,
+      guest: !!inviteToken,
     });
     if (!orderId) {
       wx.showToast({ title: "缺少点菜单", icon: "none" });
@@ -78,20 +83,25 @@ Page({
 
   /** 进入页面：拉点菜单 + 菜谱列表，本地草稿与服务器一致 */
   async loadInitial() {
-    const { orderId, familyId } = this.data;
-    if (!orderId || !familyId) return;
+    const { orderId, familyId, inviteToken, guest } = this.data;
+    if (!orderId) return;
+    if (!familyId && !guest) return;
     this.setData({ listLoading: true });
     try {
       const [orderRes, recipeRes] = await Promise.all([
-        cloud.callFunction("orderFunctions", {
-          type: "getOrderDetail",
-          orderId,
-        }),
-        cloud.callFunction("recipeFunctions", {
-          type: "listRecipes",
-          familyId,
-          keyword: this.data.keyword || "",
-        }),
+        cloud.callFunction("orderFunctions", Object.assign(
+          { type: "getOrderDetail", orderId },
+          guest ? { inviteToken } : {}
+        )),
+        cloud.callFunction("recipeFunctions", Object.assign(
+          {
+            type: "listRecipes",
+            familyId,
+            keyword: this.data.keyword || "",
+            lite: true,
+          },
+          guest ? { inviteToken } : {}
+        )),
       ]);
       const order = orderRes && orderRes.order ? orderRes.order : null;
       if (order && order.status === "completed") {
@@ -100,19 +110,22 @@ Page({
         return;
       }
       const raw = (recipeRes && recipeRes.recipes) || [];
-      const withImg = await attachRecipeImgDisplay(raw);
       const localPicked = (order && order.recipes ? order.recipes : []).map((r) => ({ ...r }));
       this.setData({
         order,
-        recipesRaw: withImg,
+        recipesRaw: raw,
         localPicked,
         orderName: (order && order.orderName) || "点菜单",
         canInviteOrder:
+          !guest &&
           order &&
           (order.status === "pending_shopping" || order.status === "pending_cooking"),
       });
       this.applyPickedFlags();
     } catch (e) {
+      if (e && e.message) {
+        wx.showToast({ title: String(e.message).slice(0, 30), icon: "none" });
+      }
     } finally {
       this.setData({ listLoading: false });
     }
@@ -120,18 +133,21 @@ Page({
 
   /** 仅搜索菜谱，不重置已点草稿 */
   async loadRecipesOnly() {
-    const { familyId } = this.data;
-    if (!familyId) return;
+    const { familyId, inviteToken, guest } = this.data;
+    if (!familyId && !guest) return;
     this.setData({ listLoading: true });
     try {
-      const recipeRes = await cloud.callFunction("recipeFunctions", {
-        type: "listRecipes",
-        familyId,
-        keyword: this.data.keyword || "",
-      });
+      const recipeRes = await cloud.callFunction("recipeFunctions", Object.assign(
+        {
+          type: "listRecipes",
+          familyId,
+          keyword: this.data.keyword || "",
+          lite: true,
+        },
+        guest ? { inviteToken } : {}
+      ));
       const raw = (recipeRes && recipeRes.recipes) || [];
-      const withImg = await attachRecipeImgDisplay(raw);
-      this.setData({ recipesRaw: withImg });
+      this.setData({ recipesRaw: raw });
       this.applyPickedFlags();
     } catch (e) {
     } finally {
@@ -162,12 +178,17 @@ Page({
 
   /** 从分享链接进入时页面栈无上一页，navigateBack 会失败，需显式回到点菜单详情 */
   goBackFromPick() {
-    const { orderId } = this.data;
+    const { orderId, guest } = this.data;
     const pages = getCurrentPages();
     const prev = pages.length >= 2 ? pages[pages.length - 2] : null;
     const prevRoute = prev && prev.route ? prev.route : "";
     if (prevRoute === "pages/order/detail/index") {
       wx.navigateBack();
+      return;
+    }
+    // 客人没有家庭权限，不能进点菜单详情页，直接回首页
+    if (guest) {
+      wx.reLaunch({ url: "/pages/index/index" });
       return;
     }
     if (orderId) {
@@ -187,6 +208,8 @@ Page({
   noop() {},
 
   goRecipeDetail(e) {
+    // 客人模式不开放菜谱详情（详情页含编辑等家庭成员操作）
+    if (this.data.guest) return;
     const recipeId = e.currentTarget.dataset.recipeid;
     if (!recipeId) return;
     wx.navigateTo({ url: `/pages/recipe/detail/index?recipeId=${recipeId}` });
@@ -221,22 +244,32 @@ Page({
 
     try {
       await ui.withLoading(async () => {
-        await cloud.callFunction("orderFunctions", {
-          type: "syncOrderRecipes",
-          orderId,
-          recipes: (localPicked || []).map((r) => ({
-            recipeId: r.recipeId,
-            note: r.note || "",
-            creatorId: r.creatorId,
-          })),
-        });
+        await cloud.callFunction(
+          "orderFunctions",
+          Object.assign(
+            {
+              type: "syncOrderRecipes",
+              orderId,
+              recipes: (localPicked || []).map((r) => ({
+                recipeId: r.recipeId,
+                note: r.note || "",
+                creatorId: r.creatorId,
+              })),
+            },
+            this.data.guest ? { inviteToken: this.data.inviteToken } : {}
+          ),
+          { timeout: 30000 }
+        );
       }, "提交中…");
       getApp().globalData.homeDirty = true;
       haptics.medium();
       wx.showToast({ title: "已提交", icon: "success" });
       setTimeout(() => this.goBackFromPick(), 400);
     } catch (err) {
-      wx.showToast({ title: "提交失败，请重试", icon: "none" });
+      wx.showToast({
+        title: String((err && err.message) || "提交失败，请重试").slice(0, 30),
+        icon: "none",
+      });
       await this.loadInitial();
       getApp().globalData.homeDirty = true;
     }

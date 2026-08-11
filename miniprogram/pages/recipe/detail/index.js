@@ -102,23 +102,29 @@ Page({
     if (result && result.recipe) {
       const recipe = result.recipe;
       const recipeImg = recipe.recipeImg || "";
-      const recipeImgDisplay = await resolveForImage(recipeImg, {
-        familyId: recipe.familyId,
-      });
+      // 先渲染文字内容；头图由 ft-cloud-image 组件自行解析/重试，不再阻塞首屏
       this.setData({
         familyId: recipe.familyId || "",
         recipeName: recipe.recipeName || "",
         recipeImg,
-        recipeImgDisplay,
         ingredients: recipe.ingredients || [],
         seasonings: recipe.seasonings || [],
         prepareSteps: recipe.prepareSteps || [],
         cookingSteps: recipe.cookingSteps || [],
       });
+      // 后台解析一份临时链仅供分享卡片/海报使用（与组件解析共享缓存与去重）
+      const recipeImgDisplay = await resolveForImage(recipeImg, {
+        familyId: recipe.familyId,
+      });
+      if (this.data.recipeImg === recipeImg && recipeImgDisplay) {
+        this.setData({ recipeImgDisplay });
+      }
     }
   },
 
   async onLoad(options) {
+    // 同步置位：onShow 会在 onLoad 的异步流程结束前先触发一次，跳过一次重复拉取
+    this._skipShowFetchOnce = true;
     const ok = await auth.requireLoggedInOrBack({ content: "查看菜谱详情需要先登录。" });
     if (!ok) return;
     const app = getApp();
@@ -135,7 +141,6 @@ Page({
     } catch (e) {
       // ignore
     } finally {
-      this._skipShowFetchOnce = true;
       this.setData({ pageLoading: false });
     }
   },
@@ -154,8 +159,7 @@ Page({
     }
   },
 
-  onBack() {
-    const pages = getCurrentPages();
+  onBack() {    const pages = getCurrentPages();
     if (!pages || pages.length <= 1) {
       wx.reLaunch({ url: "/pages/index/index" });
       return;

@@ -27,34 +27,30 @@
 .recipe-list { margin-top: 18rpx; display: flex; flex-direction: column; gap: 12rpx; }
 .recipe-item { background: var(--ft-surface-container-lowest); border-radius: 24rpx; padding: 16rpx; }
 .recipe-row { display: flex; gap: 16rpx; }
-.recipe-media { width: 160rpx; height: 160rpx; border-radius: 16rpx; overflow: hidden; background: var(--ft-surface-container); flex: 0 0 160rpx; }
+.recipe-media { width: 200rpx; height: 150rpx; border-radius: 16rpx; overflow: hidden; background: var(--ft-surface-container); flex: 0 0 200rpx; }
 .recipe-img { width: 100%; height: 100%; }
 .recipe-img-placeholder {
   width: 100%;
   height: 100%;
+}
+.recipe-body { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4rpx 0; }
+.recipe-name { font-size: 34rpx; font-weight: 900; line-height: 1.28; }
+.recipe-date { margin-top: 8rpx; font-size: 20rpx; font-weight: 700; color: var(--ft-on-surface-variant); }
+.recipe-del {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 9999rpx;
+  background: var(--ft-surface-container-low);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #d9d9d9;
-  color: #666;
-  font-size: 22rpx;
-  font-weight: 800;
+  align-self: center;
+  flex-shrink: 0;
 }
-.recipe-body { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 4rpx 0; }
-.recipe-name { font-size: 34rpx; font-weight: 900; line-height: 1.28; }
-.recipe-date { margin-top: 6rpx; font-size: 20rpx; font-weight: 700; color: var(--ft-on-surface-variant); }
-.recipe-foot { margin-top: 12rpx; display: flex; align-items: center; justify-content: space-between; }
-.recipe-foot-right { display: flex; align-items: center; gap: 12rpx; }
-.recipe-row-del {
-  font-size: 22rpx;
-  font-weight: 900;
-  color: var(--ft-error, #c62828);
-  padding: 8rpx 14rpx;
-  border-radius: 9999rpx;
-  background: rgba(198, 40, 40, 0.08);
+.recipe-del:active {
+  transform: scale(0.9);
+  background: var(--ft-error-bg, rgba(249, 86, 48, 0.16));
 }
-.recipe-foot-spacer { flex: 1; }
-.recipe-arrow { font-size: 34rpx; color: var(--ft-outline); }
 
 .list-hint-delete {
   margin-top: 8rpx;
@@ -82,3 +78,10 @@
 .sheet-item.danger { color: var(--ft-error); }
 .sheet-cancel { height: 96rpx; border-radius: 9999rpx; background: var(--ft-surface-container); display: flex; align-items: center; justify-content: center; font-size: 30rpx; font-weight: 900; margin-top: 6rpx; }
 
+
+.list-footer {
+  padding: 28rpx 0 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--ft-on-surface-variant);
+}

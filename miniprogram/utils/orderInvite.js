@@ -119,21 +119,19 @@ async function acceptOrderInvite(token) {
   }
 
   const preview = await previewOrderInvite(token);
-  const inviteCode = preview.inviteCode;
   const orderId = preview.orderId;
   const familyId = preview.familyId;
-  if (!inviteCode || !orderId) throw new Error("邀请信息不完整");
+  const isMember = !!preview.isMember;
+  if (!orderId) throw new Error("邀请信息不完整");
 
-  await invite.joinFamilyByInviteCode(inviteCode);
-
-  const app = getApp();
-  if (familyId) {
+  // 客人（非家庭成员）不加入家庭，仅本次凭链接点菜；家庭成员则切到对应家庭
+  if (isMember && familyId) {
     await cloud.callFunction("familyFunctions", { type: "switchFamily", familyId }).catch(() => {});
-    app.globalData.currentFamilyId = familyId;
+    getApp().globalData.currentFamilyId = familyId;
   }
 
   markOrderInviteHandled();
-  return { orderId, familyId, preview };
+  return { orderId, familyId, preview, guest: !isMember };
 }
 
 /** 从启动参数解析并记住点餐邀请 */

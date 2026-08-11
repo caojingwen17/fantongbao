@@ -2,6 +2,7 @@
   "navigationBarTitleText": "饭桶宝",
   "navigationStyle": "custom",
   "usingComponents": {
-    "cloud-tip-modal": "/components/cloudTipModal/index"
+    "cloud-tip-modal": "/components/cloudTipModal/index",
+    "ft-cloud-image": "/components/ft-cloud-image/index"
   }
 }

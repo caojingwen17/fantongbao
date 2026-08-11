@@ -1,7 +1,6 @@
 const cloud = require("../../../utils/cloud");
 const ui = require("../../../utils/ui");
 const auth = require("../../../utils/auth");
-const { resolveForImage } = require("../../../utils/cloudDisplay");
 
 Page({
   data: {
@@ -9,7 +8,6 @@ Page({
     recipeId: "",
     recipeName: "",
     recipeImg: "",
-    recipeImgDisplay: "",
     note: "",
     familyId: null,
     orderId: "",
@@ -30,31 +28,18 @@ Page({
     }
 
     try {
-      const [recipeResult, orderResult] = await Promise.all([
-        cloud.callFunction("recipeFunctions", {
-          type: "getRecipe",
-          recipeId: this.data.recipeId,
-        }),
-        cloud.callFunction("orderFunctions", {
-          type: "ensurePendingShoppingOrder",
-          familyId: this.data.familyId,
-        }),
-      ]);
+      const recipeResult = await cloud.callFunction("recipeFunctions", {
+        type: "getRecipe",
+        recipeId: this.data.recipeId,
+      });
 
       if (recipeResult && recipeResult.recipe) {
         const recipeImg = recipeResult.recipe.recipeImg || "";
-        const recipeImgDisplay = await resolveForImage(recipeImg, {
-          familyId: recipeResult.recipe.familyId || this.data.familyId,
-        });
+        // 头图由 ft-cloud-image 组件按 recipeImg 自行解析换链
         this.setData({
           recipeName: recipeResult.recipe.recipeName || "",
           recipeImg,
-          recipeImgDisplay,
         });
-      }
-
-      if (orderResult && orderResult.orderId) {
-        this.setData({ orderId: orderResult.orderId });
       }
     } catch (e) {
     } finally {
@@ -67,12 +52,19 @@ Page({
   },
 
   async onConfirm() {
-    const { orderId, recipeId, note } = this.data;
-    if (!orderId) {
-      wx.showToast({ title: "未获取到待买菜点菜单", icon: "none" });
-      return;
-    }
+    const { recipeId, note } = this.data;
+    // 点菜单延迟到确认时才 ensure：首屏不再为一个写操作空等
     await ui.withLoading(async () => {
+      let orderId = this.data.orderId;
+      if (!orderId) {
+        const res = await cloud.callFunctionWithErrorToast("orderFunctions", {
+          type: "ensurePendingShoppingOrder",
+          familyId: this.data.familyId,
+        });
+        orderId = res && res.orderId;
+        if (!orderId) throw new Error("未获取到待买菜点菜单");
+        this.setData({ orderId });
+      }
       await cloud.callFunctionWithErrorToast("orderFunctions", {
         type: "addRecipeToOrder",
         orderId,
